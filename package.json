@@ -1,6 +1,6 @@
 {
   "name": "homebridge-platform-insteonlocal",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Insteon platform plugin with local control for homebridge: https://github.com/nfarina/homebridge",
   "license": "ISC",
   "keywords": [
@@ -18,7 +18,10 @@
     "homebridge": ">=0.2.0"
   },
   "dependencies": {
-    "request": "^2.65.0",
-    "moment": ">=2.4.0"
+    "request": "^2.81.0",
+    "moment": ">=2.20.1",
+    "underscore": "1.8.3",
+    "home-controller": "0.8.0",
+    "express": "^4.16.2"
   }
 }
