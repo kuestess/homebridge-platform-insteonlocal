@@ -3,9 +3,9 @@ Homebridge platform plugin for local Insteon control
 
 Overview
 --------
-Implements local control of Insteon devices (switches or dimmers only for now) via Homebridge. Leverage [home-controller](https://github.com/automategreen/home-controller) to enable control and status of multiple Insteon devices.  Supports both Insteon Hub 2242 and 2245.
+Implements local control of Insteon devices (switches or dimmers only for now) via Homebridge. Leverages [home-controller](https://github.com/automategreen/home-controller) to enable control and status of multiple Insteon devices.  Supports both Insteon Hub 2242 and 2245.
 
-This plugin leverages two mechanisms to get device status - an event listener and periodic polling.  The event listener will listen for events on the Insteon network and automatically update device status in Homebridge.  It will only capture manual events (ie, manually pusing a switch) and not events triggered by other apps or devices (ie, Amazon Echo).  To work around this limitation, the plugin will also periodically poll for the status of configured devices (see configuration below).
+This plugin leverages two mechanisms to get device status - an event listener and periodic polling.  The event listener will listen for events on the Insteon network and automatically update device status in Homebridge.  It will only capture manual events (ie, manually pushing a switch) and not events triggered by other apps or devices (ie, Amazon Echo).  To work around this limitation, the plugin will also periodically poll for the status of configured devices (see configuration below).
 
 Devices are not yet auto-discovered and must be defined in config.json (see configuration example)
 
