@@ -477,11 +477,13 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 				self.lastUpdate = moment()	
 			})
 
-		self.getBrightnessLevel.call(self, self.id, function(error, body){
-				if(error){
-					console.log('Error retrieving status of ' + self.name); 
-				}
-		})
+		if(self.dimmable){
+			self.getBrightnessLevel.call(self, self.id, function(error, body){
+					if(error){
+						console.log('Error retrieving status of ' + self.name); 
+					}
+			})
+		}
 		
 		if(self.refreshInterval>0){
 			setInterval(function(){self.pollStatus.call(self, self.id)}, 1000*self.refreshInterval)
