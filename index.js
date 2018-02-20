@@ -278,12 +278,14 @@ InsteonLocalAccessory.prototype.pollStatus = function(id) {
 			self.currentState = state;	
 		})
 
-		self.getBrightnessLevel.call(self, self.id, function(error, body){
-		if(error){
-			console.log('Error retrieving status of ' + self.name);
-			return
-			}
-		})
+	if(self.dimmable){
+			self.getBrightnessLevel.call(self, self.id, function(error, body){
+			if(error){
+				console.log('Error retrieving status of ' + self.name);
+				return
+				}
+			})
+		}
 	}
 }
 
