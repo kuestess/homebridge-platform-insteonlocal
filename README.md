@@ -30,8 +30,8 @@ Clone the repository, cd into the cloned directory and install using npm:
 Configuration
 -------------
 Edit the config.json (see example) to fit your installation - configuration parameters are:
-  - `user`:  username from Insteon app
-  - `pass`:  password from Insteon app
+  - `user`:  Hub username from Insteon app (Not your Insteon login username.  Go to Settings->House in the Insteon app and use the 'Hub Username' from there.)
+  - `pass`:  Hub password from Insteon app (Not your Insteon login password.  Go to Settings->House in the Insteon app and use the 'Hub Password' from there.)
   - `host`:  local IP of your Insteon hub
   - `port`:  port from Insteon app
   - `model`: model number of your hub.  Valid values are 2242 or 2245
