@@ -31,7 +31,13 @@ The Express serve is now optional and can be disabled if desired.
 
 ## Install
 
-Clone the repository, cd into the cloned directory and install using npm:
+**Now with more npm!**
+
+To install from npm:
+
+`npm -g install homebridge-platform-insteonlocal`
+
+Alternately, clone the repository, cd into the cloned directory and install using npm:
 
 `npm -g install`
 

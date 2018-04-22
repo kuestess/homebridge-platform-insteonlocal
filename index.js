@@ -186,7 +186,7 @@ function InsteonLocalPlatform(log, config, api) {
             console.log('Connected to Insteon Hub...')
             hub.emit('connect')
             eventListener()
-            if(use_express){
+            if(self.use_express){
             	app.listen(self.server_port)
             }
         })
@@ -195,7 +195,7 @@ function InsteonLocalPlatform(log, config, api) {
             console.log('Connected to Insteon Hub...')
             hub.emit('connect')
             eventListener()
-            if(use_express){
+            if(self.use_express){
             	app.listen(self.server_port)
             }
         })
