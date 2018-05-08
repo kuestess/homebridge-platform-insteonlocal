@@ -249,7 +249,19 @@ function InsteonLocalPlatform(log, config, api) {
                     }
                     
                     break
+				
+				case ('scene'):
+                    //var group = parseInt(command2, 16)
+                    //if (group == foundDevice.groupID) {
 
+						self.log('Got updated status for ' + foundDevice.name)
+						foundDevice.getSceneState.call(foundDevice)
+						
+						foundDevice.lastUpdate = moment()
+                    //}
+                    
+                    break
+				
                 case 'iolinc':
                     if (command1 == 11 || command1 == 13) {
                         setTimeout(function() {
@@ -339,7 +351,6 @@ InsteonLocalAccessory.prototype.pollStatus = function() {
         switch (self.deviceType) {
         case ('lightbulb' || 'dimmer'):
             self.getStatus.call(self)
-
             setTimeout(function() {self.pollStatus.call(self)}, (1000 * self.refreshInterval))
             break
 
@@ -350,6 +361,11 @@ InsteonLocalAccessory.prototype.pollStatus = function() {
 
         case ('iolinc'):
             self.getSensorStatus.call(self)            
+            setTimeout(function() {self.pollStatus.call(self)}, (1000 * self.refreshInterval))
+            break
+            
+        case ('scene'):
+            self.getSceneState.call(self)
             setTimeout(function() {self.pollStatus.call(self)}, (1000 * self.refreshInterval))
             break
         } 
@@ -643,7 +659,7 @@ InsteonLocalAccessory.prototype.setRelayState = function(state, callback) {
 InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
     var self = this
     var powerOn = state ? "on" : "off"
-    var groupID = parseInt(self.id)
+    var groupID = parseInt(self.groupID)
 	
 	self.log("Setting power state of " + self.name + " to " + powerOn)
 	
@@ -698,6 +714,63 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 		}  
 }
 
+InsteonLocalAccessory.prototype.getSceneState = function(callback) {
+    var self = this
+	var buttonState
+	var timeout = 0
+	var buttonArray = {'A': 7, 'B': 6, 'C': 5,'D': 4,'E': 3,'F': 2,'G': 1,'H': 0};
+	
+	if (self.keypadbtn == 'A') {
+		var cmd = {
+		  cmd1: '19',
+		  cmd2: '00',
+		};
+	} else {    
+		var cmd = {
+		  cmd1: '19',
+		  cmd2: '01',
+		};
+	}
+	
+	self.log('Getting status for ' + self.name)
+	
+	hub.directCommand(self.id, cmd, timeout, function(err,status){
+		if(err || status == null || typeof status == 'undefined'){
+			self.log("Error getting power state of " + self.name)
+			self.log.debug('Err: ' + util.inspect(err))
+			return
+			} else {	
+			
+			var hexButtonMap = status.response.standard.command2
+			var binaryButtonMap = parseInt(hexButtonMap, 16).toString(2);
+			binaryButtonMap = "00000000".substr(binaryButtonMap.length) + binaryButtonMap //pad to 8 digits
+			
+			self.log.debug('Binary map: ' + binaryButtonMap)
+			
+			var buttonNumber = buttonArray[self.keypadbtn]
+			var buttonState = binaryButtonMap.charAt(buttonNumber)
+			self.log.debug('Button ' + self.keypadbtn + ' state is ' + buttonState)
+			
+			if (buttonState > 0) {
+				self.currentState = true
+				self.level = 100
+			} else {
+				self.currentState = false
+				self.level = 0
+			}
+			 
+			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off'))
+			self.service.getCharacteristic(Characteristic.On).updateValue(self.currentState)
+			if (self.dimmable) {
+				self.service.getCharacteristic(Characteristic.Brightness).updateValue(self.level)
+			}
+			self.lastUpdate = moment()
+			return
+		}
+	})
+}
+
+
 function InsteonLocalAccessory(platform, device) {
     var self = this
 
@@ -724,14 +797,20 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
     self.lastUpdate = ''
     self.refreshInterval = platform.refreshInterval || 0
     self.server_port = platform.server_port
-	
+    
+    if (self.deviceType == 'scene') {
+    	self.groupID = device.groupID
+		self.keypadbtn = device.keypadbtn
+	}
+    
     if (self.deviceType == 'iolinc') {
         self.gdo_delay = device.gdo_delay || 15
     }
     
 	if(self.refreshInterval > 0){    
 		hub.on('connect',function(){		
-			if (self.deviceType == ('lightbulb' || 'dimmer' || 'switch' || 'iolinc')){
+			if (self.deviceType == ('lightbulb' || 'dimmer' || 'switch' || 'iolinc' || 'scene'))
+			{
 				self.pollStatus.call(self)
 			} 
 		}	
@@ -829,7 +908,11 @@ InsteonLocalAccessory.prototype.getServices = function() {
         self.dimmable = false
 		
 		self.service.getCharacteristic(Characteristic.On).on('set', self.setSceneState.bind(self))
-
+		
+		hub.on('connect', function() {
+            self.getSceneState.call(self)
+        })
+		
         break
 
     case 'iolinc':

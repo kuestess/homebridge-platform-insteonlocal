@@ -57,11 +57,15 @@ Edit the config.json (see example) to fit your installation - configuration para
 Devices are also defined in the config.json as follows:
 
   - `name`:  Device name as you want it to appear in Homebridge
-  - `deviceID`:  Insteon ID with no spaces or dividers
+  - `deviceID`: Insteon ID with no spaces or dividers
+  - `groupID`:  Insteon group ID for a scene
+  - `keypadbtn`: Keypad button to check for status of a scene, in caps (8-key models only)
   - `dimmable`:  dimmable or non-dimming device - valid values are "yes" or "no"
   - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'iolinc', 'motionsensor', 'leaksensor'
 
-Scenes are currently on/off only, and do not support status (although the status of the component devices will update).  When defining a scene, the `deviceID` parameter should be the group number in the Insteon app (Scenes->Edit Scene->Group Number).
+**Scene config changes in 0.3.2 and later**
+
+Scenes remain on/off only, and now support status when controlled via a Keypadlinc.  When defining a scene, the `deviceID` is the Insteon ID of a keypad that controls the scene and `keypadbtn` is then button that indicates the status of the scene.  The `groupID` parameter is now the group number in the Insteon app (Scenes->Edit Scene->Group Number).
 
 For iolinc devices, there is an additional parameter that can be defined:
 
