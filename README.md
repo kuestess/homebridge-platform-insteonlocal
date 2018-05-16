@@ -61,11 +61,13 @@ Devices are also defined in the config.json as follows:
   - `groupID`:  Insteon group ID for a scene
   - `keypadbtn`: Keypad button to check for status of a scene, in caps (8-key models only)
   - `dimmable`:  dimmable or non-dimming device - valid values are "yes" or "no"
-  - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'iolinc', 'motionsensor', 'leaksensor'
+  - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'iolinc', 'motionsensor', 'leaksensor', and 'fan'.  Please note that fan/fanlinc support is untested.
 
 **Scene config changes in 0.3.2 and later**
 
 Scenes remain on/off only, and now support status when controlled via a Keypadlinc.  When defining a scene, the `deviceID` is the Insteon ID of a keypad that controls the scene and `keypadbtn` is then button that indicates the status of the scene.  The `groupID` parameter is now the group number in the Insteon app (Scenes->Edit Scene->Group Number).
+
+Fan support in version 0.3.3 is untested so I appreciate any feedback on its use.  To configure fanlinc support, use the 'fan' device type.  This will create a fan device only - you can add a separate entry in your config (using the same `deviceID`) to add the light as a device.
 
 For iolinc devices, there is an additional parameter that can be defined:
 

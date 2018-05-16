@@ -215,61 +215,58 @@ function InsteonLocalPlatform(log, config, api) {
             var isDevice = _.contains(deviceIDs, id, 0)
 
             if (isDevice) {
-                var foundDevice = accessories.filter(function(item) {
+                var foundDevices = accessories.filter(function(item) {
                     return item.id == id
                 })
 
-                foundDevice = foundDevice[0]
-
-                self.log.debug('Got event for ' + foundDevice.name)
+                self.log.debug('Found ' + foundDevices.length + ' accessories matching ' + id)
                 self.log.debug('Hub command: ' + info)
 
-                switch (foundDevice.deviceType) {
-                case ('lightbulb' || 'switch'):
+				for (var i = 0, len = foundDevices.length; i < len; i++) {
+					var foundDevice = foundDevices[i]
+					self.log.debug('Got event for ' + foundDevice.name)
+					
+					switch (foundDevice.deviceType) {
+					case ('lightbulb' || 'switch'):
+						if (command1 == 19 || command1 == 3 || command1 == 0) { //19 = status
+							var level_int = parseInt(command2, 16) * (100 / 255)
+							var level = Math.ceil(level_int)
 
-                    if (command1 == 19 || command1 == 3 || command1 == 0) { //19 = status
-						var level_int = parseInt(command2, 16) * (100 / 255)
-						var level = Math.ceil(level_int)
+							self.log('Got updated status for ' + foundDevice.name)
 
-						self.log('Got updated status for ' + foundDevice.name)
-
-						if (foundDevice.dimmable) {
-							foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(level)
-							foundDevice.level = level
+							if (foundDevice.dimmable) {
+								foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(level)
+								foundDevice.level = level
+							}
+						
+							if(level > 0){
+								foundDevice.currentState = true
+							} else {
+								foundDevice.currentState = false
+							}
+						
+							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(foundDevice.currentState)
+							foundDevice.lastUpdate = moment()
 						}
-						
-						if(level > 0){
-							foundDevice.currentState = true
-						} else {
-							foundDevice.currentState = false
-						}
-						
-						foundDevice.service.getCharacteristic(Characteristic.On).updateValue(foundDevice.currentState)
-						foundDevice.lastUpdate = moment()
-                    }
-                    
-                    break
+					
+						break
 				
-				case ('scene'):
-                    //var group = parseInt(command2, 16)
-                    //if (group == foundDevice.groupID) {
-
+					case 'scene':
 						self.log('Got updated status for ' + foundDevice.name)
-						foundDevice.getSceneState.call(foundDevice)
+						foundDevice.getSceneState.call(foundDevice)	
+						foundDevice.lastUpdate = moment()					
 						
-						foundDevice.lastUpdate = moment()
-                    //}
-                    
-                    break
+						break
 				
-                case 'iolinc':
-                    if (command1 == 11 || command1 == 13) {
-                        setTimeout(function() {
-                            foundDevice.getSensorStatus.call(foundDevice)
-                        }, 1000 * foundDevice.gdo_delay)
-                    }
-                    break
-                }
+					case 'iolinc':
+						if (command1 == 11 || command1 == 13) {
+							setTimeout(function() {
+								foundDevice.getSensorStatus.call(foundDevice)
+							}, 1000 * foundDevice.gdo_delay)
+						}
+						break
+					}
+            	}
             }
         })
     }
@@ -749,7 +746,7 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 			
 			var buttonNumber = buttonArray[self.keypadbtn]
 			var buttonState = binaryButtonMap.charAt(buttonNumber)
-			self.log.debug('Button ' + self.keypadbtn + ' state is ' + buttonState)
+			self.log.debug('Button ' + self.keypadbtn + ' state is ' + (buttonState ? 'on' : 'off'))
 			
 			if (buttonState > 0) {
 				self.currentState = true
@@ -770,6 +767,114 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 	})
 }
 
+InsteonLocalAccessory.prototype.getFanState = function(callback) {
+    var self = this
+	var currentState
+	
+    self.log('Getting state for ' + self.name)
+
+    self.fan(function(err,state) {
+		if(err || typeof level == 'undefined'){
+			self.log("Error getting power state of " + self.name)
+			if (typeof callback !== 'undefined') {
+				callback(error, null)
+				return
+			} else {
+				return
+			}
+		} else {	
+			switch(state) {
+			case 'off':
+			  	self.currentState = false
+				self.level = 0
+			  
+			break
+			
+			case 'low':
+			  	self.currentState = true
+				self.level = 33
+			  
+			break;
+			
+			case 'medium':
+			  	self.currentState = true
+				self.level = 66
+			  
+			break
+			
+			case 'high':
+			  	self.currentState = true
+				self.level = 100
+			  
+			break
+			}
+			
+			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + self.level + ' %')
+			
+			self.service.getCharacteristic(Characteristic.On).updateValue(self.currentState)
+			self.service.getCharacteristic(Characteristic.RotationSpeed).updateValue(self.level) //value from 1 to 100
+
+			self.lastUpdate = moment()
+			if (typeof callback !== 'undefined') {
+				callback(null, self.currentState)
+			} else {
+				return
+			}
+		}
+	})       
+}
+
+InsteonLocalAccessory.prototype.setFanState = function(level, callback) {
+    var self = this
+	var targetLevel
+	
+    hub.cancelPending(self.deviceID)
+    
+    if (level == 0){
+    	targetLevel = 'off'
+    } else if (level <= 33) {
+    	targetLevel = 'low'
+    } else if (33 <= level <= 66) {
+    	targetLevel = 'medium'    
+    } else if (level > 66) {
+    	targetLevel = 'high'    
+    }
+    
+    self.log("Setting level of " + self.name + " to " + targetLevel + '%')
+    
+    self.light.fan(targetLevel).then(function(status)
+     {    
+        if (status.success) {                
+            self.level = level
+            self.service.getCharacteristic(Characteristic.RotationSpeed).updateValue(self.level)
+
+			if (self.level > 0) {
+				self.service.getCharacteristic(Characteristic.On).updateValue(true)
+				self.currentState = true
+			} else if (self.level == 0) {
+				self.service.getCharacteristic(Characteristic.On).updateValue(false)
+				self.currentState = false
+			}
+			
+			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + level + '%')
+			self.lastUpdate = moment()
+			
+			if (typeof callback !== 'undefined') {
+				callback(null, self.level)
+			} else {
+				return
+			}	
+        } else {
+			self.log("Error setting level of " + self.name)   
+            if (typeof callback !== 'undefined') {
+                callback(error, null)
+                return
+            } else {
+                return
+            }
+		}
+	})
+}
 
 function InsteonLocalAccessory(platform, device) {
     var self = this
@@ -878,7 +983,33 @@ InsteonLocalAccessory.prototype.getServices = function() {
         })
 
         break
-
+	
+	case ('fan'):
+		self.service = new Service.Fan(self.name)
+		
+		self.service.getCharacteristic(Characteristic.On).on('set', self.setFanPowerState.bind(self))
+		
+		self.light = hub.light(self.id)
+		
+		self.light.fan.on('turnOn', function(group, level){		
+			self.log.debug(self.name + ' turned on')
+			self.service.getCharacteristic(Characteristic.On).updateValue(true)
+			self.getFanState.call(self)
+		})
+		
+		self.light.fan.on('turnOff', function(){
+			self.log.debug(self.name + ' turned off')
+			self.service.getCharacteristic(Characteristic.On).updateValue(false)
+			self.service.getCharacteristic(Characteristic.RotationSpeed).updateValue(0)
+		})
+        
+        //Get initial state
+        hub.on('connect', function() {
+            self.getFanState.call(self)
+        })
+        		
+		break
+		
     case ('switch'):
         self.service = new Service.Switch(self.name)
 
