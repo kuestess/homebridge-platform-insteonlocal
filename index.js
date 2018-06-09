@@ -11,6 +11,10 @@ var app = express()
 var Accessory, Service, Characteristic, UUIDGen
 var links = []
 var accessories = []
+var connectedToHub = false
+var connectionCount = 0
+var express_init = false
+var eventListener_init = false
 
 var platform = InsteonLocalPlatform
 
@@ -38,8 +42,9 @@ function InsteonLocalPlatform(log, config, api) {
     self.devices = config["devices"]
     self.refreshInterval = config["refresh"] || 0
     self.server_port = config["server_port"]
-    self.use_express = config["use_express"] || true
-
+    self.use_express = config["use_express"] || true    
+    self.keepAlive = config["keepAlive"] || 3600
+	
     var config = {
         host: self.host,
         port: self.port,
@@ -181,33 +186,61 @@ function InsteonLocalPlatform(log, config, api) {
         self.deviceIDs.push(self.devices[i].deviceID)
     }
 	
-    if (self.model == "2245") {
-        hub.httpClient(config, function(had_error) {
-            console.log('Connected to Insteon Hub...')
-            hub.emit('connect')
-            eventListener()
-            if(self.use_express){
-            	app.listen(self.server_port)
-            }
-        })
-    } else {
-        hub.connect(self.host, function() {
-            console.log('Connected to Insteon Hub...')
-            hub.emit('connect')
-            eventListener()
-            if(self.use_express){
-            	app.listen(self.server_port)
-            }
-        })
+	connectToHub()
+	connectionWatcher()
+	
+    function connectToHub(){
+		if (self.model == "2245") {
+			hub.httpClient(config, function(had_error) {
+				console.log('Connected to Insteon Hub...')
+				hub.emit('connect')
+				connectedToHub = true
+				if(eventListener_init == false) {
+					eventListener()
+				}
+				
+				if(self.use_express && express_init == false){
+					express_init = true
+					app.listen(self.server_port)
+				}
+			})
+		} else {
+			hub.connect(self.host, function() {
+				console.log('Connected to Insteon Hub...')
+				hub.emit('connect')
+				connectedToHub = true
+				if(eventListener_init == false) {
+					eventListener()
+				}
+				
+				if(self.use_express && express_init == false){
+					express_init = true
+					app.listen(self.server_port)
+				}
+			})
+		}
     }
     
-    hub.on('error', function(err){
-    	self.log.debug('Error: ' + util.inspect(err))
-    })
+    function connectionWatcher() { //resets connection to hub every keepAlive mS
+    	if(self.keepAlive > 0){
+    		setTimeout(function(){
+    			//hub.cancelPending()
+    			self.log('Closing connection to Hub...')
+    			hub.close()
+    			connectedToHub = false
+    			connectionWatcher()
+    		},1000*self.keepAlive)
+    		if (connectedToHub == false) {
+    			self.log('Reconnecting to Hub...')
+    			connectToHub()
+    		}
+    	}
+    }
     
     function eventListener() {
         var deviceIDs = platform.deviceIDs
-
+		eventListener_init = true
+        
         self.log('Insteon event listener started')
 		
         hub.on('command', function(data) {
@@ -233,6 +266,7 @@ function InsteonLocalPlatform(log, config, api) {
 					
 						switch (foundDevice.deviceType) {
 						case 'lightbulb':
+						case 'dimmer':
 						case 'switch':
 							if (command1 == 19 || command1 == 3 || command1 == 0) { //19 = status
 								var level_int = parseInt(command2, 16) * (100 / 255)
@@ -380,6 +414,11 @@ InsteonLocalAccessory.prototype.pollStatus = function() {
             
         case 'scene':
             self.getSceneState.call(self)
+            setTimeout(function() {self.pollStatus.call(self)}, (1000 * self.refreshInterval))
+            break
+        
+        case 'fan':
+            self.getFanState.call(self)
             setTimeout(function() {self.pollStatus.call(self)}, (1000 * self.refreshInterval))
             break
         } 
@@ -678,6 +717,7 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 	self.log("Setting power state of " + self.name + " to " + powerOn)
 	
 	if (state) {
+		self.log.debug('State: ' + util.inspect(state))
 		hub.sceneOn(groupID).then(function(status) {
 			if (status.completed) {
 					self.level = 100
