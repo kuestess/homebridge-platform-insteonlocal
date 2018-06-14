@@ -49,7 +49,7 @@ Edit the config.json (see example) to fit your installation - configuration para
   - `pass`:  Hub password from Insteon app (Not your Insteon login password.  Go to Settings->House in the Insteon app and use the 'Hub Password' from there.)
   - `host`:  local IP of your Insteon hub
   - `port`:  port from Insteon app
-  - `model`: model number of your hub.  Valid values are 2242 or 2245
+  - `model`: model number of your hub.  Valid values are 2242, 2245 or 2243 (see below)
   - `refresh`: device status refresh interval in seconds (disabled by default, set to 0 to disable polling)
   - `use_express`: true or false to enable/disable Express server
   - `server_port`: port for local Express server
@@ -72,3 +72,39 @@ Fan support in version 0.3.3 is untested so I appreciate any feedback on its use
 For iolinc devices, there is an additional parameter that can be defined:
 
 - `gdo_delay`: number of seconds before status of the sensor is checked when opening/closing the door (ie, how long does it take the door to open/close) [default = 15]
+
+Using The HubPro Model 2243 (Alpha)
+-----------------------------------
+
+It is possible to use the official Insteon HubPro as a complete homebride server and Insteon Hub. This requires flashing the HubPro and installing homebridge as normal. Inside the HubPro is a BeagleBoard Black Computer and a Power Line Modem connected via a serial connection.
+
+1. Follow the intructions here http://beagleboard.org/getting-started to create an microSD card with latest board software
+2. Open the HubPro removing the 6 screwes on the bottom.
+3. Insert the SD Card.
+4. While holding down the Boot Button "S2" connect the power. Don't electrocute yourself. Wait until the LED starts flashing.
+5. You should be able to connect via SSH now (username is 'debian' and the password is 'temppwd').
+6. Change the password!
+7. Enable the serial port by editing /boot/uEnv.txt
+
+Add:
+```
+cape_disable=bone_capemgr.disable_partno=BB-BONELT-HDMI,BB-BONELT-HDMIN
+cape_enable=bone_capemgr.enable_partno=BB-UART1,BB-UART2,BB-UART4.BB-UART5
+```
+
+Enable:
+```
+###Overide capes with eeprom
+uboot_overlay_addr0=/lib/firmware/BB-UART1-00A0.dtbo
+uboot_overlay_addr1=/lib/firmware/BB-UART2-00A0.dtbo
+uboot_overlay_addr2=/lib/firmware/BB-UART4-00A0.dtbo
+uboot_overlay_addr3=/lib/firmware/BB-UART5-00A0.dtbo
+```
+
+8. Reboot and log back in (same as step 4 & 5)
+9. Install homebridge and this plug as usual seting the model in config.json to 2243
+
+
+TODO
+
+- How to always start up off the SD or flash the eMMC
