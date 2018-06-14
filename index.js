@@ -254,7 +254,7 @@ function InsteonLocalPlatform(log, config, api) {
     			connectedToHub = false
     			connectionWatcher()
     		},1000*self.keepAlive)
-    		if (connectedToHub == false) {
+    		if (connectedToHub == false && connectingToHub == false) {
     			self.log('Reconnecting to Hub...')
     			connectToHub()
     		}
