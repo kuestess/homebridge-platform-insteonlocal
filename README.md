@@ -81,7 +81,7 @@ It is possible to use the official Insteon HubPro as a complete homebride server
 1. Follow the intructions here http://beagleboard.org/getting-started to create an microSD card with latest board software
 2. Open the HubPro removing the 6 screwes on the bottom.
 3. Insert the SD Card.
-4. While holding down the Boot Button "S2" connect the power. Don't elecute your self. Wait until the LED starts flashing.
+4. While holding down the Boot Button "S2" connect the power. Don't electrocute yourself. Wait until the LED starts flashing.
 5. You should be able to connect via SSH now (username is 'debian' and the password is 'temppwd').
 6. Change the password!
 7. Enable the serial port by editing /boot/uEnv.txt
