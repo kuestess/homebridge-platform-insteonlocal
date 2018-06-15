@@ -12,6 +12,7 @@ var Accessory, Service, Characteristic, UUIDGen
 var links = []
 var accessories = []
 var connectedToHub = false
+var connectingToHub = false
 var connectionCount = 0
 var express_init = false
 var eventListener_init = false
@@ -189,37 +190,60 @@ function InsteonLocalPlatform(log, config, api) {
 	connectToHub()
 	connectionWatcher()
 	
-    function connectToHub(){
+	function connectToHub(){
 		if (self.model == "2245") {
+			self.log.debug('Connecting to Insteon Model 2245 Hub...')
+			connectingToHub = true
 			hub.httpClient(config, function(had_error) {
-				console.log('Connected to Insteon Hub...')
+				self.log('Connected to Insteon Model 2245 Hub...')
 				hub.emit('connect')
 				connectedToHub = true
+				connectingToHub = false
 				if(eventListener_init == false) {
 					eventListener()
 				}
-				
+
+				if(self.use_express && express_init == false){
+					express_init = true
+					app.listen(self.server_port)
+				}
+			})
+		} else if (self.model == "2243") {
+			self.log.debug('Connecting to Insteon "Hub Pro" Hub...')
+			connectingToHub = true
+			hub.serial("/dev/ttyS4",{baudRate:19200}, function(had_error) {
+				self.log('Connected to Insteon "Hub Pro" Hub...')
+				hub.emit('connect')
+				connectedToHub = true
+				connectingToHub = false
+				if(eventListener_init == false) {
+					eventListener()
+				}
+
 				if(self.use_express && express_init == false){
 					express_init = true
 					app.listen(self.server_port)
 				}
 			})
 		} else {
+			self.log.debug('Connecting to Insteon Model 2242 Hub...')
+			connectingToHub = true
 			hub.connect(self.host, function() {
-				console.log('Connected to Insteon Hub...')
+				self.log('Connected to Insteon Moden 2242 Hub...')
 				hub.emit('connect')
 				connectedToHub = true
+				connectingToHub = false
 				if(eventListener_init == false) {
 					eventListener()
 				}
-				
+
 				if(self.use_express && express_init == false){
 					express_init = true
 					app.listen(self.server_port)
 				}
 			})
 		}
-    }
+	}
     
     function connectionWatcher() { //resets connection to hub every keepAlive mS
     	if(self.keepAlive > 0){
@@ -230,7 +254,7 @@ function InsteonLocalPlatform(log, config, api) {
     			connectedToHub = false
     			connectionWatcher()
     		},1000*self.keepAlive)
-    		if (connectedToHub == false) {
+    		if (connectedToHub == false && connectingToHub == false) {
     			self.log('Reconnecting to Hub...')
     			connectToHub()
     		}
