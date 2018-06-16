@@ -563,7 +563,7 @@ InsteonLocalAccessory.prototype.getPowerState = function(callback) {
 InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
     var self = this
 	
-    hub.cancelPending(self.deviceID)
+    hub.cancelPending(self.id)
     
     self.log("Setting level of " + self.name + " to " + level + '%')
     self.light.level(level).then(function(status)
@@ -948,7 +948,7 @@ InsteonLocalAccessory.prototype.setFanState = function(level, callback) {
     var self = this
 	var targetLevel
 	
-    hub.cancelPending(self.deviceID)
+    hub.cancelPending(self.id)
     
     if (level == 0){
     	targetLevel = 'off'
