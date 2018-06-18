@@ -213,7 +213,6 @@ function InsteonLocalPlatform(log, config, api) {
 			connectingToHub = true
 			hub.serial("/dev/ttyS4",{baudRate:19200}, function(had_error) {
 				self.log('Connected to Insteon "Hub Pro" Hub...')
-				hub.emit('connect')
 				connectedToHub = true
 				connectingToHub = false
 				if(eventListener_init == false) {
@@ -564,7 +563,7 @@ InsteonLocalAccessory.prototype.getPowerState = function(callback) {
 InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
     var self = this
 	
-    hub.cancelPending(self.deviceID)
+    hub.cancelPending(self.id)
     
     self.log("Setting level of " + self.name + " to " + level + '%')
     self.light.level(level).then(function(status)
@@ -949,7 +948,7 @@ InsteonLocalAccessory.prototype.setFanState = function(level, callback) {
     var self = this
 	var targetLevel
 	
-    hub.cancelPending(self.deviceID)
+    hub.cancelPending(self.id)
     
     if (level == 0){
     	targetLevel = 'off'
