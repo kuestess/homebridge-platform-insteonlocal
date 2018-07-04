@@ -102,7 +102,7 @@ It is possible to use the official Insteon HubPro as a complete homebride server
 Add:
 ```
 cape_disable=bone_capemgr.disable_partno=BB-BONELT-HDMI,BB-BONELT-HDMIN
-cape_enable=bone_capemgr.enable_partno=BB-UART1,BB-UART2,BB-UART4.BB-UART5
+cape_enable=bone_capemgr.enable_partno=BB-UART1,BB-UART2,BB-UART4,BB-UART5
 ```
 
 Enable:
