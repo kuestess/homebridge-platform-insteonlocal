@@ -14,6 +14,7 @@ var accessories = []
 var connectedToHub = false
 var connectingToHub = false
 var connectionCount = 0
+var inUse = true
 var express_init = false
 var eventListener_init = false
 
@@ -41,10 +42,15 @@ function InsteonLocalPlatform(log, config, api) {
     self.pass = config["pass"]
     self.model = config["model"]
     self.devices = config["devices"]
-    self.refreshInterval = config["refresh"] || 0
     self.server_port = config["server_port"]
     self.use_express = config["use_express"] || true    
     self.keepAlive = config["keepAlive"] || 3600
+	
+	if (self.model == "2242") {
+		self.refreshInterval = config["refresh"] || 300
+	} else {
+		self.refreshInterval = config["refresh"] || 0
+	}
 	
     var config = {
         host: self.host,
@@ -187,13 +193,47 @@ function InsteonLocalPlatform(log, config, api) {
         self.deviceIDs.push(self.devices[i].deviceID)
     }
 	
-	connectToHub()
+	platform.connectToHub()
 	
 	if (self.keepAlive > 0){
 		connectionWatcher()
 	}
-	
-	function connectToHub(){
+    
+    function connectionWatcher() { //resets connection to hub every keepAlive mS
+		if (self.model == "2245") {
+			if(self.keepAlive > 0){
+				self.log('Started connection watcher...')
+				setTimeout(function(){
+					self.log('Closing connection to Hub...')
+					hub.close()
+					connectedToHub = false
+					connectionWatcher()
+				},1000*self.keepAlive)
+				if (connectedToHub == false && connectingToHub == false) {
+					self.log('Reconnecting to Hub...')
+					connectToHub()
+				}
+			}
+    	}
+    	
+    	if (self.model == "2242") { //check every 10 sec to see if a request is in progress
+			setInterval(function(){
+				if (typeof hub.status == 'undefined' && connectedToHub == true) { //undefined if no request in progress
+					inUse = false
+					self.log('Closing connection to Hub...')
+					hub.close()
+					connectedToHub = false
+				} else {
+					inUse = true
+				}
+			}, 10000) 	
+    	}
+    }
+}
+
+InsteonLocalPlatform.prototype.connectToHub = function (){
+		var self = this
+		
 		if (self.model == "2245") {
 			self.log.debug('Connecting to Insteon Model 2245 Hub...')
 			connectingToHub = true
@@ -203,7 +243,7 @@ function InsteonLocalPlatform(log, config, api) {
 				connectedToHub = true
 				connectingToHub = false
 				if(eventListener_init == false) {
-					eventListener()
+					self.eventListener()
 				}
 
 				if(self.use_express && express_init == false){
@@ -219,7 +259,7 @@ function InsteonLocalPlatform(log, config, api) {
 				connectedToHub = true
 				connectingToHub = false
 				if(eventListener_init == false) {
-					eventListener()
+					self.eventListener()
 				}
 
 				if(self.use_express && express_init == false){
@@ -231,13 +271,13 @@ function InsteonLocalPlatform(log, config, api) {
 			self.log.debug('Connecting to Insteon Model 2242 Hub...')
 			connectingToHub = true
 			hub.connect(self.host, function() {
-				self.log('Connected to Insteon Moden 2242 Hub...')
+				self.log('Connected to Insteon Model 2242 Hub...')
 				hub.emit('connect')
 				connectedToHub = true
 				connectingToHub = false
-				if(eventListener_init == false) {
+				/*if(eventListener_init == false) {
 					eventListener()
-				}
+				}*/
 
 				if(self.use_express && express_init == false){
 					express_init = true
@@ -246,107 +286,107 @@ function InsteonLocalPlatform(log, config, api) {
 			})
 		}
 	}
-    
-    function connectionWatcher() { //resets connection to hub every keepAlive mS
-    	if(self.keepAlive > 0){
-    		self.log('Started connection watcher...')
-    		setTimeout(function(){
-    			self.log('Closing connection to Hub...')
-    			hub.close()
-    			connectedToHub = false
-    			connectionWatcher()
-    		},1000*self.keepAlive)
-    		if (connectedToHub == false && connectingToHub == false) {
-    			self.log('Reconnecting to Hub...')
-    			connectToHub()
-    		}
-    	}
-    }
-    
-    function eventListener() {
-        var deviceIDs = platform.deviceIDs
-		eventListener_init = true
-        
-        self.log('Insteon event listener started')
-		
-        hub.on('command', function(data) {
-            if (typeof data.standard !== 'undefined') {
-				var info = JSON.stringify(data)
-				var id = data.standard.id
-				var command1 = data.standard.command1
-				var command2 = data.standard.command2
 
-				var isDevice = _.contains(deviceIDs, id, 0)
+InsteonLocalPlatform.prototype.checkHubConnection = function () {
+	var self = this
+	
+	if(connectingToHub == false) {
+		if(connectedToHub == false) {
+			console.log('Reconnecting to Hub...')
+			self.connectToHub()
+		}
+	}
+	
+	return
+}
 
-				if (isDevice) {
-					var foundDevices = accessories.filter(function(item) {
-						return item.id == id
-					})
+InsteonLocalPlatform.prototype.eventListener = function () {
+	var self = this
+	
+	var deviceIDs = platform.deviceIDs
+	eventListener_init = true
+	
+	self.log('Insteon event listener started')
+	
+	hub.on('command', function(data) {
+		if (typeof data.standard !== 'undefined') {
+			var info = JSON.stringify(data)
+			var id = data.standard.id
+			var command1 = data.standard.command1
+			var command2 = data.standard.command2
 
-					self.log.debug('Found ' + foundDevices.length + ' accessories matching ' + id)
-					self.log.debug('Hub command: ' + info)
+			var isDevice = _.contains(deviceIDs, id, 0)
 
-					for (var i = 0, len = foundDevices.length; i < len; i++) {
-						var foundDevice = foundDevices[i]
-						self.log.debug('Got event for ' + foundDevice.name)
-					
-						switch (foundDevice.deviceType) {
-						case 'lightbulb':
-						case 'dimmer':
-						case 'switch':
-							if (command1 == 19 || command1 == 3 || command1 == 0) { //19 = status
-								var level_int = parseInt(command2, 16) * (100 / 255)
-								var level = Math.ceil(level_int)
+			if (isDevice) {
+				var foundDevices = accessories.filter(function(item) {
+					return item.id == id
+				})
 
-								self.log('Got updated status for ' + foundDevice.name)
+				self.log.debug('Found ' + foundDevices.length + ' accessories matching ' + id)
+				self.log.debug('Hub command: ' + info)
 
-								if (foundDevice.dimmable) {
-									foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(level)
-									foundDevice.level = level
-								}
-						
-								if(level > 0){
-									foundDevice.currentState = true
-								} else {
-									foundDevice.currentState = false
-								}
-						
-								foundDevice.service.getCharacteristic(Characteristic.On).updateValue(foundDevice.currentState)
-								foundDevice.lastUpdate = moment()
+				for (var i = 0, len = foundDevices.length; i < len; i++) {
+					var foundDevice = foundDevices[i]
+					self.log.debug('Got event for ' + foundDevice.name)
+				
+					switch (foundDevice.deviceType) {
+					case 'lightbulb':
+					case 'dimmer':
+					case 'switch':
+						if (command1 == 19 || command1 == 3 || command1 == 0) { //19 = status
+							var level_int = parseInt(command2, 16) * (100 / 255)
+							var level = Math.ceil(level_int)
+
+							self.log('Got updated status for ' + foundDevice.name)
+
+							if (foundDevice.dimmable) {
+								foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(level)
+								foundDevice.level = level
 							}
 					
-							break
-				
-						case 'scene':
-							self.log('Got updated status for ' + foundDevice.name)
-							foundDevice.getSceneState.call(foundDevice)	
-							foundDevice.lastUpdate = moment()					
-						
-							break
-				
-						case 'iolinc':
-							if (command1 == 11 || command1 == 13) {
-								setTimeout(function() {
-									foundDevice.getSensorStatus.call(foundDevice)
-								}, 1000 * foundDevice.gdo_delay)
+							if(level > 0){
+								foundDevice.currentState = true
+							} else {
+								foundDevice.currentState = false
 							}
-							break
-						
-						case 'fan':
-							self.log('Got updated status for ' + foundDevice.name)
-							if (command1 == 19) {//fan portion of fanlinc
-								foundDevice.getFanState.call(foundDevice)
-							}
-							foundDevice.lastUpdate = moment()					
-							break
-						
+					
+							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(foundDevice.currentState)
+							foundDevice.lastUpdate = moment()
 						}
+				
+						break
+			
+					case 'scene':
+						self.log('Got updated status for ' + foundDevice.name)
+						foundDevice.getSceneState.call(foundDevice)	
+						foundDevice.lastUpdate = moment()					
+					
+						break
+			
+					case 'iolinc':
+						if (command1 == 11 || command1 == 13) {
+							setTimeout(function() {
+								foundDevice.getSensorStatus.call(foundDevice)
+							}, 1000 * foundDevice.gdo_delay)
+						}
+						break
+					
+					case 'fan':
+						self.log('Got updated status for ' + foundDevice.name)
+						if (command1 == 19) {//fan portion of fanlinc
+							foundDevice.getFanState.call(foundDevice)
+						}
+						foundDevice.lastUpdate = moment()					
+						break
+					
 					}
 				}
-        	}
-        })
-    }
+			}
+		}
+	})
 }
+
+
 
 InsteonLocalPlatform.prototype.accessories = function(callback) {
     var self = this
@@ -412,7 +452,9 @@ InsteonLocalAccessory.prototype.pollStatus = function() {
     var now = moment()
     var lastUpdate = self.lastUpdate
     var delta = now.diff(lastUpdate, 'seconds')
-
+	
+	self.platform.checkHubConnection()
+	
     if (delta < self.refreshInterval) {
         clearTimeout(self.pollTimer)
         self.pollTimer = setTimeout(function() {
@@ -454,6 +496,8 @@ InsteonLocalAccessory.prototype.pollStatus = function() {
 InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
     var powerOn = state ? "on" : "off"
     var self = this
+	
+	self.platform.checkHubConnection()
 	
     if (state !== self.currentState) {
             self.log("Setting power state of " + self.name + " to " + powerOn)
@@ -528,6 +572,8 @@ InsteonLocalAccessory.prototype.getPowerState = function(callback) {
     var self = this
 	var currentState
 	
+	self.platform.checkHubConnection()
+	
     self.log('Getting power state for ' + self.name)
 
     self.light.level(function(err,level) {
@@ -565,6 +611,8 @@ InsteonLocalAccessory.prototype.getPowerState = function(callback) {
 
 InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
     var self = this
+	
+	self.platform.checkHubConnection()
 	
     hub.cancelPending(self.id)
     
@@ -607,6 +655,8 @@ InsteonLocalAccessory.prototype.getBrightnessLevel = function(callback) {
     var self = this
 	var currentState
 	
+	self.platform.checkHubConnection()
+	
     self.log('Getting brightness for ' + self.name)
 
     self.light.level(function(error, level) {
@@ -644,6 +694,8 @@ InsteonLocalAccessory.prototype.getStatus = function() {
     var self = this
 	var currentState
 	
+	self.platform.checkHubConnection()
+	
     self.log('Getting status for ' + self.name)
 
     self.light.level(function(err,level) {
@@ -672,6 +724,8 @@ InsteonLocalAccessory.prototype.getStatus = function() {
 
 InsteonLocalAccessory.prototype.getSensorStatus = function(callback) {
     var self = this
+	
+	self.platform.checkHubConnection()
 	
     self.log('Getting sensor state for ' + self.name)
 
@@ -704,7 +758,9 @@ InsteonLocalAccessory.prototype.getSensorStatus = function(callback) {
 InsteonLocalAccessory.prototype.setRelayState = function(state, callback) {
     var self = this
     state = 'on'
-
+	
+	self.platform.checkHubConnection()
+	
     self.log("Setting " + self.name + " relay to " + state)
 
     self.iolinc.relayOn().then(function(status){
@@ -739,6 +795,8 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
     var self = this
     var powerOn = state ? "on" : "off"
     var groupID = parseInt(self.groupID)
+	
+	self.platform.checkHubConnection()
 	
 	self.log("Setting power state of " + self.name + " to " + powerOn)
 	
@@ -801,6 +859,8 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 	var buttonArray
 	var eight_buttonArray = {'A': 7, 'B': 6, 'C': 5,'D': 4,'E': 3,'F': 2,'G': 1,'H': 0};
 	var six_buttonArray = {'A': 5,'B': 4,'C': 3,'D': 2};
+	
+	self.platform.checkHubConnection()
 	
 	if(self.six_btn == true){
 		buttonArray = six_buttonArray
@@ -894,6 +954,8 @@ InsteonLocalAccessory.prototype.getFanState = function(callback) {
     var self = this
 	var currentState
 	
+	self.platform.checkHubConnection()
+	
     self.log('Getting state for ' + self.name)
 
     self.light.fan(function(err,state) {
@@ -950,6 +1012,8 @@ InsteonLocalAccessory.prototype.getFanState = function(callback) {
 InsteonLocalAccessory.prototype.setFanState = function(level, callback) {
     var self = this
 	var targetLevel
+	
+	self.platform.checkHubConnection()
 	
     hub.cancelPending(self.id)
     

@@ -62,6 +62,7 @@ Devices are also defined in the config.json as follows:
   - `keypadbtn`: Keypad button to check for status of a scene, in caps.  For a six-button configuration, use 'ON' if the ON/OFF buttons are your scene controller.
   - `dimmable`:  dimmable or non-dimming device - valid values are "yes" or "no"
   - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'iolinc', 'motionsensor', 'leaksensor', and 'fan'.
+  - `refresh`:  device-level refresh interval in seconds.  This will override the platform-level refresh value and will still refresh individual devices even if platform-level polling is turned off.
 
 **Scene config changes in 0.3.2 and later**
 
@@ -86,6 +87,8 @@ The Insteon Hub seems to give up on connections after a certain period of time, 
 The default connection reset duration is 1 hour and can be customized or disabled in you config as follows:
 
 - `keepAlive`: Hub connection reset duration in seconds (default is "3600" [1 hour]).  Set to "0" to disable. 
+
+For model 2242 hubs, the Connection Watcher wil determine if a request is in progress and, if not, close the connection.  This model of hub seems particularly sensitive to connection duration/number of connections, so this will effectively spare connections as much as possible an only create them on-demand.  The downside is that the eventListener will not function (as it requires a persistent connection), however polling will still update device status.
 
 Using The HubPro Model 2243 (Alpha)
 -----------------------------------
