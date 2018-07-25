@@ -52,7 +52,7 @@ function InsteonLocalPlatform(log, config, api) {
 		self.refreshInterval = config["refresh"] || 0
 	}
 	
-    var config = {
+    self.hubConfig = {
         host: self.host,
         port: self.port,
         user: self.user,
@@ -237,7 +237,7 @@ InsteonLocalPlatform.prototype.connectToHub = function (){
 		if (self.model == "2245") {
 			self.log.debug('Connecting to Insteon Model 2245 Hub...')
 			connectingToHub = true
-			hub.httpClient(config, function(had_error) {
+			hub.httpClient(self.hubConfig, function(had_error) {
 				self.log('Connected to Insteon Model 2245 Hub...')
 				hub.emit('connect')
 				connectedToHub = true
