@@ -211,7 +211,7 @@ function InsteonLocalPlatform(log, config, api) {
 				},1000*self.keepAlive)
 				if (connectedToHub == false && connectingToHub == false) {
 					self.log('Reconnecting to Hub...')
-					connectToHub()
+					self.connectToHub()
 				}
 			}
     	}
