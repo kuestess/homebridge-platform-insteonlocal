@@ -193,16 +193,17 @@ function InsteonLocalPlatform(log, config, api) {
         self.deviceIDs.push(self.devices[i].deviceID)
     }
 	
-	platform.connectToHub()
+	self.connectToHub()
 	
 	if (self.keepAlive > 0){
 		connectionWatcher()
 	}
     
     function connectionWatcher() { //resets connection to hub every keepAlive mS
+		self.log('Started connection watcher...')
+		
 		if (self.model == "2245") {
 			if(self.keepAlive > 0){
-				self.log('Started connection watcher...')
 				setTimeout(function(){
 					self.log('Closing connection to Hub...')
 					hub.close()
@@ -303,17 +304,21 @@ InsteonLocalPlatform.prototype.checkHubConnection = function () {
 InsteonLocalPlatform.prototype.eventListener = function () {
 	var self = this
 	
-	var deviceIDs = platform.deviceIDs
+	var deviceIDs = self.deviceIDs
 	eventListener_init = true
 	
 	self.log('Insteon event listener started')
 	
 	hub.on('command', function(data) {
+		//self.log.debug('Received command for ' + data.standard.id)
+		
 		if (typeof data.standard !== 'undefined') {
 			var info = JSON.stringify(data)
 			var id = data.standard.id
 			var command1 = data.standard.command1
 			var command2 = data.standard.command2
+			var messageType = data.standard.messageType
+			var gateway = data.standard.gatewayId
 
 			var isDevice = _.contains(deviceIDs, id, 0)
 
@@ -379,14 +384,20 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						foundDevice.lastUpdate = moment()					
 						break
 					
+					case 'remote':
+						self.log('Got updated status for ' + foundDevice.name)
+						if (messageType == 6) {
+							foundDevice.handleRemoteEvent.call(foundDevice, gateway, command1)
+						}
+						foundDevice.lastUpdate = moment()					
+						break
+					
 					}
 				}
 			}
 		}
 	})
 }
-
-
 
 InsteonLocalPlatform.prototype.accessories = function(callback) {
     var self = this
@@ -1095,6 +1106,36 @@ InsteonLocalAccessory.prototype.setFanState = function(level, callback) {
 	})
 }
 
+InsteonLocalAccessory.prototype.handleRemoteEvent = function(group, command) {
+	var self = this
+	var buttonArray = [{group: 1, button: 'B'},{group: 2, button: 'A'},{group: 3, button: 'D'},{group: 4, button: 'C'},{group: 5, button: 'F'},{group: 6, button: 'E'},{group: 7, button: 'H'},{group: 8, button: 'G'}] //button to group number map; documentation is wrong
+	
+	self.platform.checkHubConnection()
+	
+	var buttonName = buttonArray.filter(function(item){			
+		return item.group == group
+	})
+	
+	buttonName = buttonName[0].button
+	
+	if (buttonName == self.button) {
+		if (self.stateless == true) { //stateless switch
+			self.service.getCharacteristic(Characteristic.ProgrammableSwitchEvent).updateValue(0)
+			self.log.debug(self.name + ' button ' + buttonName + ' was triggered')
+			self.lastUpdate = moment()
+		} else { //regular switch
+			if(command == 11){
+				self.currentState = true
+			} else {
+				self.currentState = false
+			}
+			self.lastUpdate = moment()			
+			self.service.getCharacteristic(Characteristic.On).updateValue(self.currentState)
+			self.log.debug(self.name + ' button ' + buttonName + ' is ' + (self.currentState ? 'on' : 'off'))
+		}
+	}
+}
+
 function InsteonLocalAccessory(platform, device) {
     var self = this
 
@@ -1134,8 +1175,13 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
         self.gdo_delay = device.gdo_delay || 15
     }
     
+    if (self.deviceType == 'remote') {
+    	self.button = device.remotebtn
+    	self.stateless = device.stateless
+	}
+    
 	if(self.refreshInterval > 0){    
-		hub.on('connect',function(){		
+		hub.once('connect',function(){		
 			if (self.deviceType == ('lightbulb' || 'dimmer' || 'switch' || 'iolinc' || 'scene'))
 			{
 				self.pollStatus.call(self)
@@ -1201,7 +1247,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		}
 		
 		//Get initial state
-        hub.on('connect', function() {
+        hub.once('connect', function() {
             self.getStatus.call(self)
         })
 
@@ -1228,7 +1274,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		})
         
         //Get initial state
-        hub.on('connect', function() {
+        hub.once('connect', function() {
             self.getFanState.call(self)
         })
         		
@@ -1252,7 +1298,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 			self.service.getCharacteristic(Characteristic.On).updateValue(false)
 		})
 		
-        hub.on('connect', function() {
+        hub.once('connect', function() {
             self.getStatus.call(self)
         })
 
@@ -1264,7 +1310,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		
 		self.service.getCharacteristic(Characteristic.On).on('set', self.setSceneState.bind(self))
 		
-		hub.on('connect', function() {
+		hub.once('connect', function() {
             self.getSceneState.call(self)
         })
 		
@@ -1290,7 +1336,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
         	self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
 		})
 		
-        hub.on('connect', function() {
+        hub.once('connect', function() {
             self.getSensorStatus.call(self)
         })
 
@@ -1356,8 +1402,26 @@ InsteonLocalAccessory.prototype.getServices = function() {
         
         break    
         
-    }
+    case 'remote':
+        if (self.stateless) {
+        	self.service = new Service.StatelessProgrammableSwitch(self.name)
+        } else {
+        	self.service = new Service.Switch(self.name)
+        }
+        
+        self.dimmable = false
+        
+        break  
+        
+    case 'outlet':
+        self.service = new Service.Switch(self.name)
+        self.dimmable = false
+       
 
+        
+        break  
+    }
+	
     if (self.service) {
         services.push(self.service)
     }

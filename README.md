@@ -61,7 +61,7 @@ Devices are also defined in the config.json as follows:
   - `groupID`:  Insteon group ID for a scene
   - `keypadbtn`: Keypad button to check for status of a scene, in caps.  For a six-button configuration, use 'ON' if the ON/OFF buttons are your scene controller.
   - `dimmable`:  dimmable or non-dimming device - valid values are "yes" or "no"
-  - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'iolinc', 'motionsensor', 'leaksensor', and 'fan'.
+  - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'remote', 'iolinc', 'motionsensor', 'leaksensor', and 'fan'.
   - `refresh`:  device-level refresh interval in seconds.  This will override the platform-level refresh value and will still refresh individual devices even if platform-level polling is turned off.
 
 **Scene config changes in 0.3.2 and later**
@@ -80,6 +80,12 @@ To configure fanlinc support, use the 'fan' device type.  This will create a fan
 For iolinc devices, there is an additional parameter that can be defined:
 
 - `gdo_delay`: number of seconds before status of the sensor is checked when opening/closing the door (ie, how long does it take the door to open/close) [default = 15]
+
+Remote support:
+Remotes are supported as on/off switches or stateless switches intended to be used in Homekit automation and/or scenes.  Only 8-button mode is supported for now (happy to add 4-button support if someone is willing to test).  Additional parameters that should be used when defining a Remote device are:
+
+- `remotebtn`: Remote button that triggers the switch - valid values are 'A' - 'H'
+- `stateless`: Define as a stateless switch - valid values are true or false [default = false]
 
 Connection Watcher
 ------------------
