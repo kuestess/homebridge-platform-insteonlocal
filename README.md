@@ -61,7 +61,7 @@ Devices are also defined in the config.json as follows:
   - `groupID`:  Insteon group ID for a scene
   - `keypadbtn`: Keypad button to check for status of a scene, in caps.  For a six-button configuration, use 'ON' if the ON/OFF buttons are your scene controller.
   - `dimmable`:  dimmable or non-dimming device - valid values are "yes" or "no"
-  - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'remote', 'iolinc', 'motionsensor', 'leaksensor', and 'fan'.
+  - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'remote', 'iolinc', 'motionsensor', 'leaksensor', 'outlet', and 'fan'.
   - `refresh`:  device-level refresh interval in seconds.  This will override the platform-level refresh value and will still refresh individual devices even if platform-level polling is turned off.
 
 **Scene config changes in 0.3.2 and later**
@@ -86,6 +86,11 @@ Remotes are supported as on/off switches or stateless switches intended to be us
 
 - `remotebtn`: Remote button that triggers the switch - valid values are 'A' - 'H'
 - `stateless`: Define as a stateless switch - valid values are true or false [default = false]
+
+Outlet support:
+On/off outlets are supported with independent control over each outlet (each is defined as an individual device).  Additional parameters that should be used when defining an outlet are:
+
+- `position`: Specify the position of the outlet - valid values are 'top' or 'bottom' [default = top]
 
 Connection Watcher
 ------------------

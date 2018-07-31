@@ -392,6 +392,12 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						foundDevice.lastUpdate = moment()					
 						break
 					
+					case 'outlet':
+						self.log('Got updated status for ' + foundDevice.name)
+						foundDevice.getOutletState.call(foundDevice)
+						foundDevice.lastUpdate = moment()					
+						break
+					
 					}
 				}
 			}
@@ -500,6 +506,11 @@ InsteonLocalAccessory.prototype.pollStatus = function() {
             self.getFanState.call(self)
             setTimeout(function() {self.pollStatus.call(self)}, (1000 * self.refreshInterval))
             break
+            
+        case 'outlet':
+            self.getOutletState.call(self)
+            setTimeout(function() {self.pollStatus.call(self)}, (1000 * self.refreshInterval))
+            break    
         } 
     }
 }
@@ -587,8 +598,8 @@ InsteonLocalAccessory.prototype.getPowerState = function(callback) {
 	
     self.log('Getting power state for ' + self.name)
 
-    self.light.level(function(err,level) {
-		if(err || typeof level == 'undefined'){
+    self.light.level(function(error,level) {
+		if(error || typeof level == 'undefined'){
 			self.log("Error getting power state of " + self.name)
 			if (typeof callback !== 'undefined') {
 				callback(error, null)
@@ -740,8 +751,8 @@ InsteonLocalAccessory.prototype.getSensorStatus = function(callback) {
 	
     self.log('Getting sensor state for ' + self.name)
 
-	self.iolinc.status(function(err,status){
-		if (err || status == null || typeof status == 'undefined') {			
+	self.iolinc.status(function(error,status){
+		if (error || status == null || typeof status == 'undefined') {			
 			if (typeof callback !== 'undefined') {
                 callback(error, null)
                 return
@@ -969,8 +980,8 @@ InsteonLocalAccessory.prototype.getFanState = function(callback) {
 	
     self.log('Getting state for ' + self.name)
 
-    self.light.fan(function(err,state) {
-		if(err || typeof state == 'undefined'){
+    self.light.fan(function(error,state) {
+		if(error || typeof state == 'undefined'){
 			self.log("Error getting power state of " + self.name)
 			if (typeof callback !== 'undefined') {
 				callback(error, null)
@@ -1116,7 +1127,13 @@ InsteonLocalAccessory.prototype.handleRemoteEvent = function(group, command) {
 		return item.group == group
 	})
 	
-	buttonName = buttonName[0].button
+	if (typeof buttonName[0] == 'undefined') {
+		self.log.debug('Button group: ' + group)
+		self.log.debug('Button not from a defined device')
+		return
+	} else {	
+		buttonName = buttonName[0].button
+	}
 	
 	if (buttonName == self.button) {
 		if (self.stateless == true) { //stateless switch
@@ -1134,6 +1151,169 @@ InsteonLocalAccessory.prototype.handleRemoteEvent = function(group, command) {
 			self.log.debug(self.name + ' button ' + buttonName + ' is ' + (self.currentState ? 'on' : 'off'))
 		}
 	}
+	return
+}
+
+InsteonLocalAccessory.prototype.setOutletState = function(state, callback) {
+    var powerOn = state ? "on" : "off"
+    var self = this
+	var cmd
+	var timeout = 0
+	
+	self.platform.checkHubConnection()
+	
+	self.log("Setting power state of " + self.name + " to " + powerOn)
+	
+	if (state) { //state = true = on
+		if(self.position == 'bottom') {	
+			cmd = {
+			  extended: true,
+			  cmd1: '11',
+			  cmd2: 'FF',
+			  userData: ['02'],
+			  isStandardResponse: true
+			}
+		} else {
+			cmd = {
+			  cmd1: '11',
+			  cmd2: 'FF'
+			}
+		}
+		
+		hub.directCommand(self.id, cmd, timeout, function(error, status) {
+			if(error || status == null || typeof status == 'undefined' || typeof status.response == 'undefined'){
+				self.log("Error getting power state of " + self.name)
+				self.log.debug('Error: ' + util.inspect(error))
+	
+				if (typeof callback !== 'undefined') {
+					callback(error, null)
+					return
+				} else {
+					return
+				}
+			} else {					
+				if (status.success) {
+					self.currentState = true
+					self.service.getCharacteristic(Characteristic.On).updateValue(true)
+					self.lastUpdate = moment()
+					
+					if (typeof callback !== 'undefined') {
+						callback(null, self.currentState)
+						return
+					} else {
+						return
+					}       
+				} 
+			}
+		})
+	} else { //state = false = off
+		if(self.position == 'bottom') {	
+			cmd = {
+			  extended: true,
+			  cmd1: '13',
+			  cmd2: '00',
+			  userData: ['02'],
+			  isStandardResponse: true
+			}
+		} else {
+			cmd = {
+			  cmd1: '13',
+			  cmd2: '00'
+			}
+		}
+		
+		hub.directCommand(self.id, cmd, timeout, function(error, status) {
+			if(error || status == null || typeof status == 'undefined' || typeof status.response == 'undefined'){
+				self.log("Error getting power state of " + self.name)
+				self.log.debug('Error: ' + util.inspect(error))
+	
+				if (typeof callback !== 'undefined') {
+					callback(error, null)
+					return
+				} else {
+					return
+				}
+			} else {					
+				if (status.success) {
+					self.service.getCharacteristic(Characteristic.On).updateValue(false)
+					self.currentState = false
+					self.lastUpdate = moment()
+			
+					if (typeof callback !== 'undefined') {
+						callback(null, self.currentState)
+						return
+					} else {
+						return
+					}       
+				}
+			}
+		})         
+	}
+}
+
+InsteonLocalAccessory.prototype.getOutletState = function(callback) {
+    var self = this
+	
+	var timeout = 0
+	var cmd = {
+	  cmd1: '19',
+	  cmd2: '01'
+	}
+	
+	self.platform.checkHubConnection()
+	
+    self.log('Getting power state for ' + self.name)
+
+    hub.directCommand(self.id, cmd, timeout, function(error, status) {		
+		if(error || typeof status == 'undefined'){
+			self.log("Error getting power state of " + self.name)
+			if (typeof callback !== 'undefined') {
+				callback(error, null)
+				return
+			} else {
+				return
+			}
+		}
+		
+		if (status.success) {	
+			var command2 = status.response.standard.command2.substr(1,1) //0 = both off, 1 = top on, 2 = bottom on, 3 = both on
+			
+			switch (command2) {
+				case '0':
+					self.currentState = false
+				break
+			
+				case '1':
+					if(self.position =='bottom'){
+						self.currentState = false
+					} else {
+						self.currentState = true
+					}
+				break
+			
+				case '2':
+					if(self.position =='bottom'){
+						self.currentState = true
+					} else {
+						self.currentState = false
+					}
+				break
+			
+				case '3':
+					self.currentState = true
+				break
+			}
+			
+			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off'))
+			self.service.getCharacteristic(Characteristic.On).updateValue(self.currentState)
+			self.lastUpdate = moment()
+			if (typeof callback !== 'undefined') {
+				callback(null, self.currentState)
+			} else {
+				return
+			}
+		}
+	})       
 }
 
 function InsteonLocalAccessory(platform, device) {
@@ -1180,9 +1360,13 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
     	self.stateless = device.stateless
 	}
     
+     if (self.deviceType == 'outlet') {
+    	self.position = device.position || 'top'
+	}
+    
 	if(self.refreshInterval > 0){    
 		hub.once('connect',function(){		
-			if (self.deviceType == ('lightbulb' || 'dimmer' || 'switch' || 'iolinc' || 'scene'))
+			if (self.deviceType == ('lightbulb' || 'dimmer' || 'switch' || 'iolinc' || 'scene' || 'outlet' || 'fan'))
 			{
 				self.pollStatus.call(self)
 			} 
@@ -1414,10 +1598,16 @@ InsteonLocalAccessory.prototype.getServices = function() {
         break  
         
     case 'outlet':
-        self.service = new Service.Switch(self.name)
+        self.service = new Service.Outlet(self.name)
+        self.service.getCharacteristic(Characteristic.OutletInUse).updateValue(true)
+        
+        self.service.getCharacteristic(Characteristic.On).on('set', self.setOutletState.bind(self))
+        
         self.dimmable = false
-       
-
+        
+        hub.once('connect', function() {
+            self.getOutletState.call(self)
+        })
         
         break  
     }
