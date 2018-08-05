@@ -209,6 +209,7 @@ function InsteonLocalPlatform(log, config, api) {
 					hub.close()
 					connectedToHub = false
 					connectionWatcher()
+					self.log.debug('Connected: ' + connectedToHub + ', Connecting: ' + connectingToHub)
 				},1000*self.keepAlive)
 				if (connectedToHub == false && connectingToHub == false) {
 					self.log('Reconnecting to Hub...')
@@ -358,7 +359,47 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(foundDevice.currentState)
 							foundDevice.lastUpdate = moment()
 						}
+						
+						if (command1 == 11) { //11 = on
+							var level_int = parseInt(command2, 16)*(100/255);
+							var level = Math.ceil(level_int);
 				
+							self.log('Got on event for ' + foundDevice.name);
+				
+							if(foundDevice.dimmable){
+								foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(100);
+								foundDevice.level = level
+							}
+							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true);
+							foundDevice.currentState = true
+							foundDevice.lastUpdate = moment()	
+						}
+						
+						if (command1 == 13) { //13 = off
+							self.log('Got off event for ' + foundDevice.name);
+				
+							if(foundDevice.dimmable){
+								foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(0);
+								foundDevice.level = 0
+							}
+							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false);
+							foundDevice.currentState = false
+							foundDevice.lastUpdate = moment()
+						}
+						
+						if (command1 == 18) { //18 = stop changing
+							self.log('Got stop dimming event for ' + foundDevice.name);
+				
+							foundDevice.getPowerState(foundDevice.id, function(error,state){
+								self.log('Got state ' + state + ' for ' + foundDevice.id)
+							})
+							if(foundDevice.dimmable){			
+								foundDevice.getBrightnessLevel(foundDevice.id, function(error,level){
+									self.log('Got level ' + level + ' for ' + foundDevice.id)
+								})
+							}
+						}
+						
 						break
 			
 					case 'scene':
@@ -1275,6 +1316,8 @@ InsteonLocalAccessory.prototype.getOutletState = function(callback) {
 			}
 		}
 		
+		self.log.debug('Outlet status: ' + util.inspect(status))
+		
 		if (status.success) {	
 			var command2 = status.response.standard.command2.substr(1,1) //0 = both off, 1 = top on, 2 = bottom on, 3 = both on
 			
@@ -1401,34 +1444,6 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		
 		self.light = hub.light(self.id)
 		self.light.emitOnAck = true
-		
-		self.light.on('turnOn', function(group, level){		
-			self.log.debug(self.name + ' turned on to ' + level + '%')
-			self.service.getCharacteristic(Characteristic.On).updateValue(true)
-			if (self.dimmable) {
-				self.service.getCharacteristic(Characteristic.Brightness).updateValue(level)
-			}
-		})
-		
-		self.light.on('turnOff', function(){
-			self.log.debug(self.name + ' turned off')
-			self.service.getCharacteristic(Characteristic.On).updateValue(false)
-			if (self.dimmable) {
-				self.service.getCharacteristic(Characteristic.Brightness).updateValue(0)
-			}
-		})
-		
-		if (self.dimmable) {
-			self.light.on('brightened', function(){
-				self.log.debug(self.name + ' brightened')
-				self.getBrightnessLevel.call(self)
-			})
-		
-			self.light.on('dimmed', function(){
-				self.log.debug(self.name + ' dimmed')
-				self.getBrightnessLevel.call(self)
-			})
-		}
 		
 		//Get initial state
         hub.once('connect', function() {
