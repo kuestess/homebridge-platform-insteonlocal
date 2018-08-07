@@ -204,17 +204,23 @@ function InsteonLocalPlatform(log, config, api) {
 		
 		if (self.model == "2245") {
 			if(self.keepAlive > 0){
-				setTimeout(function(){
+				setInterval(function(){
 					self.log('Closing connection to Hub...')
 					hub.close()
 					connectedToHub = false
-					connectionWatcher()
+					
 					self.log.debug('Connected: ' + connectedToHub + ', Connecting: ' + connectingToHub)
+					
+					setTimeout(function () { //wait 5 sec to reconnect to Hub
+						self.log('Reconnecting to Hub...')
+						self.connectToHub()
+					}, 5000)
+					
 				},1000*self.keepAlive)
-				if (connectedToHub == false && connectingToHub == false) {
+				/*if (connectedToHub == false && connectingToHub == false) {
 					self.log('Reconnecting to Hub...')
 					self.connectToHub()
-				}
+				}*/
 			}
     	}
     	
@@ -228,7 +234,7 @@ function InsteonLocalPlatform(log, config, api) {
 				} else {
 					inUse = true
 				}
-			}, 10000) 	
+			}, 5000) 	
     	}
     }
 }
@@ -947,7 +953,7 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 	self.log('Getting status for ' + self.name)
 	
 	hub.directCommand(self.id, cmd, timeout, function(err,status){
-		if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined'){
+		if(err || status == null || typeof status == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
 			self.log("Error getting power state of " + self.name)
 			self.log.debug('Err: ' + util.inspect(err))
 			
@@ -1306,7 +1312,7 @@ InsteonLocalAccessory.prototype.getOutletState = function(callback) {
     self.log('Getting power state for ' + self.name)
 
     hub.directCommand(self.id, cmd, timeout, function(error, status) {		
-		if(error || typeof status == 'undefined'){
+		if(error || typeof status == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
 			self.log("Error getting power state of " + self.name)
 			if (typeof callback !== 'undefined') {
 				callback(error, null)
@@ -1316,7 +1322,7 @@ InsteonLocalAccessory.prototype.getOutletState = function(callback) {
 			}
 		}
 		
-		self.log.debug('Outlet status: ' + util.inspect(status))
+		//self.log.debug('Outlet status: ' + util.inspect(status))
 		
 		if (status.success) {	
 			var command2 = status.response.standard.command2.substr(1,1) //0 = both off, 1 = top on, 2 = bottom on, 3 = both on
@@ -1486,16 +1492,6 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		
 		self.light = hub.light(self.id)
 		self.light.emitOnAck = true
-		
-		self.light.on('turnOn', function(group, level){		
-			self.log.debug(self.name + ' turned on to ' + level + ' %')
-			self.service.getCharacteristic(Characteristic.On).updateValue(true)
-		})
-		
-		self.light.on('turnOff', function(){
-			self.log.debug(self.name + ' turned off')
-			self.service.getCharacteristic(Characteristic.On).updateValue(false)
-		})
 		
         hub.once('connect', function() {
             self.getStatus.call(self)
