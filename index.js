@@ -217,10 +217,6 @@ function InsteonLocalPlatform(log, config, api) {
 					}, 5000)
 					
 				},1000*self.keepAlive)
-				/*if (connectedToHub == false && connectingToHub == false) {
-					self.log('Reconnecting to Hub...')
-					self.connectToHub()
-				}*/
 			}
     	}
     	
@@ -283,9 +279,6 @@ InsteonLocalPlatform.prototype.connectToHub = function (){
 				hub.emit('connect')
 				connectedToHub = true
 				connectingToHub = false
-				/*if(eventListener_init == false) {
-					eventListener()
-				}*/
 
 				if(self.use_express && express_init == false){
 					express_init = true
@@ -345,7 +338,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 					case 'lightbulb':
 					case 'dimmer':
 					case 'switch':
-						if (command1 == 19 || command1 == 3 || command1 == 0) { //19 = status
+						if (command1 == 19 || command1 == 3 || command1 == 4 || command1 == 0) { //19 = status
 							var level_int = parseInt(command2, 16) * (100 / 255)
 							var level = Math.ceil(level_int)
 
@@ -385,7 +378,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							self.log('Got off event for ' + foundDevice.name);
 				
 							if(foundDevice.dimmable){
-								foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(0);
+								//foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(0);
 								foundDevice.level = 0
 							}
 							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false);
@@ -395,15 +388,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						
 						if (command1 == 18) { //18 = stop changing
 							self.log('Got stop dimming event for ' + foundDevice.name);
-				
-							foundDevice.getPowerState(foundDevice.id, function(error,state){
-								self.log('Got state ' + state + ' for ' + foundDevice.id)
-							})
-							if(foundDevice.dimmable){			
-								foundDevice.getBrightnessLevel(foundDevice.id, function(error,level){
-									self.log('Got level ' + level + ' for ' + foundDevice.id)
-								})
-							}
+							self.getStatus.call(self)
 						}
 						
 						break
@@ -953,7 +938,7 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 	self.log('Getting status for ' + self.name)
 	
 	hub.directCommand(self.id, cmd, timeout, function(err,status){
-		if(err || status == null || typeof status == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
+		if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
 			self.log("Error getting power state of " + self.name)
 			self.log.debug('Err: ' + util.inspect(err))
 			
@@ -1312,7 +1297,7 @@ InsteonLocalAccessory.prototype.getOutletState = function(callback) {
     self.log('Getting power state for ' + self.name)
 
     hub.directCommand(self.id, cmd, timeout, function(error, status) {		
-		if(error || typeof status == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
+		if(error || typeof status == 'undefined' || typeof status.response == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
 			self.log("Error getting power state of " + self.name)
 			if (typeof callback !== 'undefined') {
 				callback(error, null)
