@@ -73,6 +73,7 @@ Scenes remain on/off only and support status when controlled via a Keypadlinc.  
   - `keypadbtn`: Keypadlinc button that indicates the status of the scene - valid values are 'A' - 'H' 
   - `six_btn`: set to `true` if using a Keypadlinc configured as a 6-button; default is `false`
   - `groupID`: the group number in the Insteon app (Scenes->Edit Scene->Group Number)
+  - `groupMembers`: comma-delimited list of Insteon IDs that are part of the group/scene (optional); member device status will be automatically updated after a scene is triggered 
 
 Fanlinc support:
 To configure fanlinc support, use the 'fan' device type.  This will create a fan device only - you can add a separate entry in your config (using the same `deviceID`) to add the light as a device.

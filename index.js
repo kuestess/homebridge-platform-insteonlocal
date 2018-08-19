@@ -45,6 +45,7 @@ function InsteonLocalPlatform(log, config, api) {
     self.server_port = config["server_port"]
     self.use_express = config["use_express"] || true    
     self.keepAlive = config["keepAlive"] || 3600
+    self.checkInterval = config["checkInterval"] || 20
 	
 	if (self.model == "2242") {
 		self.refreshInterval = config["refresh"] || 300
@@ -230,7 +231,7 @@ function InsteonLocalPlatform(log, config, api) {
 				} else {
 					inUse = true
 				}
-			}, 5000) 	
+			}, 1000*self.checkInterval) 	
     	}
     }
 }
@@ -338,7 +339,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 					case 'lightbulb':
 					case 'dimmer':
 					case 'switch':
-						if (command1 == 19 || command1 == 3 || command1 == 4 || command1 == 0) { //19 = status
+						if (command1 == "19" || command1 == "03" || command1 == "04" || command1 == "00") { //19 = status
 							var level_int = parseInt(command2, 16) * (100 / 255)
 							var level = Math.ceil(level_int)
 
@@ -360,25 +361,27 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						}
 						
 						if (command1 == 11) { //11 = on
-							var level_int = parseInt(command2, 16)*(100/255);
-							var level = Math.ceil(level_int);
+							if(messageType == 1) {
+								var level_int = parseInt(command2, 16)*(100/255);
+								var level = Math.ceil(level_int);
 				
-							self.log('Got on event for ' + foundDevice.name);
+								self.log('Got on event for ' + foundDevice.name);
 				
-							if(foundDevice.dimmable){
-								foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(100);
-								foundDevice.level = level
-							}
-							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true);
-							foundDevice.currentState = true
-							foundDevice.lastUpdate = moment()	
+								if(foundDevice.dimmable){
+									foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(level);
+									foundDevice.level = level
+								}
+								foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true);
+								foundDevice.currentState = true
+								foundDevice.lastUpdate = moment()	
+							} else {foundDevice.getStatus.call(foundDevice)}
 						}
 						
 						if (command1 == 13) { //13 = off
 							self.log('Got off event for ' + foundDevice.name);
 				
 							if(foundDevice.dimmable){
-								//foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(0);
+								foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(0);
 								foundDevice.level = 0
 							}
 							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false);
@@ -388,16 +391,42 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						
 						if (command1 == 18) { //18 = stop changing
 							self.log('Got stop dimming event for ' + foundDevice.name);
-							self.getStatus.call(self)
+							foundDevice.getStatus.call(foundDevice)
 						}
 						
 						break
 			
 					case 'scene':
 						self.log('Got updated status for ' + foundDevice.name)
+						
 						foundDevice.getSceneState.call(foundDevice)	
-						foundDevice.lastUpdate = moment()					
-					
+						foundDevice.lastUpdate = moment()						
+						
+						if (messageType == '3' || (messageType == '6' && command1 !== '06')) {
+							var group = parseInt(command2, 16)
+							var foundGroupID = parseInt(foundDevice.groupID)
+							if (foundGroupID !== group) {
+								self.log('Event not for correct group (group: ' + group + ')')
+								break
+							}
+							
+							if(typeof foundDevice.groupMembers !== 'undefined') {
+								self.log('Getting status of scene members (group: ' + group + ')...')
+								foundDevice.groupMembers.forEach(function(deviceID){
+									var isDefined = _.contains(deviceIDs, deviceID, 0)
+									if(isDefined){
+										var groupDevice = accessories.filter(function(item) {
+											return (item.id == deviceID)
+										})
+										
+										groupDevice = groupDevice[0]
+										self.log('Getting status of scene device ' + groupDevice.name)
+										groupDevice.getStatus.call(groupDevice)
+									}
+								})
+							}
+						}
+						
 						break
 			
 					case 'iolinc':
@@ -405,6 +434,8 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							setTimeout(function() {
 								foundDevice.getSensorStatus.call(foundDevice)
 							}, 1000 * foundDevice.gdo_delay)
+						} else {
+							foundDevice.getSensorStatus.call(foundDevice)
 						}
 						break
 					
@@ -784,7 +815,7 @@ InsteonLocalAccessory.prototype.getSensorStatus = function(callback) {
     self.log('Getting sensor state for ' + self.name)
 
 	self.iolinc.status(function(error,status){
-		if (error || status == null || typeof status == 'undefined') {			
+		if (error || status == null || typeof status == 'undefined' || typeof status.sensor == 'undefined') {			
 			if (typeof callback !== 'undefined') {
                 callback(error, null)
                 return
@@ -1383,6 +1414,11 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
     	self.groupID = device.groupID
 		self.keypadbtn = device.keypadbtn
 		self.six_btn = device.six_btn
+		
+		if(typeof device.groupMembers !== 'undefined'){
+			var reg = /,|,\s/
+			self.groupMembers = device.groupMembers.split(reg)
+		}
 	}
     
     if (self.deviceType == 'iolinc') {
@@ -1394,7 +1430,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
     	self.stateless = device.stateless
 	}
     
-     if (self.deviceType == 'outlet') {
+    if (self.deviceType == 'outlet') {
     	self.position = device.position || 'top'
 	}
     
@@ -1437,7 +1473,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.light.emitOnAck = true
 		
 		//Get initial state
-        hub.once('connect', function() {
+        hub.on('connect', function() {
             self.getStatus.call(self)
         })
 
@@ -1464,7 +1500,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		})
         
         //Get initial state
-        hub.once('connect', function() {
+        hub.on('connect', function() {
             self.getFanState.call(self)
         })
         		
@@ -1478,7 +1514,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.light = hub.light(self.id)
 		self.light.emitOnAck = true
 		
-        hub.once('connect', function() {
+        hub.on('connect', function() {
             self.getStatus.call(self)
         })
 
@@ -1490,7 +1526,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		
 		self.service.getCharacteristic(Characteristic.On).on('set', self.setSceneState.bind(self))
 		
-		hub.once('connect', function() {
+		hub.on('connect', function() {
             self.getSceneState.call(self)
         })
 		

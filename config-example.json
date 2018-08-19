@@ -29,6 +29,7 @@
 									"dimmable": "no",
 									"groupID": "30",
 									"keypadbtn": "F",
+									"groupMembers": "AABBCC,XXYYZZ,DDEEFF",
 									"deviceType": "scene"
 								}		
             				]
