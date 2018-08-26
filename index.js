@@ -434,9 +434,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							setTimeout(function() {
 								foundDevice.getSensorStatus.call(foundDevice)
 							}, 1000 * foundDevice.gdo_delay)
-						} else {
-							foundDevice.getSensorStatus.call(foundDevice)
-						}
+						} 
 						break
 					
 					case 'fan':
