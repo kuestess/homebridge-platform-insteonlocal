@@ -42,7 +42,7 @@ function InsteonLocalPlatform(log, config, api) {
     self.pass = config["pass"]
     self.model = config["model"]
     self.devices = config["devices"]
-    self.server_port = config["server_port"]
+    self.server_port = config["server_port"] || 3000
     self.use_express = config["use_express"] || true    
     self.keepAlive = config["keepAlive"] || 3600
     self.checkInterval = config["checkInterval"] || 20
@@ -61,27 +61,51 @@ function InsteonLocalPlatform(log, config, api) {
     }
 
     app.get('/light/:id/on', function(req, res) {
-        var id = req.params.id
+        var id = req.params.id.toUpperCase()
         hub.light(id).turnOn().then(function(status) {
             if (status.response) {
                 res.sendStatus(200)
+                
+				var isDevice = _.contains(self.deviceIDs, id, 0)
+			
+				if (isDevice) {
+					var foundDevice = accessories.filter(function(item) {
+						return item.id == id
+					})
+				}
+			
+				foundDevice = foundDevice[0]
+				foundDevice.getStatus.call(foundDevice)
+				
             } else {
                 res.sendStatus(404)
             }
         })
     })
-
+	
     app.get('/light/:id/off', function(req, res) {
-        var id = req.params.id
+        var id = req.params.id.toUpperCase()
         hub.light(id).turnOff().then(function(status) {
             if (status.response) {
                 res.sendStatus(200)
+                
+				var isDevice = _.contains(self.deviceIDs, id, 0)
+			
+				if (isDevice) {
+					var foundDevice = accessories.filter(function(item) {
+						return item.id == id
+					})
+				}
+			
+				foundDevice = foundDevice[0]
+				foundDevice.getStatus.call(foundDevice)
+                
             } else {
                 res.sendStatus(404)
             }
         })
     })
-
+	
     app.get('/light/:id/status', function(req, res) {
         var id = req.params.id
         hub.light(id).level(function(err, level) {
@@ -98,6 +122,18 @@ function InsteonLocalPlatform(log, config, api) {
         hub.light(id).level(targetLevel).then(function(status) {
             if (status.response) {
                 res.sendStatus(200)
+                
+                var isDevice = _.contains(self.deviceIDs, id, 0)
+			
+				if (isDevice) {
+					var foundDevice = accessories.filter(function(item) {
+						return item.id == id
+					})
+				}
+			
+				foundDevice = foundDevice[0]
+				foundDevice.getStatus.call(foundDevice)
+                
             } else {
                 res.sendStatus(404)
             }
@@ -112,6 +148,18 @@ function InsteonLocalPlatform(log, config, api) {
             } 
             if (status.completed) {
                 res.sendStatus(200)
+                
+                var isDevice = _.contains(self.deviceIDs, id, 0)
+			
+				if (isDevice) {
+					var foundDevice = accessories.filter(function(item) {
+						return item.id == id
+					})
+				}
+			
+				foundDevice = foundDevice[0]
+                foundDevice.getSceneState.call(foundDevice)	
+                
             } else {
                 res.sendStatus(404)
             }
@@ -126,6 +174,18 @@ function InsteonLocalPlatform(log, config, api) {
             } 
             if (status.completed) {
                 res.sendStatus(200)
+                
+                var isDevice = _.contains(self.deviceIDs, id, 0)
+			
+				if (isDevice) {
+					var foundDevice = accessories.filter(function(item) {
+						return item.id == id
+					})
+				}
+			
+				foundDevice = foundDevice[0]
+                foundDevice.getSceneState.call(foundDevice)	
+                
             } else {
                 res.sendStatus(404)
             }
@@ -157,6 +217,21 @@ function InsteonLocalPlatform(log, config, api) {
         hub.ioLinc(id).relayOn().then(function(status) {
             if (status.response) {
                 res.sendStatus(200)
+                
+                var isDevice = _.contains(self.deviceIDs, id, 0)
+			
+				if (isDevice) {
+					var foundDevice = accessories.filter(function(item) {
+						return item.id == id
+					})
+				}
+			
+				foundDevice = foundDevice[0]
+                
+				setTimeout(function() {
+					foundDevice.getSensorStatus.call(foundDevice)
+				}, 1000 * foundDevice.gdo_delay)
+				
             } else {
                 res.sendStatus(404)
             }
@@ -168,6 +243,21 @@ function InsteonLocalPlatform(log, config, api) {
         hub.ioLinc(id).relayOff().then(function(status) {
             if (status.response) {
                 res.sendStatus(200)
+                
+                var isDevice = _.contains(self.deviceIDs, id, 0)
+			
+				if (isDevice) {
+					var foundDevice = accessories.filter(function(item) {
+						return item.id == id
+					})
+				}
+			
+				foundDevice = foundDevice[0]
+                
+				setTimeout(function() {
+					foundDevice.getSensorStatus.call(foundDevice)
+				}, 1000 * foundDevice.gdo_delay)
+                
             } else {
                 res.sendStatus(404)
             }
@@ -254,6 +344,7 @@ InsteonLocalPlatform.prototype.connectToHub = function (){
 				if(self.use_express && express_init == false){
 					express_init = true
 					app.listen(self.server_port)
+					self.log('Started Insteon Express server...')
 				}
 			})
 		} else if (self.model == "2243") {
@@ -270,6 +361,7 @@ InsteonLocalPlatform.prototype.connectToHub = function (){
 				if(self.use_express && express_init == false){
 					express_init = true
 					app.listen(self.server_port)
+					self.log('Started Insteon Express server...')
 				}
 			})
 		} else {
@@ -280,10 +372,15 @@ InsteonLocalPlatform.prototype.connectToHub = function (){
 				hub.emit('connect')
 				connectedToHub = true
 				connectingToHub = false
-
+				
+				if(self.keepAlive == 0 && eventListener_init == false) {
+					self.eventListener()
+				}				
+				
 				if(self.use_express && express_init == false){
 					express_init = true
 					app.listen(self.server_port)
+					self.log('Started Insteon Express server...')
 				}
 			})
 		}
@@ -308,21 +405,21 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 	var deviceIDs = self.deviceIDs
 	eventListener_init = true
 	
-	self.log('Insteon event listener started')
+	self.log('Insteon event listener started...')
 	
 	hub.on('command', function(data) {
-		//self.log.debug('Received command for ' + data.standard.id)
+		//self.log.debug('Received command for ' + data.standard.id.toUpperCase())
 		
 		if (typeof data.standard !== 'undefined') {
 			var info = JSON.stringify(data)
-			var id = data.standard.id
+			var id = data.standard.id.toUpperCase()
 			var command1 = data.standard.command1
 			var command2 = data.standard.command2
 			var messageType = data.standard.messageType
 			var gateway = data.standard.gatewayId
-
+			
 			var isDevice = _.contains(deviceIDs, id, 0)
-
+			
 			if (isDevice) {
 				var foundDevices = accessories.filter(function(item) {
 					return item.id == id
@@ -531,8 +628,6 @@ InsteonLocalAccessory.prototype.pollStatus = function() {
     var lastUpdate = self.lastUpdate
     var delta = now.diff(lastUpdate, 'seconds')
 	
-	self.platform.checkHubConnection()
-	
     if (delta < self.refreshInterval) {
         clearTimeout(self.pollTimer)
         self.pollTimer = setTimeout(function() {
@@ -540,7 +635,9 @@ InsteonLocalAccessory.prototype.pollStatus = function() {
         }, 1000 * (self.refreshInterval - delta))
     } else {
         console.log('Polling status for ' + self.name + '...')
-
+		
+		self.platform.checkHubConnection()
+		
         switch (self.deviceType) {
         case 'lightbulb':
         case 'dimmer':
@@ -1433,7 +1530,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 	}
     
 	if(self.refreshInterval > 0){    
-		hub.on('connect',function(){		
+		hub.once('connect',function(){		
 			if (self.deviceType == ('lightbulb' || 'dimmer' || 'switch' || 'iolinc' || 'scene' || 'outlet' || 'fan'))
 			{
 				self.pollStatus.call(self)
