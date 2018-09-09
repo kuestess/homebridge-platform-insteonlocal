@@ -43,7 +43,7 @@ function InsteonLocalPlatform(log, config, api) {
     self.model = config["model"]
     self.devices = config["devices"]
     self.server_port = config["server_port"] || 3000
-    self.use_express = config["use_express"] || true    
+    self.use_express = config.hasOwnProperty("use_express") ? config["use_express"] : true    
     self.keepAlive = config["keepAlive"] || 3600
     self.checkInterval = config["checkInterval"] || 20
 	
