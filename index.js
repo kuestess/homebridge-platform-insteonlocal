@@ -408,7 +408,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 	self.log('Insteon event listener started...')
 	
 	hub.on('command', function(data) {
-		//self.log.debug('Received command for ' + data.standard.id.toUpperCase())
+		//self.log.debug('Received command for ' + data.standard.id)
 		
 		if (typeof data.standard !== 'undefined') {
 			var info = JSON.stringify(data)
@@ -430,7 +430,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 
 				for (var i = 0, len = foundDevices.length; i < len; i++) {
 					var foundDevice = foundDevices[i]
-					self.log.debug('Got event for ' + foundDevice.name)
+					//self.log.debug('Got event for ' + foundDevice.name)
 				
 					switch (foundDevice.deviceType) {
 					case 'lightbulb':
@@ -458,20 +458,23 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						}
 						
 						if (command1 == 11) { //11 = on
-							if(messageType == 1) {
-								var level_int = parseInt(command2, 16)*(100/255);
-								var level = Math.ceil(level_int);
-				
-								self.log('Got on event for ' + foundDevice.name);
-				
-								if(foundDevice.dimmable){
+							var level_int = parseInt(command2, 16)*(100/255);
+							var level = Math.ceil(level_int);
+			
+							self.log('Got on event for ' + foundDevice.name);
+			
+							if(foundDevice.dimmable){
+								if(messageType == 1){
+									var level_int = parseInt(command2, 16)*(100/255);
+									var level = Math.ceil(level_int);
 									foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(level);
 									foundDevice.level = level
-								}
-								foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true);
-								foundDevice.currentState = true
-								foundDevice.lastUpdate = moment()	
-							} else {foundDevice.getStatus.call(foundDevice)}
+								} else {foundDevice.getStatus.call(foundDevice)}
+							}
+							
+							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true);
+							foundDevice.currentState = true
+							foundDevice.lastUpdate = moment()	
 						}
 						
 						if (command1 == 13) { //13 = off
