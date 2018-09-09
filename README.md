@@ -133,6 +133,8 @@ uboot_overlay_addr3=/lib/firmware/BB-UART5-00A0.dtbo
 9. Install homebridge and this plug as usual seting the model in config.json to 2243
 
 
-TODO
+Donate
+-----------------------------------
+If you find this plugin useful you may make a donation using the button below.  Donations are not expected, but appreciated!
 
-- How to always start up off the SD or flash the eMMC
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AP4SUF96E39GU)
