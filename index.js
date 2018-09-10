@@ -75,7 +75,7 @@ function InsteonLocalPlatform(log, config, api) {
 				}
 			
 				foundDevice = foundDevice[0]
-				foundDevice.getStatus.call(foundDevice)
+				setTimeout(function(){foundDevice.getStatus.call(foundDevice)},1000)
 				
             } else {
                 res.sendStatus(404)
@@ -408,7 +408,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 	self.log('Insteon event listener started...')
 	
 	hub.on('command', function(data) {
-		//self.log.debug('Received command for ' + data.standard.id)
+		self.log.debug('Received command for ' + data.standard.id)
 		
 		if (typeof data.standard !== 'undefined') {
 			var info = JSON.stringify(data)
@@ -430,7 +430,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 
 				for (var i = 0, len = foundDevices.length; i < len; i++) {
 					var foundDevice = foundDevices[i]
-					//self.log.debug('Got event for ' + foundDevice.name)
+					self.log.debug('Got event for ' + foundDevice.name)
 				
 					switch (foundDevice.deviceType) {
 					case 'lightbulb':
@@ -685,7 +685,7 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
     if (state !== self.currentState) {
             self.log("Setting power state of " + self.name + " to " + powerOn)
 			if (state) {
-				self.light.turnOn().then(function(status) {
+				setTimeout(function(){self.light.turnOn().then(function(status) {
 					if (status.success) {
 							if (self.dimmable) {
 								self.service.getCharacteristic(Characteristic.Brightness).updateValue(100)
@@ -711,6 +711,7 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 						}
 					}
 				})
+				},800)
 			} else {
 				self.light.turnOff().then(function(status) {
 					if (status.success) {
@@ -940,38 +941,48 @@ InsteonLocalAccessory.prototype.getSensorStatus = function(callback) {
 
 InsteonLocalAccessory.prototype.setRelayState = function(state, callback) {
     var self = this
-    state = 'on'
+    //0=open 1=close
 	
 	self.platform.checkHubConnection()
 	
     self.log("Setting " + self.name + " relay to " + state)
+	
+	if (state !== self.currentState){
+		self.iolinc.relayOn().then(function(status){
+			if (status.success) {
+				self.targetState = (self.currentState == 0) ? 1 : 0
+				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(self.targetState)
+				self.log('Setting ' + self.name + ' target state to ' + self.targetState)
 
-    self.iolinc.relayOn().then(function(status){
-        if (status.success) {
-            self.targetState = (self.currentState == 0) ? 1 : 0
-            self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(self.targetState)
-            self.log('Setting ' + self.name + 'target state to ' + self.targetState)
-
-            setTimeout(function() {
-                self.getSensorStatus(function() {
-                    self.lastUpdate = moment()
-                    if (typeof callback !== 'undefined') {
-                        callback(null, self.targetState)
-                    } else {
-                        return
-                    }
-                })
-            }, 1000 * self.gdo_delay)
-        } else {
-        	self.log("Error setting relay state of " + self.name + " to " + state)
-        	if (typeof callback !== 'undefined') {
-                callback(error, null)
-                return
-            } else {
-                return
-            }
-        }     
-    })
+				setTimeout(function() {
+					self.getSensorStatus(function() {
+						self.lastUpdate = moment()
+						if (typeof callback !== 'undefined') {
+							callback(null, self.targetState)
+						} else {
+							return
+						}
+					})
+				}, 1000 * self.gdo_delay)
+			} else {
+				self.log("Error setting relay state of " + self.name + " to " + state)
+				if (typeof callback !== 'undefined') {
+					callback(error, null)
+					return
+				} else {
+					return
+				}
+			}     
+		})
+	} else {
+		self.log(self.name + " is already at commanded state")
+		if (typeof callback !== 'undefined') {
+			callback(null, self.currentState)
+			return
+		} else {
+			return
+		}
+	}    
 }
 
 InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
@@ -1495,7 +1506,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 
     self.platform = platform
     self.log = platform.log
-    self.id = device.deviceID
+    self.id = device.deviceID.toUpperCase()
     self.dimmable = (device.dimmable == "yes") ? true : false
     self.currentState = ''
     self.level = ''
