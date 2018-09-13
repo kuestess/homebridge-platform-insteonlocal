@@ -253,7 +253,7 @@ function InsteonLocalPlatform(log, config, api) {
     			connectedToHub = false
     			connectionWatcher()
     		},1000*self.keepAlive)
-    		if (connectedToHub == false && connectingToHub == false) {
+    		if (connectedToHub == false && connectingToHub != true) {
     			self.log('Reconnecting to Hub...')
     			connectToHub()
     		}
@@ -274,6 +274,8 @@ function InsteonLocalPlatform(log, config, api) {
 				var command2 = data.standard.command2
 
 				var isDevice = _.contains(deviceIDs, id, 0)
+
+				self.log.debug("Hub Command: " + info)
 
 				if (isDevice) {
 					var foundDevices = accessories.filter(function(item) {
@@ -416,7 +418,7 @@ InsteonLocalAccessory.prototype.pollStatus = function() {
             self.pollStatus.call(self)
         }, 1000 * (self.refreshInterval - delta))
     } else {
-        console.log('Polling status for ' + self.name + '...')
+        self.log('Polling status for ' + self.name + '...')
 
         switch (self.deviceType) {
         case 'lightbulb':
@@ -563,6 +565,7 @@ InsteonLocalAccessory.prototype.getPowerState = function(callback) {
 InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
     var self = this
 	
+	self.log.debug("Canceling Brightness Command For: " + self.name + self.id)
     hub.cancelPending(self.id)
     
     self.log("Setting level of " + self.name + " to " + level + '%')
@@ -948,6 +951,9 @@ InsteonLocalAccessory.prototype.setFanState = function(level, callback) {
     var self = this
 	var targetLevel
 	
+	self.log("Setting Fan of " + self.name + " to " + level + '%')
+	
+	self.log.debug("Canceling Fan Command For: " + self.name + self.deviceID)
     hub.cancelPending(self.id)
     
     if (level == 0){
@@ -1082,7 +1088,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
     var services = []
     var infoService = new Service.AccessoryInformation()
     var deviceMAC = self.id.substr(0, 2) + '.' + self.id.substr(2, 2) + '.' + self.id.substr(4, 2)
-
+	
     infoService.setCharacteristic(Characteristic.Name, self.DeviceName)
     .setCharacteristic(Characteristic.Manufacturer, 'Insteon')
     .setCharacteristic(Characteristic.Model, 'Insteon')
@@ -1105,7 +1111,8 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.light = hub.light(self.id)
 		self.light.emitOnAck = true
 		
-		self.light.on('turnOn', function(group, level){		
+		self.light.on('turnOn', function(group, level){
+			level = level || 100
 			self.log.debug(self.name + ' turned on to ' + level + '%')
 			self.service.getCharacteristic(Characteristic.On).updateValue(true)
 			if (self.dimmable) {
@@ -1176,7 +1183,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.light.emitOnAck = true
 		
 		self.light.on('turnOn', function(group, level){		
-			self.log.debug(self.name + ' turned on to ' + level + ' %')
+			self.log.debug(self.name + ' turned on')
 			self.service.getCharacteristic(Characteristic.On).updateValue(true)
 		})
 		
