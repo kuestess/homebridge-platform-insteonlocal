@@ -364,7 +364,7 @@ InsteonLocalPlatform.prototype.connectToHub = function (){
 					self.log('Started Insteon Express server...')
 				}
 			})
-		} else {
+		} else if (self.model == "2242") {
 			self.log.debug('Connecting to Insteon Model 2242 Hub...')
 			connectingToHub = true
 			hub.connect(self.host, function() {
@@ -377,6 +377,23 @@ InsteonLocalPlatform.prototype.connectToHub = function (){
 					self.eventListener()
 				}				
 				
+				if(self.use_express && express_init == false){
+					express_init = true
+					app.listen(self.server_port)
+					self.log('Started Insteon Express server...')
+				}
+			})
+		} else {
+			self.log.debug('Connecting to Insteon PLM...')
+			connectingToHub = true
+			hub.serial(self.host,{baudRate:19200}, function(had_error) {
+				self.log('Connected to Insteon PLM...')
+				connectedToHub = true
+				connectingToHub = false
+				if(eventListener_init == false) {
+					self.eventListener()
+				}
+
 				if(self.use_express && express_init == false){
 					express_init = true
 					app.listen(self.server_port)
@@ -408,9 +425,10 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 	self.log('Insteon event listener started...')
 	
 	hub.on('command', function(data) {
-		self.log.debug('Received command for ' + data.standard.id)
 		
 		if (typeof data.standard !== 'undefined') {
+			self.log.debug('Received command for ' + data.standard.id)
+			
 			var info = JSON.stringify(data)
 			var id = data.standard.id.toUpperCase()
 			var command1 = data.standard.command1
@@ -469,7 +487,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 									var level = Math.ceil(level_int);
 									foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(level);
 									foundDevice.level = level
-								} else {foundDevice.getStatus.call(foundDevice)}
+								} else {setTimeout(function(){foundDevice.getStatus.call(foundDevice)},1000)}
 							}
 							
 							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true);
@@ -477,9 +495,25 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							foundDevice.lastUpdate = moment()	
 						}
 						
-						if (command1 == 13) { //13 = off
-							self.log('Got off event for ' + foundDevice.name);
-				
+						if (command1 == 12) { //fast on
+			
+							self.log('Got fast on event for ' + foundDevice.name);
+			
+							if(foundDevice.dimmable){
+								foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(100);
+								foundDevice.level = 100
+							}
+							
+							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true);
+							foundDevice.currentState = true
+							foundDevice.lastUpdate = moment()	
+						}
+						
+						if (command1 == 13 || command1 == 14) { //13 = off, 14= fast off
+							if (command1 == 13) {
+								self.log('Got off event for ' + foundDevice.name);
+							} else {self.log('Got fast off event for ' + foundDevice.name)}
+							
 							if(foundDevice.dimmable){
 								foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(0);
 								foundDevice.level = 0
@@ -487,6 +521,10 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false);
 							foundDevice.currentState = false
 							foundDevice.lastUpdate = moment()
+						}
+						
+						if (messageType == '6' && command1 !== '06') { //group broadcast
+							foundDevice.getStatus.call(foundDevice)
 						}
 						
 						if (command1 == 18) { //18 = stop changing
@@ -1490,6 +1528,78 @@ InsteonLocalAccessory.prototype.getOutletState = function(callback) {
 	})       
 }
 
+InsteonLocalAccessory.prototype.getPosition = function(callback) { //get position for shades/blinds
+    var self = this
+		
+	self.platform.checkHubConnection()
+	
+    self.log('Getting status for ' + self.name)
+
+    self.light.level(function(err,level) {
+		if(err || level == null || typeof level == 'undefined'){
+			self.log("Error getting power state of " + self.name)
+			if (typeof callback !== 'undefined') {
+				callback(null, self.level)
+			} else {
+				return
+			}
+			} else {	
+			
+			self.level = level
+			self.log.debug(self.name + ' is set to ' + level + '%')
+						
+			self.service.getCharacteristic(Characteristic.CurrentPosition).updateValue(self.level)
+			self.service.getCharacteristic(Characteristic.TargetPosition).updateValue(self.level)
+			self.lastUpdate = moment()
+			
+			if (typeof callback !== 'undefined') {
+				callback(null, self.level)
+			} else {
+				return
+			}
+		}
+	})       
+}
+
+InsteonLocalAccessory.prototype.setPosition = function(level, callback) { //get position for shades/blinds
+	var self = this
+	var oldLevel = self.level
+	
+	self.platform.checkHubConnection()
+	
+    hub.cancelPending(self.id)
+    
+    if (level > oldLevel){
+    	self.service.getCharacteristic(Characteristic.PositionState).updateValue(1)
+    } else {self.service.getCharacteristic(Characteristic.PositionState).updateValue(0)}
+    
+    self.log("Setting shades " + self.name + " to " + level + '%')
+    self.light.level(level).then(function(status)
+     {    
+        if (status.success) {                
+            self.level = level
+            self.service.getCharacteristic(Characteristic.CurrentPosition).updateValue(self.level)	
+			
+			self.log.debug(self.name + ' is at ' + level + '%')
+			self.lastUpdate = moment()
+			self.service.getCharacteristic(Characteristic.PositionState).updateValue(2)
+			if (typeof callback !== 'undefined') {
+				callback(null, self.level)
+			} else {
+				return
+			}	
+        } else {
+			self.log("Error setting level of " + self.name)   
+            if (typeof callback !== 'undefined') {
+                callback(error, null)
+                return
+            } else {
+                return
+            }
+		}
+	})       
+}
+
 function InsteonLocalAccessory(platform, device) {
     var self = this
 
@@ -1545,7 +1655,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
     
 	if(self.refreshInterval > 0){    
 		hub.once('connect',function(){		
-			if (self.deviceType == ('lightbulb' || 'dimmer' || 'switch' || 'iolinc' || 'scene' || 'outlet' || 'fan'))
+			if (self.deviceType == ('lightbulb' || 'dimmer' || 'switch' || 'iolinc' || 'scene' || 'outlet' || 'fan' || 'shades' || 'blinds'))
 			{
 				self.pollStatus.call(self)
 			} 
@@ -1751,6 +1861,22 @@ InsteonLocalAccessory.prototype.getServices = function() {
         })
         
         break  
+    
+    case 'shades':
+    case 'blinds':
+        self.service = new Service.WindowCovering(self.name)
+        self.service.getCharacteristic(Characteristic.PositionState).updateValue(2) //stopped       
+        
+        self.service.getCharacteristic(Characteristic.TargetPosition).on('set', self.setPosition.bind(self))
+        
+        self.light = hub.light(self.id)
+        
+        hub.once('connect', function() {
+            self.getPosition.call(self)
+        })
+        
+        break  
+    
     }
 	
     if (self.service) {
