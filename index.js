@@ -1077,7 +1077,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 		hub.on('connect',function(){		
 			if (self.deviceType == ('lightbulb' || 'dimmer' || 'switch' || 'iolinc' || 'scene'))
 			{
-				self.pollStatus.call(self)
+				setTimeout(function(){self.pollStatus.call(self)},self.refreshInterval*1000)
 			} 
 		}	
 	)}	
