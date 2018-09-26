@@ -16,11 +16,22 @@
 				  "model": "2245",
 				  "refresh":"300",
 				  "server_port": "3000",
+				  "keepAlive": "3600",
 				  "devices": [
-								{ "name": "Great Room Lamp",
-								  "deviceID" : "<Insteon ID no spaces or dividers>",
-								  "dimmable" : "yes",
-								  "deviceType" : "lightbulb" }		
+								{ 
+									"name": "Great Room Lamp",
+								  	"deviceID" : "<Insteon ID>",
+								  	"dimmable" : "yes",
+								  	"deviceType" : "lightbulb" },
+								{
+									"name": "FR Lamp",
+									"deviceID": "<Insteon ID>",
+									"dimmable": "no",
+									"groupID": "30",
+									"keypadbtn": "F",
+									"groupMembers": "AABBCC,XXYYZZ,DDEEFF",
+									"deviceType": "scene"
+								}		
             				]
 				}
 				],
