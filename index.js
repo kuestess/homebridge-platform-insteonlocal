@@ -454,7 +454,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 					case 'lightbulb':
 					case 'dimmer':
 					case 'switch':
-						if (command1 == "19" || command1 == "03" || command1 == "04" || command1 == "00") { //19 = status
+						if (command1 == "19" || command1 == "03" || command1 == "04" || command1 == "00" || (command1 == "06" && messageType == "1")) { //19 = status
 							var level_int = parseInt(command2, 16) * (100 / 255)
 							var level = Math.ceil(level_int)
 
@@ -521,10 +521,6 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false);
 							foundDevice.currentState = false
 							foundDevice.lastUpdate = moment()
-						}
-						
-						if (messageType == '6' && command1 !== '06') { //group broadcast
-							foundDevice.getStatus.call(foundDevice)
 						}
 						
 						if (command1 == 18) { //18 = stop changing
@@ -724,15 +720,6 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
             self.log("Setting power state of " + self.name + " to " + powerOn)
 			if (state) {
 				setTimeout(function(){self.light.turnOn().then(function(status) {
-					//assume that the command worked and report back to homekit
-					if (self.dimmable) {
-						self.service.getCharacteristic(Characteristic.Brightness).updateValue(100)
-					}
-					self.level = 100
-					self.service.getCharacteristic(Characteristic.On).updateValue(true)
-					self.currentState = true
-					self.lastUpdate = moment()
-					
 					setTimeout(function(){
 						if (status.success) { //if command actually worked, do nothing
 							//do nothing
@@ -741,25 +728,26 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 							self.getStatus.call(self)
 						}
 					},0)
-					
-					if (typeof callback !== 'undefined') {
-						callback(null, self.currentState)
-						return
-					} else {
-						return
-					}     
 				})
 				},800)
+				
+				//assume that the command worked and report back to homekit
+				if (self.dimmable) {
+					self.service.getCharacteristic(Characteristic.Brightness).updateValue(100)
+				}
+				self.level = 100
+				self.service.getCharacteristic(Characteristic.On).updateValue(true)
+				self.currentState = true
+				self.lastUpdate = moment()
+			
+				if (typeof callback !== 'undefined') {
+					callback(null, self.currentState)
+					return
+				} else {
+					return
+			}  
 			} else {
-				self.light.turnOff().then(function(status) {
-					if (self.dimmable) {
-						self.service.getCharacteristic(Characteristic.Brightness).updateValue(0)
-					}
-					self.level = 0
-					self.service.getCharacteristic(Characteristic.On).updateValue(false)
-					self.currentState = false
-					self.lastUpdate = moment()
-					
+				self.light.turnOff().then(function(status) {					
 					setTimeout(function(){
 						if (status.success) { //if command actually worked, do nothing
 							//do nothing
@@ -768,14 +756,22 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 							self.getStatus.call(self)
 						}
 					},0)
-					
-					if (typeof callback !== 'undefined') {
-						callback(null, self.currentState)
-						return
-					} else {
-						return
-					}      
 				})
+				
+				if (self.dimmable) {
+						self.service.getCharacteristic(Characteristic.Brightness).updateValue(0)
+					}
+				self.level = 0
+				self.service.getCharacteristic(Characteristic.On).updateValue(false)
+				self.currentState = false
+				self.lastUpdate = moment()
+				
+				if (typeof callback !== 'undefined') {
+					callback(null, self.currentState)
+					return
+				} else {
+					return
+				}    
 			}           
         } else {
 			self.currentState = state
