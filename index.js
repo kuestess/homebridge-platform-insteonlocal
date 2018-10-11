@@ -487,7 +487,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 									var level = Math.ceil(level_int);
 									foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(level);
 									foundDevice.level = level
-								} else {setTimeout(function(){foundDevice.getStatus.call(foundDevice)},1000)}
+								} else {setTimeout(function(){foundDevice.getStatus.call(foundDevice)},5000)}
 							}
 							
 							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true);
