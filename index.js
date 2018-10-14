@@ -671,7 +671,7 @@ InsteonLocalAccessory.prototype.pollStatus = function() {
             self.pollStatus.call(self)
         }, 1000 * (self.refreshInterval - delta))
     } else {
-        console.log('Polling status for ' + self.name + '...')
+        self.log('Polling status for ' + self.name + '...')
 		
 		self.platform.checkHubConnection()
 		
