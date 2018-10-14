@@ -22,7 +22,9 @@
 									"name": "Great Room Lamp",
 								  	"deviceID" : "<Insteon ID>",
 								  	"dimmable" : "yes",
-								  	"deviceType" : "lightbulb" },
+								  	"deviceType" : "lightbulb"
+								  	"controllers" : ["<Insteon ID>","<Insteon ID>"]
+								},
 								{
 									"name": "FR Lamp",
 									"deviceID": "<Insteon ID>",

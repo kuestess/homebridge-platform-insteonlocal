@@ -596,6 +596,28 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 					}
 				}
 			}
+			
+			// find all the devices that the current event device is a contorller of
+			var responders = _.filter(self.devices, function(device){return _.contains(device.controllers,id,0)})
+
+			if (responders.length > 0) {
+				self.log.debug(id + " is a contoller of " + responders.length + " devices");
+
+				if(["11","12","13","14"].indexOf(command1) +1){ //only really care about on/off commands
+					
+					for (var i=0, l=responders.length; i < l; i++){
+
+						var responderDevice = accessories.filter(function(item) {
+							return (item.id == responders[i].deviceID)
+						})
+
+						responderDevice = responderDevice[0]
+						self.log('Getting status of responder device ' + responderDevice.name)
+						responderDevice.getStatus.call(responderDevice)
+
+					}
+				} else {self.log.debug("Ignoring Controller Command: " + command1)}
+			}
 		}
 	})
 }
