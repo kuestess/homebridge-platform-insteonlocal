@@ -63,6 +63,7 @@ Devices are also defined in the config.json as follows:
   - `dimmable`:  dimmable or non-dimming device - valid values are "yes" or "no"
   - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'remote', 'iolinc', 'motionsensor', 'leaksensor', 'outlet', and 'fan'.
   - `refresh`:  device-level refresh interval in seconds.  This will override the platform-level refresh value and will still refresh individual devices even if platform-level polling is turned off.
+  - `controllers`: this is an array `["<Insteon ID>","<Insteon ID>"]` of other Insteon devices that this device is controlled by. ie if you have a plug in dimmer that is controlled by a wall switch you would add the wall switch ID as a controller for the plug in dimmer. The controller device does not need to be a device listed in the config.json
 
 **Scene config changes in 0.3.2 and later**
 
