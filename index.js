@@ -454,7 +454,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 					case 'lightbulb':
 					case 'dimmer':
 					case 'switch':
-						if (command1 == "19" || command1 == "03" || command1 == "04" || command1 == "00") { //19 = status
+						if (command1 == "19" || command1 == "03" || command1 == "04" || command1 == "00" || (command1 == "06" && messageType == "1")) { //19 = status
 							var level_int = parseInt(command2, 16) * (100 / 255)
 							var level = Math.ceil(level_int)
 
@@ -487,7 +487,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 									var level = Math.ceil(level_int);
 									foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(level);
 									foundDevice.level = level
-								} else {setTimeout(function(){foundDevice.getStatus.call(foundDevice)},1000)}
+								} else {setTimeout(function(){foundDevice.getStatus.call(foundDevice)},5000)}
 							}
 							
 							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true);
@@ -521,10 +521,6 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false);
 							foundDevice.currentState = false
 							foundDevice.lastUpdate = moment()
-						}
-						
-						if (messageType == '6' && command1 !== '06') { //group broadcast
-							foundDevice.getStatus.call(foundDevice)
 						}
 						
 						if (command1 == 18) { //18 = stop changing
@@ -724,59 +720,58 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
             self.log("Setting power state of " + self.name + " to " + powerOn)
 			if (state) {
 				setTimeout(function(){self.light.turnOn().then(function(status) {
-					if (status.success) {
-							if (self.dimmable) {
-								self.service.getCharacteristic(Characteristic.Brightness).updateValue(100)
-							}
-							self.level = 100
-							self.service.getCharacteristic(Characteristic.On).updateValue(true)
-							self.currentState = true
-							self.lastUpdate = moment()
-						
-							if (typeof callback !== 'undefined') {
-								callback(null, self.currentState)
-								return
-							} else {
-								return
-							}       
-					} else {
-						self.log("Error setting power state of " + self.name + " to " + powerOn)
-						if (typeof callback !== 'undefined') {
-							callback(error, null)
-							return
-						} else {
-							return
+					setTimeout(function(){
+						if (status.success) { //if command actually worked, do nothing
+							//do nothing
+						} else { //if command didn't work, check status to see what happened and update homekit
+							self.log("Error setting power state of " + self.name + " to " + powerOn)
+							self.getStatus.call(self)
 						}
-					}
+					},0)
 				})
 				},800)
+				
+				//assume that the command worked and report back to homekit
+				if (self.dimmable) {
+					self.service.getCharacteristic(Characteristic.Brightness).updateValue(100)
+				}
+				self.level = 100
+				self.service.getCharacteristic(Characteristic.On).updateValue(true)
+				self.currentState = true
+				self.lastUpdate = moment()
+			
+				if (typeof callback !== 'undefined') {
+					callback(null, self.currentState)
+					return
+				} else {
+					return
+			}  
 			} else {
-				self.light.turnOff().then(function(status) {
-					if (status.success) {
-							if (self.dimmable) {
-								self.service.getCharacteristic(Characteristic.Brightness).updateValue(0)
-							}
-							self.level = 0
-							self.service.getCharacteristic(Characteristic.On).updateValue(false)
-							self.currentState = false
-							self.lastUpdate = moment()
-						
-							if (typeof callback !== 'undefined') {
-								callback(null, self.currentState)
-								return
-							} else {
-								return
-							}       
-					} else {
-						self.log("Error setting power state of " + self.name + " to " + powerOn)
-						if (typeof callback !== 'undefined') {
-							callback(error, null)
-							return
-						} else {
-							return
+				self.light.turnOff().then(function(status) {					
+					setTimeout(function(){
+						if (status.success) { //if command actually worked, do nothing
+							//do nothing
+						} else { //if command didn't work, check status to see what happened and update homekit
+							self.log("Error setting power state of " + self.name + " to " + powerOn)
+							self.getStatus.call(self)
 						}
-					}
+					},0)
 				})
+				
+				if (self.dimmable) {
+						self.service.getCharacteristic(Characteristic.Brightness).updateValue(0)
+					}
+				self.level = 0
+				self.service.getCharacteristic(Characteristic.On).updateValue(false)
+				self.currentState = false
+				self.lastUpdate = moment()
+				
+				if (typeof callback !== 'undefined') {
+					callback(null, self.currentState)
+					return
+				} else {
+					return
+				}    
 			}           
         } else {
 			self.currentState = state
@@ -841,34 +836,33 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
     self.log("Setting level of " + self.name + " to " + level + '%')
     self.light.level(level).then(function(status)
      {    
-        if (status.success) {                
-            self.level = level
+        self.level = level
             self.service.getCharacteristic(Characteristic.Brightness).updateValue(self.level)
 
-			if (self.level > 0) {
-				self.service.getCharacteristic(Characteristic.On).updateValue(true)
-				self.currentState = true
-			} else if (self.level == 0) {
-				self.service.getCharacteristic(Characteristic.On).updateValue(false)
-				self.currentState = false
-			}
-			
-			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + level + '%')
-			self.lastUpdate = moment()
-			
-			if (typeof callback !== 'undefined') {
-				callback(null, self.level)
+		if (self.level > 0) {
+			self.service.getCharacteristic(Characteristic.On).updateValue(true)
+			self.currentState = true
+		} else if (self.level == 0) {
+			self.service.getCharacteristic(Characteristic.On).updateValue(false)
+			self.currentState = false
+		}
+		
+		self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + level + '%')
+		self.lastUpdate = moment()
+		
+		setTimeout(function() {
+			if (status.success) {                
+				//do nothing	
 			} else {
-				return
-			}	
-        } else {
-			self.log("Error setting level of " + self.name)   
-            if (typeof callback !== 'undefined') {
-                callback(error, null)
-                return
-            } else {
-                return
-            }
+				self.log("Error setting level of " + self.name)   
+				self.getStatus.call(self)
+			}
+		},0)
+		
+		if (typeof callback !== 'undefined') {
+			callback(null, self.level)
+		} else {
+			return
 		}
 	})
 }
@@ -1033,7 +1027,6 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 	self.log("Setting power state of " + self.name + " to " + powerOn)
 	
 	if (state) {
-		self.log.debug('State: ' + util.inspect(state))
 		hub.sceneOn(groupID).then(function(status) {
 			if (status.completed) {
 					self.level = 100
@@ -1657,7 +1650,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 		hub.once('connect',function(){		
 			if (self.deviceType == ('lightbulb' || 'dimmer' || 'switch' || 'iolinc' || 'scene' || 'outlet' || 'fan' || 'shades' || 'blinds'))
 			{
-				self.pollStatus.call(self)
+				setTimeout(function() {self.pollStatus.call(self)}, (1000 * self.refreshInterval))
 			} 
 		}	
 	)}	
