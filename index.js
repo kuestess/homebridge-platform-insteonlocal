@@ -554,8 +554,10 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 										})
 										
 										groupDevice = groupDevice[0]
-										self.log('Getting status of scene device ' + groupDevice.name)
-										groupDevice.getStatus.call(groupDevice)
+										if(groupDevice.deviceType !== 'scene'){										
+											self.log('Getting status of scene device ' + groupDevice.name)
+											groupDevice.getStatus.call(groupDevice)
+										}
 									}
 								})
 							}
