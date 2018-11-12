@@ -449,7 +449,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 				for (var i = 0, len = foundDevices.length; i < len; i++) {
 					var foundDevice = foundDevices[i]
 					self.log.debug('Got event for ' + foundDevice.name)
-				
+					
 					switch (foundDevice.deviceType) {
 					case 'lightbulb':
 					case 'dimmer':
@@ -554,6 +554,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 										})
 										
 										groupDevice = groupDevice[0]
+
 										if(groupDevice.deviceType != 'scene'){										
 											self.log('Getting status of scene device ' + groupDevice.name)
 											self.log.debug('Group device type ' + groupDevice.deviceType)
@@ -565,7 +566,13 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						}
 						
 						break
-			
+					case 'keypad':
+						self.log('Got updated status for ' + foundDevice.name)
+						
+						foundDevice.getSceneState.call(foundDevice)	
+						foundDevice.lastUpdate = moment()							
+						break
+						
 					case 'iolinc':
 						if (command1 == 11 || command1 == 13) {
 							setTimeout(function() {
@@ -598,6 +605,28 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 					
 					}
 				}
+			}
+
+			// find all the devices that the current event device is a controller of
+			var responders = _.filter(self.devices, function(device){return _.contains(device.controllers,id,0)})
+
+			if (responders.length > 0) {
+				self.log.debug(id + " is a contoller of " + responders.length + " devices");
+
+				if(["11","12","13","14"].indexOf(command1) +1){ //only really care about on/off commands
+					
+					for (var i=0, l=responders.length; i < l; i++){
+
+						var responderDevice = accessories.filter(function(item) {
+							return (item.id == responders[i].deviceID)
+						})
+
+						responderDevice = responderDevice[0]
+						self.log('Getting status of responder device ' + responderDevice.name)
+						responderDevice.getStatus.call(responderDevice)
+
+					}
+				} else {self.log.debug("Ignoring Controller Command: " + command1)}
 			}
 		}
 	})
@@ -674,7 +703,8 @@ InsteonLocalAccessory.prototype.pollStatus = function() {
             self.pollStatus.call(self)
         }, 1000 * (self.refreshInterval - delta))
     } else {
-        console.log('Polling status for ' + self.name + '...')
+
+        self.log('Polling status for ' + self.name + '...')
 		
 		self.platform.checkHubConnection()
 		
@@ -957,7 +987,12 @@ InsteonLocalAccessory.prototype.getSensorStatus = function(callback) {
                 return
             }
             } else {
-				self.currentState = (status.sensor == 'on') ? 1 : 0
+				if(self.invert_sensor) {
+					self.currentState = (status.sensor == 'off') ? 1 : 0
+				} else {
+					self.currentState = (status.sensor == 'on') ? 1 : 0
+				}
+
 				self.log.debug(self.name + ' sensor is ' + status.sensor)
 				//Characteristic.CurrentDoorState.OPEN = 0
 				//Characteristic.CurrentDoorState.CLOSED = 1
@@ -1148,7 +1183,8 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 			var binaryButtonMap = parseInt(hexButtonMap, 16).toString(2);
 			binaryButtonMap = "00000000".substr(binaryButtonMap.length) + binaryButtonMap //pad to 8 digits
 			
-			self.log.debug('Binary map: ' + binaryButtonMap)
+			self.buttonMap = binaryButtonMap
+			self.log.debug('Binary map: ' + self.buttonMap)
 			
 			var buttonNumber = buttonArray[self.keypadbtn]
 			var buttonState = binaryButtonMap.charAt(buttonNumber)
@@ -1176,6 +1212,94 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 			}
 		}
 	})
+}
+
+InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
+    var self = this
+	
+	var timeout = 0
+	var buttonArray
+	var eight_buttonArray = {'A': 7, 'B': 6, 'C': 5,'D': 4,'E': 3,'F': 2,'G': 1,'H': 0};
+	var six_buttonArray = {'A': 5,'B': 4,'C': 3,'D': 2};
+	
+	self.platform.checkHubConnection()
+	
+	getButtonMap(function(){
+		var currentButtonMap = self.buttonMap
+		console.log('Current: ' + currentButtonMap)
+	
+		if(self.six_btn == true){
+			buttonArray = six_buttonArray
+		} else {
+			buttonArray = eight_buttonArray
+		}
+	
+		var buttonNumber = buttonArray[self.keypadbtn]
+		console.log('button num: ' + buttonNumber)
+		var binaryButtonMap = currentButtonMap.substring(0,buttonNumber) + (state ? 1 : 0) + currentButtonMap.substring(buttonNumber+1)
+		console.log('New bin: ' + binaryButtonMap)
+		var buttonMap = parseInt(binaryButtonMap, 2).toString(16)
+		console.log('Hex: ' + buttonMap)	
+		var cmd = {
+			cmd1: '2E',
+			cmd2: '00',
+			extended: true,
+			userData: ['01', '09', buttonMap],
+			isStandardResponse: true
+		}
+	
+		self.log('Setting state of ' + self.name)
+	
+		hub.directCommand(self.id, cmd, timeout, function(err,status){
+			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
+				self.log("Error setting state of " + self.name)
+				self.log.debug('Err: ' + util.inspect(err))
+			
+				if (typeof callback !== 'undefined') {
+					callback(err, null)
+					return
+				} else {
+					return
+				}	
+			} else {
+				self.lastUpdate = moment()
+				self.buttonMap = binaryButtonMap
+				self.currentState = state
+							
+				if (typeof callback !== 'undefined') {
+					callback(null, self.currentState)
+					return
+				} else {
+					return
+				}    
+			
+			} 
+		})
+	})
+
+	function getButtonMap(callback) {
+		var command = {
+		  cmd1: '19',
+		  cmd2: '01',
+		}
+		
+		hub.directCommand(self.id, command, timeout, function(err,status){
+			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
+				self.log("Error getting power state of " + self.name)
+				self.log.debug('Err: ' + util.inspect(err))
+				return
+			} else {		
+				var hexButtonMap = status.response.standard.command2
+				var binaryButtonMap = parseInt(hexButtonMap, 16).toString(2);
+				binaryButtonMap = "00000000".substr(binaryButtonMap.length) + binaryButtonMap //pad to 8 digits
+				
+				self.buttonMap = binaryButtonMap
+					
+				self.log.debug('Binary map: ' + binaryButtonMap)
+				callback()
+			}
+		})
+	}
 }
 
 InsteonLocalAccessory.prototype.getFanState = function(callback) {
@@ -1636,8 +1760,14 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 		}
 	}
     
+    if (self.deviceType == 'keypad') {
+		self.keypadbtn = device.keypadbtn
+		self.six_btn = device.six_btn
+    }
+    
     if (self.deviceType == 'iolinc') {
         self.gdo_delay = device.gdo_delay || 15
+        self.invert_sensor = device.invert_sensor || false
     }
     
     if (self.deviceType == 'remote') {
@@ -1651,7 +1781,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
     
 	if(self.refreshInterval > 0){    
 		hub.once('connect',function(){		
-			if (self.deviceType == ('lightbulb' || 'dimmer' || 'switch' || 'iolinc' || 'scene' || 'outlet' || 'fan' || 'shades' || 'blinds'))
+			if (self.deviceType == ('lightbulb' || 'dimmer' || 'switch' || 'iolinc' || 'scene' || 'outlet' || 'fan' || 'shades' || 'blinds' || 'keypad'))
 			{
 				setTimeout(function() {self.pollStatus.call(self)}, (1000 * self.refreshInterval))
 			} 
@@ -1757,14 +1887,26 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		
 		self.iolinc.on('sensorOn', function(){		
 			self.log.debug(self.name + ' sensor is on')
-			self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
-        	self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
+			
+			if(self.invert_sensor) {
+				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
+				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
+			} else {			
+				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
+				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
+			}
 		})
 		
 		self.iolinc.on('sensorOff', function(){
 			self.log.debug(self.name + ' sensor is off')
-			self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
-        	self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
+			
+			if(self.invert_sensor) {
+				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
+				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
+			} else {
+				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
+				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
+        	}
 		})
 		
         hub.once('connect', function() {
@@ -1873,6 +2015,16 @@ InsteonLocalAccessory.prototype.getServices = function() {
         
         break  
     
+    case 'keypad':
+    	self.service = new Service.Switch(self.name)
+		
+        self.service.getCharacteristic(Characteristic.On).on('set', self.setKeypadState.bind(self))
+        
+        hub.on('connect', function() {
+            self.getSceneState.call(self)
+        })
+        
+    	break
     }
 	
     if (self.service) {
