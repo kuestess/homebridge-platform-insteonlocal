@@ -448,7 +448,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 
 				for (var i = 0, len = foundDevices.length; i < len; i++) {
 					var foundDevice = foundDevices[i]
-					self.log.debug('Got event for ' + foundDevice.name)
+					self.log.debug('Got event for ' + foundDevice.name + ' (' + foundDevice.id + ')')
 					
 					switch (foundDevice.deviceType) {
 					case 'lightbulb':
@@ -555,7 +555,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 										
 										groupDevice = groupDevice[0]
 
-										if(groupDevice.deviceType != 'scene'){										
+										if(groupDevice.deviceType !== 'scene'){										
 											self.log('Getting status of scene device ' + groupDevice.name)
 											self.log.debug('Group device type ' + groupDevice.deviceType)
 											groupDevice.getStatus.call(groupDevice)
@@ -566,6 +566,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						}
 						
 						break
+						
 					case 'keypad':
 						self.log('Got updated status for ' + foundDevice.name)
 						
@@ -944,6 +945,11 @@ InsteonLocalAccessory.prototype.getStatus = function() {
 	var currentState
 	
 	self.platform.checkHubConnection()
+	
+	if(self.deviceType == 'scene' || self.deviceType == 'keypad'){
+		self.getSceneState.call(self)
+		return
+	}
 	
     self.log('Getting status for ' + self.name)
 
