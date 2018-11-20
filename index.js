@@ -1726,6 +1726,14 @@ InsteonLocalAccessory.prototype.setPosition = function(level, callback) { //get 
 	})       
 }
 
+InsteonLocalAccessory.prototype.identify = function(callback) {
+	var self = this
+	
+	self.log.debug('Sending beep command to ' + self.name)
+	hub.directCommand(self.id, '30')
+	callback()
+}
+
 function InsteonLocalAccessory(platform, device) {
     var self = this
 
@@ -1754,6 +1762,13 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
     self.server_port = platform.server_port
     
     self.id = self.id.trim().replace(/\./g, '')
+    
+	var uuid = UUIDGen.generate(self.name);
+	
+	self.accessory = new Accessory(self.name, uuid)
+		self.accessory.on('identify', function(callback){
+			self.identify.call(self,callback)
+	})   
     
     if (self.deviceType == 'scene') {
     	self.groupID = device.groupID
@@ -1897,9 +1912,11 @@ InsteonLocalAccessory.prototype.getServices = function() {
 			if(self.invert_sensor) {
 				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
 				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
+				self.currentState = 0
 			} else {			
 				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
 				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
+				self.currentState = 1
 			}
 		})
 		
@@ -1909,9 +1926,11 @@ InsteonLocalAccessory.prototype.getServices = function() {
 			if(self.invert_sensor) {
 				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
 				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
+				self.currentState = 1
 			} else {
 				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
 				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
+				self.currentState = 0
         	}
 		})
 		
