@@ -603,7 +603,12 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						foundDevice.getOutletState.call(foundDevice)
 						foundDevice.lastUpdate = moment()					
 						break
-					
+					case 'blinds':
+					case 'shades':
+						self.log('Got updated status for ' + foundDevice.name)
+						foundDevice.getPosition.call(foundDevice)
+						foundDevice.lastUpdate = moment()					
+						break
 					}
 				}
 			}
