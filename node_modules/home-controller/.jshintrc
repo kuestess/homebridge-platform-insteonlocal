@@ -1,0 +1,20 @@
+{
+  "boss": true,
+  "curly": true,
+  "eqeqeq": true,
+  "eqnull": true,
+  "expr": true,
+  "immed": true,
+  "noarg": true,
+  "quotmark": "single",
+  "smarttabs": true,
+  "trailing": true,
+  "undef": true,
+  "unused": true,
+  "jquery": true,
+  "browser": true,
+  "node": true,
+  "-W065": true,
+  "strict": false
+
+}
