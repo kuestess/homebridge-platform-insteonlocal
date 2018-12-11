@@ -1012,7 +1012,7 @@ InsteonLocalAccessory.prototype.getSensorStatus = function(callback) {
 
 				self.lastUpdate = moment()
 				if (typeof callback !== 'undefined') {
-					callback(null, status)
+					callback(null, self.currentState)
 				} else {
 					return
 				}
