@@ -531,20 +531,102 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						break
 			
 					case 'scene':
-						self.log('Got updated status for ' + foundDevice.name)
-						
-						foundDevice.getSceneState.call(foundDevice)	
-						foundDevice.lastUpdate = moment()						
-						
-						if (messageType == '3' || (messageType == '6' && command1 !== '06')) {
+					case 'keypad':					
+						if (messageType == '3') { //cleanup of group broadcast from hub
 							var group = parseInt(command2, 16)
 							var foundGroupID = parseInt(foundDevice.groupID)
+							
+							//we're looping through devices with the same deviceID - if not the correct group, move on to the next
 							if (foundGroupID !== group) {
 								self.log('Event not for correct group (group: ' + group + ')')
 								break
+							} else { //got correct group, command1 contains commanded state
+								self.log('Got updated status for ' + foundDevice.name)
+								if(command1 == 11) {
+									foundDevice.currentState = true
+									foundDevice.lastUpdate = moment()	
+									foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true)
+								}
+								
+								if(command1 == 13) {
+									foundDevice.currentState = false
+									foundDevice.lastUpdate = moment()	
+									foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false)
+								}
+							}
+						}
+							
+						if (messageType == '6') { //group broadcast - manual button press
+							var eight_buttonArray = {'A': 1, 'B': 2, 'C': 3,'D': 4,'E': 5,'F': 6,'G': 7,'H': 8}
+							var six_buttonArray = {'ON': 1,'B': 3,'C': 4,'D': 5, 'E': 6, 'OFF': 1}
+							
+							if(command1 == '06'){
+								var commandedState = gateway.substring(0,2)
+								var group = parseInt(gateway.substring(4,6)) //button number
+							} else {
+								var commandedState = command1
+								var group = parseInt(gateway.substring(4,6)) //button number
 							}
 							
-							if(typeof foundDevice.groupMembers !== 'undefined') {
+							if(foundDevice.six_btn == true){
+								var buttonArray = six_buttonArray
+							} else {
+								var buttonArray = eight_buttonArray
+							}
+														
+							var foundGroupID = buttonArray[foundDevice.keypadbtn]
+							if (foundGroupID !== group) {
+								self.log('Event not for correct group (group: ' + group + ')')
+								break
+							} else {
+								self.log('Got updated status for ' + foundDevice.name)
+								if(commandedState == 11) {
+									foundDevice.currentState = true
+									foundDevice.lastUpdate = moment()	
+									foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true)
+								}
+								
+								if(commandedState == 13) {
+									foundDevice.currentState = false
+									foundDevice.lastUpdate = moment()	
+									foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false)
+								}
+							}
+						}
+						
+						if (messageType == '2') { //group cleanup
+							var eight_buttonArray = {'A': 1, 'B': 2, 'C': 3,'D': 4,'E': 5,'F': 6,'G': 7,'H': 8}
+							var six_buttonArray = {'ON': 1,'B': 3,'C': 4,'D': 5, 'E': 6, 'OFF': 1}
+
+							var group = command2 //button number
+							
+							if(foundDevice.six_btn == true){
+								var buttonArray = six_buttonArray
+							} else {
+								var buttonArray = eight_buttonArray
+							}
+							
+							var foundGroupID = buttonArray[foundDevice.keypadbtn]
+							if (foundGroupID !== group) {
+								self.log('Event not for correct group (group: ' + group + ')')
+								break
+							} else {
+								self.log('Got updated status for ' + foundDevice.name)
+								if(commanded1 == 11) {
+									foundDevice.currentState = true
+									foundDevice.lastUpdate = moment()	
+									foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true)
+								}
+								
+								if(commanded1 == 13) {
+									foundDevice.currentState = false
+									foundDevice.lastUpdate = moment()	
+									foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false)
+								}
+							}
+						}
+						
+						if(typeof foundDevice.groupMembers !== 'undefined') {
 								self.log('Getting status of scene members (group: ' + group + ')...')
 								foundDevice.groupMembers.forEach(function(deviceID){
 									var isDefined = _.contains(deviceIDs, deviceID, 0)
@@ -563,15 +645,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 									}
 								})
 							}
-						}
 						
-						break
-						
-					case 'keypad':
-						self.log('Got updated status for ' + foundDevice.name)
-						
-						foundDevice.getSceneState.call(foundDevice)	
-						foundDevice.lastUpdate = moment()							
 						break
 						
 					case 'iolinc':
@@ -615,7 +689,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 
 			// find all the devices that the current event device is a controller of
 			var responders = _.filter(self.devices, function(device){return _.contains(device.controllers,id,0)})
-
+			
 			if (responders.length > 0) {
 				self.log.debug(id + " is a contoller of " + responders.length + " devices");
 
@@ -626,7 +700,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						var responderDevice = accessories.filter(function(item) {
 							return (item.id == responders[i].deviceID)
 						})
-
+						
 						responderDevice = responderDevice[0]
 						self.log('Getting status of responder device ' + responderDevice.name)
 						responderDevice.getStatus.call(responderDevice)
@@ -998,13 +1072,14 @@ InsteonLocalAccessory.prototype.getSensorStatus = function(callback) {
                 return
             }
             } else {
+				self.log.debug('Invert sensor: ' + self.invert_sensor)
 				if(self.invert_sensor) {
 					self.currentState = (status.sensor == 'off') ? 1 : 0
 				} else {
 					self.currentState = (status.sensor == 'on') ? 1 : 0
 				}
 
-				self.log.debug(self.name + ' sensor is ' + status.sensor)
+				self.log.debug(self.name + ' sensor is ' + status.sensor + ', currentState: ' + self.currentState)
 				//Characteristic.CurrentDoorState.OPEN = 0
 				//Characteristic.CurrentDoorState.CLOSED = 1
 				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(self.currentState)
@@ -1897,7 +1972,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		
 		self.service.getCharacteristic(Characteristic.On).on('set', self.setSceneState.bind(self))
 		
-		hub.on('connect', function() {
+		hub.once('connect', function() {
             self.getSceneState.call(self)
         })
 		
@@ -2050,7 +2125,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		
         self.service.getCharacteristic(Characteristic.On).on('set', self.setKeypadState.bind(self))
         
-        hub.on('connect', function() {
+        hub.once('connect', function() {
             self.getSceneState.call(self)
         })
         
