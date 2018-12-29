@@ -944,40 +944,89 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 	
 	self.platform.checkHubConnection()
 	
-    hub.cancelPending(self.id)
-    
-    self.log("Setting level of " + self.name + " to " + level + '%')
-    self.light.level(level).then(function(status)
-     {    
-        self.level = level
-            self.service.getCharacteristic(Characteristic.Brightness).updateValue(self.level)
-
-		if (self.level > 0) {
-			self.service.getCharacteristic(Characteristic.On).updateValue(true)
-			self.currentState = true
-		} else if (self.level == 0) {
-			self.service.getCharacteristic(Characteristic.On).updateValue(false)
-			self.currentState = false
-		}
-		
-		self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + level + '%')
-		self.lastUpdate = moment()
-		
-		setTimeout(function() {
-			if (status.success) {                
-				//do nothing	
-			} else {
-				self.log("Error setting level of " + self.name)   
-				self.getStatus.call(self)
-			}
-		},0)
-		
+	if(level == true){
+		self.log.debug('Discarding on command for ' + self.name)
 		if (typeof callback !== 'undefined') {
-			callback(null, self.level)
+			self.lastCommand = now
+			callback(null, level)
+			return
 		} else {
+			self.lastCommand = now
 			return
 		}
-	})
+	} else if(level == false){
+		var level = 0
+	}
+		
+	var now = moment()
+	
+	if(typeof self.lastCommand == 'undefined'){self.lastCommand = now}
+	
+	var lastCommand = self.lastCommand
+    var delta = now.diff(lastCommand, 'milliseconds')
+	var debounceTimer = 300
+	
+    if (self.levelOne == '' || delta == 0) { //first command sent
+    	self.levelOne = level
+		    	
+    	self.levelTimeout = setTimeout(function(){ 
+    		setLevel.call(self,level,callback)
+    		self.levelOne = ''
+    	}, debounceTimer + 100)
+    	
+    	if (typeof callback !== 'undefined') {
+			self.lastCommand = now
+			callback(null, level)
+		} else {
+			self.lastCommand = now
+			return
+		}	
+    } else if (self.levelOne && delta < debounceTimer) {
+		self.levelTwo = level
+		clearTimeout(self.levelTimeout)
+		setLevel.call(self,self.levelTwo,callback)	
+    } 
+		
+	function setLevel(level,callback){
+		var self = this
+		
+		hub.cancelPending(self.id)
+		
+		self.lastCommand = now
+		
+		self.log("Setting level of " + self.name + " to " + level + '%')
+		self.light.level(level).then(function(status)
+		 {    
+			self.level = level
+				self.service.getCharacteristic(Characteristic.Brightness).updateValue(self.level)
+
+			if (self.level > 0) {
+				self.service.getCharacteristic(Characteristic.On).updateValue(true)
+				self.currentState = true
+			} else if (self.level == 0) {
+				self.service.getCharacteristic(Characteristic.On).updateValue(false)
+				self.currentState = false
+			}
+		
+			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + level + '%')
+			self.lastUpdate = moment()
+		
+			setTimeout(function() {
+				if (status.success) {                
+					//do nothing	
+				} else {
+					self.log("Error setting level of " + self.name)   
+					self.getStatus.call(self)
+				}
+			},0)
+		
+			if (typeof callback !== 'undefined') {
+				callback(null, self.level)
+			} else {
+				return
+			}
+		})
+	}
 }
 
 InsteonLocalAccessory.prototype.getBrightnessLevel = function(callback) {
@@ -1909,7 +1958,8 @@ InsteonLocalAccessory.prototype.getServices = function() {
     case 'dimmer':
         self.service = new Service.Lightbulb(self.name)
 
-        self.service.getCharacteristic(Characteristic.On).on('set', self.setPowerState.bind(self))
+        self.service.getCharacteristic(Characteristic.On).on('set', self.setBrightnessLevel.bind(self))
+        //self.service.getCharacteristic(Characteristic.On).on('set', self.setPowerState.bind(self))
         
         if (self.dimmable) {
             self.service.getCharacteristic(Characteristic.Brightness).on('set', self.setBrightnessLevel.bind(self))
