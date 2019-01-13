@@ -943,20 +943,6 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
     var self = this
 	
 	self.platform.checkHubConnection()
-	
-	if(level == true){
-		self.log.debug('Discarding on command for ' + self.name)
-		if (typeof callback !== 'undefined') {
-			self.lastCommand = now
-			callback(null, level)
-			return
-		} else {
-			self.lastCommand = now
-			return
-		}
-	} else if(level == false){
-		var level = 0
-	}
 		
 	var now = moment()
 	
@@ -965,13 +951,22 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 	var lastCommand = self.lastCommand
     var delta = now.diff(lastCommand, 'milliseconds')
 	var debounceTimer = 300
-	
-    if (self.levelOne == '' || delta == 0) { //first command sent
+	console.log('SSK: ' + level)
+	console.log('SSK levels1: ' + self.levelOne + ' ' + self.levelTwo)
+    if (self.levelOne == '' || delta == 0) { 
     	self.levelOne = level
-		    	
+		
+		if(level === true){
+			var theLevel = 100
+		} else if(level === false){
+			var theLevel = 0
+		}
+
     	self.levelTimeout = setTimeout(function(){ 
-    		setLevel.call(self,level,callback)
-    		self.levelOne = ''
+			setLevel.call(self,theLevel, function(){
+				self.levelOne = ''
+				callback
+			})
     	}, debounceTimer + 100)
     	
     	if (typeof callback !== 'undefined') {
@@ -982,9 +977,27 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 			return
 		}	
     } else if (self.levelOne && delta < debounceTimer) {
-		self.levelTwo = level
 		clearTimeout(self.levelTimeout)
-		setLevel.call(self,self.levelTwo,callback)	
+		self.levelTwo = level
+		console.log('SSK levels2: ' + self.levelOne + ' ' + self.levelTwo)
+		if(self.levelOne === true){
+			setLevel.call(self,self.levelTwo, function(){
+				self.levelOne = ''
+				self.levelTwo = ''
+				callback(null, level)
+			})
+		} else if (self.levelTwo === true){
+			setLevel.call(self,self.levelOne, function(){
+				self.levelOne = ''
+				self.levelTwo = ''
+				callback(null, level)
+			})
+		} else {setLevel.call(self,self.levelOne,function(){
+				self.levelOne = ''
+				self.levelTwo = ''	
+				callback(null, level)
+			})
+		}
     } 
 		
 	function setLevel(level,callback){
