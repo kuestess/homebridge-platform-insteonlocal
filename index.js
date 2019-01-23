@@ -281,7 +281,7 @@ function InsteonLocalPlatform(log, config, api) {
     self.deviceIDs = []
 
     for (var i = 0; i < self.devices.length; i++) {
-        self.deviceIDs.push(self.devices[i].deviceID)
+        self.deviceIDs.push(self.devices[i].deviceID.toUpperCase())
     }
 	
 	self.connectToHub()
@@ -951,8 +951,7 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 	var lastCommand = self.lastCommand
     var delta = now.diff(lastCommand, 'milliseconds')
 	var debounceTimer = 300
-	console.log('SSK: ' + level)
-	console.log('SSK levels1: ' + self.levelOne + ' ' + self.levelTwo)
+	
     if (self.levelOne == '' || delta == 0) { 
     	self.levelOne = level
 		
@@ -979,7 +978,7 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
     } else if (self.levelOne && delta < debounceTimer) {
 		clearTimeout(self.levelTimeout)
 		self.levelTwo = level
-		console.log('SSK levels2: ' + self.levelOne + ' ' + self.levelTwo)
+		
 		if(self.levelOne === true){
 			setLevel.call(self,self.levelTwo, function(){
 				self.levelOne = ''
