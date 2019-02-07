@@ -281,7 +281,9 @@ function InsteonLocalPlatform(log, config, api) {
     self.deviceIDs = []
 
     for (var i = 0; i < self.devices.length; i++) {
-        self.deviceIDs.push(self.devices[i].deviceID.toUpperCase())
+		if(self.devices[i].deviceID){
+			self.deviceIDs.push(self.devices[i].deviceID.toUpperCase())
+		}
     }
 	
 	self.connectToHub()
@@ -454,7 +456,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 					case 'lightbulb':
 					case 'dimmer':
 					case 'switch':
-						if (command1 == "19" || command1 == "03" || command1 == "04" || command1 == "00" || (command1 == "06" && messageType == "1")) { //19 = status
+						if (command1 == "19" || command1 == "03" || command1 == "04" || (command1 == "00" && command2 != "00")|| (command1 == "06" && messageType == "1")) { //19 = status
 							var level_int = parseInt(command2, 16) * (100 / 255)
 							var level = Math.ceil(level_int)
 
@@ -1890,9 +1892,13 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
     var self = this
 
     self.platform = platform
-    self.log = platform.log
-    self.id = device.deviceID.toUpperCase()
-    self.dimmable = (device.dimmable == "yes") ? true : false
+	self.log = platform.log
+	
+	if(device.deviceID){
+    	self.id = device.deviceID.toUpperCase()
+	}
+
+	self.dimmable = (device.dimmable == "yes") ? true : false
     self.currentState = ''
     self.level = ''
     self.name = device.name
@@ -1901,9 +1907,11 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
     self.lastUpdate = ''
     self.refreshInterval = device.refresh || platform.refreshInterval
     self.server_port = platform.server_port
-    
-    self.id = self.id.trim().replace(/\./g, '')
-    
+	
+	if(self.id){
+    	self.id = self.id.trim().replace(/\./g, '')
+	}
+		
 	var uuid = UUIDGen.generate(self.name);
 	
 	self.accessory = new Accessory(self.name, uuid)
@@ -1955,8 +1963,10 @@ InsteonLocalAccessory.prototype.getServices = function() {
     var self = this
     var services = []
     var infoService = new Service.AccessoryInformation()
-    var deviceMAC = self.id.substr(0, 2) + '.' + self.id.substr(2, 2) + '.' + self.id.substr(4, 2)
-
+	
+	if(self.id){
+		var deviceMAC = self.id.substr(0, 2) + '.' + self.id.substr(2, 2) + '.' + self.id.substr(4, 2)
+	} else {var deviceMAC = ''}
     infoService.setCharacteristic(Characteristic.Name, self.DeviceName)
     .setCharacteristic(Characteristic.Manufacturer, 'Insteon')
     .setCharacteristic(Characteristic.Model, 'Insteon')
@@ -2035,8 +2045,10 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.service.getCharacteristic(Characteristic.On).on('set', self.setSceneState.bind(self))
 		
 		hub.once('connect', function() {
-            self.getSceneState.call(self)
-        })
+			if(self.id){
+				self.getSceneState.call(self)
+			}
+		})
 		
         break
 
