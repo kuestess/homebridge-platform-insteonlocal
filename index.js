@@ -975,7 +975,7 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 			var theLevel = 100
 		} else if(level === false){
 			var theLevel = 0
-		}
+		} else {var theLevel = level}
 
 		self.levelTimeout = setTimeout(function(){ 
 			setLevel.call(self,theLevel, function(){
