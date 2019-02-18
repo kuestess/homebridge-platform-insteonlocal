@@ -1965,7 +1965,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 	
 	if(self.refreshInterval > 0){    
 		hub.once('connect',function(){		
-			if (self.deviceType == ('lightbulb' || 'dimmer' || 'switch' || 'iolinc' || 'scene' || 'outlet' || 'fan' || 'shades' || 'blinds' || 'keypad'))
+			if (['lightbulb' , 'dimmer' , 'switch' , 'iolinc' , 'scene' , 'outlet' , 'fan' , 'shades' , 'blinds' , 'keypad'].includes(self.deviceType))
 			{
 				setTimeout(function() {self.pollStatus.call(self)}, (1000 * self.refreshInterval))
 			} 
