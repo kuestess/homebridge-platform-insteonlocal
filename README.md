@@ -47,7 +47,7 @@ Edit the config.json (see example) to fit your installation - configuration para
 
   - `user`:  Hub username from Insteon app (Not your Insteon login username.  Go to Settings->House in the Insteon app and use the 'Hub Username' from there.)
   - `pass`:  Hub password from Insteon app (Not your Insteon login password.  Go to Settings->House in the Insteon app and use the 'Hub Password' from there.)
-  - `host`:  local IP of your Insteon hub
+  - `host`:  local IP of your Insteon hub or device path of your Insteon PLM
   - `port`:  port from Insteon app
   - `model`: model number of your hub.  Valid values are 2242, 2245 or 2243 (see below)
   - `refresh`: device status refresh interval in seconds (disabled by default, set to 0 to disable polling)
