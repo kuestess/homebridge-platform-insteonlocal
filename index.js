@@ -649,13 +649,13 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						
 						break
 						
-					case 'iolinc':
+					/*case 'iolinc':
 						if (command1 == 11 || command1 == 13) {
 							setTimeout(function() {
 								foundDevice.getSensorStatus.call(foundDevice)
 							}, 1000 * foundDevice.gdo_delay)
 						} 
-						break
+						break*/
 					
 					case 'fan':
 						self.log('Got updated status for ' + foundDevice.name)
@@ -1150,7 +1150,7 @@ InsteonLocalAccessory.prototype.getSensorStatus = function(callback) {
 			}
 		} else {
 			self.log.debug('Invert sensor: ' + self.invert_sensor)
-			if(self.invert_sensor) {
+			if(self.invert_sensor == true || self.invert_sensor == 'true') {
 				self.currentState = (status.sensor == 'off') ? 1 : 0
 			} else {
 				self.currentState = (status.sensor == 'on') ? 1 : 0
