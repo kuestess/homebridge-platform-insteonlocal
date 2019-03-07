@@ -2077,7 +2077,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.iolinc.on('sensorOn', function(){		
 			self.log.debug(self.name + ' sensor is on')
 			
-			if(self.invert_sensor) {
+			if(self.invert_sensor == true || self.invert_sensor == 'true') {
 				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
 				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
 				self.currentState = 0
@@ -2091,7 +2091,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.iolinc.on('sensorOff', function(){
 			self.log.debug(self.name + ' sensor is off')
 			
-			if(self.invert_sensor) {
+			if(self.invert_sensor == true || self.invert_sensor == 'true') {
 				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
 				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
 				self.currentState = 1
