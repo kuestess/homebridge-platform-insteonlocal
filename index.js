@@ -1150,11 +1150,11 @@ InsteonLocalAccessory.prototype.getSensorStatus = function(callback) {
 			}
 		} else {
 			self.log.debug('Invert sensor: ' + self.invert_sensor)
-			if(self.invert_sensor == true || self.invert_sensor == 'true') {
-				self.currentState = (status.sensor == 'off') ? 1 : 0
-			} else {
+			if(self.invert_sensor == 'false' || self.invert_sensor == false) {
 				self.currentState = (status.sensor == 'on') ? 1 : 0
-			}
+			} else if(self.invert_sensor == true || self.invert_sensor == 'true') {
+				self.currentState = (status.sensor == 'off') ? 1 : 0
+			} 
 
 			self.log.debug(self.name + ' sensor is ' + status.sensor + ', currentState: ' + self.currentState)
 			//Characteristic.CurrentDoorState.OPEN = 0
@@ -2077,29 +2077,29 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.iolinc.on('sensorOn', function(){		
 			self.log.debug(self.name + ' sensor is on')
 			
-			if(self.invert_sensor == true || self.invert_sensor == 'true') {
-				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
-				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
-				self.currentState = 0
-			} else {			
+			if(self.invert_sensor == 'false' || self.invert_sensor == false){			
 				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
 				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
 				self.currentState = 1
-			}
+			} else if(self.invert_sensor == true || self.invert_sensor == 'true') {
+				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
+				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
+				self.currentState = 0
+			} 
 		})
 		
 		self.iolinc.on('sensorOff', function(){
 			self.log.debug(self.name + ' sensor is off')
 			
-			if(self.invert_sensor == true || self.invert_sensor == 'true') {
-				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
-				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
-				self.currentState = 1
-			} else {
+			if(self.invert_sensor == 'false' || self.invert_sensor == false) {
 				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
 				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
 				self.currentState = 0
-			}
+			} else if(self.invert_sensor == true || self.invert_sensor == 'true') {
+				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
+				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
+				self.currentState = 1
+			} 
 		})
 		
 		hub.once('connect', function() {
