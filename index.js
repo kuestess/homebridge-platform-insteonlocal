@@ -1023,8 +1023,26 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 		self.lastCommand = now
 		
 		self.log('Setting level of ' + self.name + ' to ' + level + '%')
-		self.light.level(level).then(function(status)
-		{    
+
+		var hexLevel = Math.ceil(level * (255/100)).toString(16)
+		hexLevel = '00'.substr(hexLevel.length) + hexLevel
+		var timeout = 0
+
+		var cmd = {
+			cmd1: '11',
+			cmd2: hexLevel
+		}
+		
+		hub.directCommand(self.id, cmd, timeout, function(error, status) {    
+			
+			if(error){
+				if (typeof callback !== 'undefined') {
+					callback(error, null)
+				} else {
+					return
+				}	
+			}	
+			
 			self.level = level
 			self.service.getCharacteristic(Characteristic.Brightness).updateValue(self.level)
 
@@ -1040,7 +1058,7 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 			self.lastUpdate = moment()
 		
 			setTimeout(function() {
-				if (status.success) {                
+				if (typeof status != 'undefined' && status.success) {                
 					//do nothing	
 				} else {
 					self.log('Error setting level of ' + self.name)   
