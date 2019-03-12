@@ -1975,8 +1975,8 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 	}
 	
 	if (self.deviceType == 'keypad') {
-		self.keypadbtn = device.keypadbtn
-		self.six_btn = device.six_btn
+		self.keypadbtn = typeof(device.keypadbtn) === 'string' ? device.keypadbtn : '?'
+		self.six_btn = device.six_btn === true
 	}
 	
 	if (self.deviceType == 'iolinc') {
