@@ -424,6 +424,9 @@ InsteonLocalPlatform.prototype.checkHubConnection = function () {
 
 InsteonLocalPlatform.prototype.eventListener = function () {
 	var self = this
+    var eight_buttonArray = {'A': 1, 'B': 2, 'C': 3,'D': 4,'E': 5,'F': 6,'G': 7,'H': 8}
+    var six_buttonArray = {'ON': 1,'A': 3,'B': 4,'C': 5, 'D': 6, 'OFF': 1}
+    var buttonArray
 	
 	var deviceIDs = self.deviceIDs
 	eventListener_init = true
@@ -563,8 +566,6 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						}
 							
 						if (messageType == '6') { //group broadcast - manual button press
-							var eight_buttonArray = {'A': 1, 'B': 2, 'C': 3,'D': 4,'E': 5,'F': 6,'G': 7,'H': 8}
-							var six_buttonArray = {'ON': 1,'A': 3,'B': 4,'C': 5, 'D': 6, 'OFF': 1}
 							
 							if(command1 == '06'){
 								var commandedState = gateway.substring(0,2)
@@ -575,9 +576,9 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							}
 							
 							if(foundDevice.six_btn == true){
-								var buttonArray = six_buttonArray
+								buttonArray = six_buttonArray
 							} else {
-								var buttonArray = eight_buttonArray
+								buttonArray = eight_buttonArray
 							}
 														
 							var foundGroupID = buttonArray[foundDevice.keypadbtn]
@@ -601,15 +602,13 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						}
 						
 						if (messageType == '2') { //group cleanup
-							var eight_buttonArray = {'A': 1, 'B': 2, 'C': 3,'D': 4,'E': 5,'F': 6,'G': 7,'H': 8}
-							var six_buttonArray = {'ON': 1,'A': 3,'B': 4,'C': 5, 'D': 6, 'OFF': 1}
 
-							var group = command2 //button number
+							var group = parseInt(command2) //button number
 							
 							if(foundDevice.six_btn == true){
-								var buttonArray = six_buttonArray
+								buttonArray = six_buttonArray
 							} else {
-								var buttonArray = eight_buttonArray
+								buttonArray = eight_buttonArray
 							}
 							
 							var foundGroupID = buttonArray[foundDevice.keypadbtn]
@@ -1306,7 +1305,6 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 	var self = this
 	var buttonState
 	var timeout = 0
-	var buttonArray
 	var eight_buttonArray = {
             'A': 0b00000001,
             'B': 0b00000010,
@@ -1323,6 +1321,7 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
             'D': eight_buttonArray['F'],
             'ON': eight_buttonArray['G'] | eight_buttonArray['H'],
             'OFF': eight_buttonArray['A'] | eight_buttonArray['B']}
+	var buttonArray
 	
 	self.platform.checkHubConnection()
 	
@@ -1413,9 +1412,9 @@ InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 	var self = this
 	
 	var timeout = 0
-	var buttonArray
 	var eight_buttonArray = {'A': 7, 'B': 6, 'C': 5,'D': 4,'E': 3,'F': 2,'G': 1,'H': 0}
 	var six_buttonArray = {'A': 5,'B': 4,'C': 3,'D': 2}
+	var buttonArray
 	
 	self.platform.checkHubConnection()
 	
