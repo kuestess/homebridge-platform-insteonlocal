@@ -19,6 +19,10 @@ var eventListener_init = false
 
 var platform = InsteonLocalPlatform
 
+function hexByteToLevel(hexByte) {
+    return Math.ceil(parseInt(hexByte, 16)/255*100)
+}
+
 module.exports = function(homebridge) {
 	console.log('homebridge API version: ' + homebridge.version)
 
@@ -560,7 +564,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							
 						if (messageType == '6') { //group broadcast - manual button press
 							var eight_buttonArray = {'A': 1, 'B': 2, 'C': 3,'D': 4,'E': 5,'F': 6,'G': 7,'H': 8}
-							var six_buttonArray = {'ON': 1,'B': 3,'C': 4,'D': 5, 'E': 6, 'OFF': 1}
+							var six_buttonArray = {'ON': 1,'A': 3,'B': 4,'C': 5, 'D': 6, 'OFF': 1}
 							
 							if(command1 == '06'){
 								var commandedState = gateway.substring(0,2)
@@ -598,7 +602,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						
 						if (messageType == '2') { //group cleanup
 							var eight_buttonArray = {'A': 1, 'B': 2, 'C': 3,'D': 4,'E': 5,'F': 6,'G': 7,'H': 8}
-							var six_buttonArray = {'ON': 1,'B': 3,'C': 4,'D': 5, 'E': 6, 'OFF': 1}
+							var six_buttonArray = {'ON': 1,'A': 3,'B': 4,'C': 5, 'D': 6, 'OFF': 1}
 
 							var group = command2 //button number
 							
@@ -823,6 +827,7 @@ InsteonLocalAccessory.prototype.pollStatus = function() {
 			break
 			
 		case 'scene':
+		case 'keypad':
 			self.getSceneState.call(self)
 			setTimeout(function() {self.pollStatus.call(self)}, (1000 * self.refreshInterval))
 			break
@@ -1302,8 +1307,22 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 	var buttonState
 	var timeout = 0
 	var buttonArray
-	var eight_buttonArray = {'A': 7, 'B': 6, 'C': 5,'D': 4,'E': 3,'F': 2,'G': 1,'H': 0}
-	var six_buttonArray = {'A': 5,'B': 4,'C': 3,'D': 2}
+	var eight_buttonArray = {
+            'A': 0b00000001,
+            'B': 0b00000010,
+            'C': 0b00000100,
+            'D': 0b00001000,
+            'E': 0b00010000,
+            'F': 0b00100000,
+            'G': 0b01000000,
+            'H': 0b10000000}
+	var six_buttonArray = {
+            'A': eight_buttonArray['C'],
+            'B': eight_buttonArray['D'],
+            'C': eight_buttonArray['E'],
+            'D': eight_buttonArray['F'],
+            'ON': eight_buttonArray['G'] | eight_buttonArray['H'],
+            'OFF': eight_buttonArray['A'] | eight_buttonArray['B']}
 	
 	self.platform.checkHubConnection()
 	
@@ -1313,7 +1332,7 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 		buttonArray = eight_buttonArray
 	}
 	
-	if (self.keypadbtn == 'A' || (self.six_btn == true && self.keypadbtn == 'B') || (self.six_btn == true && self.keypadbtn == 'G') || (self.six_btn == true && self.keypadbtn == 'H') || self.keypadbtn == 'ON')
+	if (self.keypadbtn === 'ON' || (!self.six_btn && self.keypadbtn === 'A'))
 	{
 		var cmd = {
 			cmd1: '19',
@@ -1342,9 +1361,9 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 			
 		} else {	
 			
-			if (self.keypadbtn == 'A' || (self.six_btn == true && self.keypadbtn == 'B') || (self.six_btn == true && self.keypadbtn == 'G') || (self.six_btn == true && self.keypadbtn == 'H') || self.keypadbtn == 'ON')
-			{
-				self.level = parseInt(status.response.standard.command2, 16)
+			if (self.keypadbtn === 'ON' || (!self.six_btn && self.keypadbtn === 'A'))
+                            {
+				self.level = hexByteToLevel(status.response.standard.command2)
 				if (self.level > 0) {
 					self.currentState = true
 				} else {
@@ -1362,17 +1381,11 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 			}
 			
 			var hexButtonMap = status.response.standard.command2
-			var binaryButtonMap = parseInt(hexButtonMap, 16).toString(2)
-			binaryButtonMap = '00000000'.substr(binaryButtonMap.length) + binaryButtonMap //pad to 8 digits
+			var intButtonMap = parseInt(hexButtonMap, 16)
+			var buttonState = (buttonArray[self.keypadbtn] & intButtonMap) !== 0
+			self.log.debug('Button ' + self.keypadbtn + ' state is ' + (buttonState ? 'on' : 'off'))
 			
-			self.buttonMap = binaryButtonMap
-			self.log.debug('Binary map: ' + self.buttonMap)
-			
-			var buttonNumber = buttonArray[self.keypadbtn]
-			var buttonState = binaryButtonMap.charAt(buttonNumber)
-			self.log.debug('Button ' + self.keypadbtn + ' state is ' + ((buttonState == 1) ? 'on' : 'off'))
-			
-			if (buttonState > 0) {
+			if (buttonState) {
 				self.currentState = true
 				self.level = 100
 			} else {
