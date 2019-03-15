@@ -39,7 +39,6 @@ function InsteonLocalPlatform(log, config, api) {
 
 	self.config = config
 	self.log = log
-        self.log('Running ctgreybeard development version')
 	self.host = config['host']
 	self.port = config['port']
 	self.user = config['user']
