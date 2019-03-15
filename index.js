@@ -1412,9 +1412,25 @@ InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 	var self = this
 	
 	var timeout = 0
-	var eight_buttonArray = {'A': 7, 'B': 6, 'C': 5,'D': 4,'E': 3,'F': 2,'G': 1,'H': 0}
-	var six_buttonArray = {'A': 5,'B': 4,'C': 3,'D': 2}
+	var eight_buttonArray = {
+        'A': 7,
+        'B': 6,
+        'C': 5,
+        'D': 4,
+        'E': 3,
+        'F': 2,
+        'G': 1,
+        'H': 0
+    }
+	var six_buttonArray = {
+        'A': eight_buttonArray['C'],
+        'B': eight_buttonArray['D'],
+        'C': eight_buttonArray['E'],
+        'D': eight_buttonArray['F']
+    }
 	var buttonArray
+	
+    self.log('Setting state of ' + self.name + ' to ' + state)
 	
 	self.platform.checkHubConnection()
 	
@@ -1430,10 +1446,12 @@ InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 	
 		var buttonNumber = buttonArray[self.keypadbtn]
 		console.log('button num: ' + buttonNumber)
-		var binaryButtonMap = currentButtonMap.substring(0,buttonNumber) + (state ? 1 : 0) + currentButtonMap.substring(buttonNumber+1)
+		var binaryButtonMap = currentButtonMap.substring(0,buttonNumber) +
+            (state ? '1' : '0') +
+            currentButtonMap.substring(buttonNumber+1)
 		console.log('New bin: ' + binaryButtonMap)
-		var buttonMap = parseInt(binaryButtonMap, 2).toString(16)
-		console.log('Hex: ' + buttonMap)	
+		var buttonMap = ('00'+parseInt(binaryButtonMap, 2).toString(16)).substr(-2).toUpperCase()
+		console.log('Hex: ' + buttonMap)
 		var cmd = {
 			cmd1: '2E',
 			cmd2: '00',
@@ -1441,8 +1459,6 @@ InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 			userData: ['01', '09', buttonMap],
 			isStandardResponse: true
 		}
-	
-		self.log('Setting state of ' + self.name)
 	
 		hub.directCommand(self.id, cmd, timeout, function(err,status){
 			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
