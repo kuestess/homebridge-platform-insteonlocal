@@ -602,7 +602,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						
 						if (messageType == '2') { //group cleanup
 
-							var group = parseInt(command2) //button number
+							var group = parseInt(command2, 16) //button number
 							
 							if(foundDevice.six_btn == true){
 								buttonArray = six_buttonArray
