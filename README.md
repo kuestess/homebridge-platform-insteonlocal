@@ -59,7 +59,7 @@ Devices are also defined in the config.json as follows:
   - `name`:  Device name as you want it to appear in Homebridge
   - `deviceID`: Insteon ID
   - `groupID`:  Insteon group ID for a scene
-  - `keypadbtn`: Keypad button to check for status of a scene, in caps.  For a six-button configuration, use 'ON' if the ON/OFF buttons are your scene controller.
+  - `keypadbtn`: Keypad button to check for status of a scene, in caps.  For a six-button configuration, use deviceType 'keypad' and define four devices, one each for 'keypadbtn' A, B, C, and D. Define one additional device as either 'switch' or 'dimmer' as appropriate for the 'ON' and 'OFF' functions. Do not set `keypadbtn` for the main switch/dimmer.
   - `dimmable`:  dimmable or non-dimming device - valid values are "yes" or "no"
   - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'remote', 'iolinc', 'motionsensor', 'leaksensor', 'outlet', 'keypad', 'shades', 'blinds', 'smoke', and 'fan'.
   - `refresh`:  device-level refresh interval in seconds.  This will override the platform-level refresh value and will still refresh individual devices even if platform-level polling is turned off.
