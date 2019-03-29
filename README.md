@@ -3,14 +3,39 @@ Homebridge platform plugin for local Insteon control
 
 Overview
 --------
-Implements local control of Insteon devices including switches, dimmers, scenes, iolincs (configured as a garage door), motion sensors, and leak sensors via Homebridge. Leverages [home-controller](https://github.com/automategreen/home-controller) to enable control and status of multiple Insteon devices.  Supports both Insteon Hub 2242 and 2245 and now has alpha support for running directly on a Hub Pro (thanks to @rasod).
-
-This plugin provides two mechanisms to get device status - an event listener and periodic polling.  The event listener will listen for events on the Insteon network and automatically update device status in Homebridge.  It will only capture manual events (ie, manually pushing a switch) as well as events triggered by other apps or devices (ie, Amazon Echo).  The plugin also provides a mechanism for periodic polling of the status of configured devices.  This is now disabled by default as the event listener should capture events, but can be enabled if desired (see configuration below).
+Implements local control of Insteon devices including switches, dimmers, outlets, fans, blinds, scenes, iolincs (configured as a garage door), motion sensors, and leak sensors via Homebridge. Leverages [home-controller](https://github.com/automategreen/home-controller) to enable control and status of multiple Insteon devices.  Supports both Insteon Hub 2242 and 2245 and now has alpha support for running directly on a Hub Pro (thanks to @rasod).
 
 Devices are not yet auto-discovered and must be defined in config.json (see configuration example)
 
-Local Express Server
---------------------
+InsteonUI
+---------
+
+Introducing InsteonUI, a new way to manage your Insteon devices and InsteonLocal configuration.  The code is a bit of a mess, and I'm sure there are better ways to achieve the same end, but it does work :-).
+
+### InsteonUI Quick Start
+Direct your browser to the host that you have Insteonlocal running on and the port configured in your config.json (ie, 127.0.0.1:3000 if running on the local machine).  For the best experience, go to the 'Hub' tab first and click 'Get Hub Info', and then 'Get Devices/Links' under the 'Action' menu.
+
+* Config:<br />
+Manage your Insteonlocal configuration.  Hub connection parameter settings are managed in the top section, device settings in the bottom.  No changes are made to your config.json until you click save.  To add a device, click the 'Add' button at the bottom of the page.  Configuration is limited to basics until I can figure out a new UI.
+
+* Hub<br />
+Information about your Hub.  To start, click 'Get Hub Info'.  Under the 'Action' menu, click 'Get Devices/Links'.  This will discover devices and links from the Hub and populate scenes controlled by the hub.  This must be done before any devices are displayed on the 'Devices' tab.<br /><br />In the 'Links' tab on the Hub page, ou can delete a link by clicking the trashcan icon (it wil confirm before deleteing).  Note that this only deletes the link from the Hub and not the corresponding device.  This is useful for deleting half-links from the Hub. 
+
+* Devices<br />
+If you have already discovered devices from the Hub, you should se a list of devices in the left-hand column.  If not, click 'Get Devices' and the device list should populate after discovery is complete.<br /><br />Once devices are discovered, click on a device in the list.  In the right-hand pane, you can give the device a frienly name (be sure to click 'Save').  Devices that were in your config should already be named (you can change the name here without overwriting your config).  Under the 'Action' menu, you can get links information and links from the device by clicking 'Get Dev Info/Links'.  Depending upon the number of links in the device, this may take some time and is best to do when there is no other Insteon traffic.  If you want to do this for all devices at once, click 'Get All Dev Links' in the top right.  Again, this may take time.
+
+    You can also identify the device by clicking 'Beep' under the 'Action' menu.<br /><br />Three tabs in the bottom part of the page show details for the selected device:
+    * Operating Flags: Lists device config parameters (not editable, for now).  The database delta will change anytime a link is modified on a device.  The UI will check this before retrieving links from the device.
+    * Links: Lists all links stored in the device database.  You can delete a link by clicking the wastebasket button (there is a confirmation).  Again, this only deletes the link from the selected device and not from any linked devices.  Good for cleaning up half-links.
+    * Scenes: Lists all scenes (complete with other responders) that the device participates in.  Level and ramp rate information is only available for devices that you have retrieved information and links for.
+
+* Link<br />
+Link/unlink devices from the hub and create scenes.  This is fairly sel-explanatory, but to link/unlink a device, just enter the device id that you wish to link/unlink in the relevant field and click the 'Link' or 'Unlink' button.  To create a scene, select the desired device from the dropdown list and fill out the level, ranp rate, and controller/responder fields.  The group number defaults to 1 for most devices.  For a keypad, the group number corresponds to the button number (ie, A=1, B=2, C=3, etc).  If the Hub is a controller, select an unoccupied group number (one that does not currently have a scene defined) or you will overwrite an existing scene.
+
+All information for your Hub and devices is stored in `insteon.json` saved in your homebridge config directory.  It is fully readable json, and can be viewed in any editor.
+
+## Express Server
+
 This plugin will set up a local [Express](https://expressjs.com) server at the port specified in your config.json (see below) that can also be accessed via a browser to get or manipulate Insteon device status and view hub or device information. Endpoints for the Express sever include:
 
  - `/light/[id]/on`:  turn on the light with Insteon [id]
