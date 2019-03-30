@@ -316,9 +316,10 @@ InsteonUI.prototype.renderHubPage = function (res) {
 	function buildSceneTable(res, callback) {
 		self.sceneTable = ''
 
-		if(typeof self.insteonJSON.hub.scenes == 'undefined' || self.insteonJSON.hub.scenes.length == 0){
+		if(typeof self.scenes == 'undefined' || Object.keys(self.scenes).length == 0 || self.scenes.length == 0){
 			self.sceneTable = '<div>No scenes defined. Please click Get Device Info to retrieve device/link information from the Hub </div>'
 			callback(res)
+			return
 		}
 		
 		self.scenes.forEach(function (scene) {
