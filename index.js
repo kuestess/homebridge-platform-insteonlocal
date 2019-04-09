@@ -7,6 +7,8 @@ var moment = require('moment')
 var util = require('util')
 var express = require('express')
 var app = express()
+var InsteonUI = require('./insteon-ui.js')
+var ui
 
 var Accessory, Service, Characteristic, UUIDGen
 var links = []
@@ -16,6 +18,7 @@ var connectingToHub = false
 var inUse = true
 var express_init = false
 var eventListener_init = false
+var configPath
 
 var platform = InsteonLocalPlatform
 
@@ -27,6 +30,7 @@ module.exports = function(homebridge) {
 	Characteristic = homebridge.hap.Characteristic
 	UUIDGen = homebridge.hap.uuid
 	homebridge.registerPlatform('homebridge-platform-insteonlocal', 'InsteonLocal', InsteonLocalPlatform)
+	configPath = homebridge.user.configPath()
 }
 
 function InsteonLocalPlatform(log, config, api) {
@@ -45,6 +49,9 @@ function InsteonLocalPlatform(log, config, api) {
 	self.use_express = config.hasOwnProperty('use_express') ? config['use_express'] : true    
 	self.keepAlive = config['keepAlive'] || 3600
 	self.checkInterval = config['checkInterval'] || 20
+	
+	//InsteonUI
+	ui = new InsteonUI(configPath, hub)
 	
 	if (self.model == '2242') {
 		self.refreshInterval = config['refresh'] || 300
@@ -276,6 +283,9 @@ function InsteonLocalPlatform(log, config, api) {
 			res.json(status.relay)
 		})
 	})
+
+	//InsteonUI
+	app.use('/', ui.handleRequest)
 	
 	self.deviceIDs = []
 

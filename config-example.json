@@ -14,7 +14,7 @@
 				  "host": "<local IP of your Insteon hub>",
 				  "port": "<port from Insteon app [usually 25105]>",
 				  "model": "2245",
-				  "refresh":"300",
+				  "refresh":"0",
 				  "server_port": "3000",
 				  "keepAlive": "3600",
 				  "devices": [
@@ -22,9 +22,7 @@
 									"name": "Great Room Lamp",
 								  	"deviceID" : "<Insteon ID>",
 								  	"dimmable" : "yes",
-								  	"deviceType" : "lightbulb"
-								  	"controllers" : ["<Insteon ID>","<Insteon ID>"]
-								},
+								  	"deviceType" : "lightbulb" },
 								{
 									"name": "FR Lamp",
 									"deviceID": "<Insteon ID>",
@@ -43,4 +41,3 @@
    ]
 
 }
-
