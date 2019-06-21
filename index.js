@@ -989,17 +989,12 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 		self.levelTimeout = setTimeout(function(){ 
 			setLevel.call(self,theLevel, function(){
 				self.levelOne = ''
-				callback
+				callback(null, level)
 			})
 		}, debounceTimer + 100)
 		
-		if (typeof callback !== 'undefined') {
-			self.lastCommand = now
-			callback(null, level)
-		} else {
-			self.lastCommand = now
-			return
-		}	
+		self.lastCommand = now
+
 	} else if (self.levelOne && delta < debounceTimer) {
 		clearTimeout(self.levelTimeout)
 		self.levelTwo = level
@@ -1024,7 +1019,7 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 		}
 	} 
 		
-	function setLevel(level,callback){
+	function setLevel(level, callback){
 		var self = this
 		
 		hub.cancelPending(self.id)
@@ -1073,10 +1068,10 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 					self.log('Error setting level of ' + self.name)   
 					self.getStatus.call(self)
 				}
-			},0)
-		
+			}, 0)
+
 			if (typeof callback !== 'undefined') {
-				callback(null, self.level)
+				callback(null, level)
 			} else {
 				return
 			}
