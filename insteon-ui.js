@@ -2506,8 +2506,12 @@ InsteonUI.prototype.buildHubSceneData = function (callback) {
 	hubGroups.forEach(function (groupNum) {
 		var responders = []
 		var controllers = []
-		var controllerID = self.hubInfo.id
-			
+		var controllerID 
+		
+		if (typeof self.hubinfo == 'undefined' || typeof self.hubInfo.id == 'undefined') {
+			controllerID = '[hub]'
+		} else {controllerID = self.hubInfo.id}
+		
 		//only interested in links where the hub is controller
 		var hubhubResponderLinks = self.insteonJSON.hub.links.filter(function (link) {
 			return link.group == groupNum &&

@@ -492,20 +492,24 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						if (command1 == 11) { //11 = on
 							var level_int = parseInt(command2, 16)*(100/255)
 							var level = Math.ceil(level_int)
-			
-							self.log('Got on event for ' + foundDevice.name)
-			
+							
+							if (level == 0){
+								self.log('Got off event for ' + foundDevice.name)
+								foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false)
+								foundDevice.currentState = false
+							} else if (level > 0) {
+								self.log('Got on event for ' + foundDevice.name)
+								foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true)
+								foundDevice.currentState = true
+							}
+
 							if(foundDevice.dimmable){
 								if(messageType == 1){
-									var level_int = parseInt(command2, 16)*(100/255)
-									var level = Math.ceil(level_int)
 									foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(level)
 									foundDevice.level = level
 								} else {setTimeout(function(){foundDevice.getStatus.call(foundDevice)},5000)}
 							}
 							
-							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true)
-							foundDevice.currentState = true
 							foundDevice.lastUpdate = moment()	
 						}
 						
@@ -975,49 +979,31 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 	
 	var lastCommand = self.lastCommand
 	var delta = now.diff(lastCommand, 'milliseconds')
-	var debounceTimer = 300
+	var debounceTimer = 600
+
+	if (level == self.currentState) {
+		self.log.debug("Discard on, already at commanded state")
+		callback()
+		return 
+	} else if (level === true && delta <= 50) {
+		self.log.debug("Discard on, sent too close to dim")
+		callback()
+		return
+	} else if (level === true) {
+		level = 100
+	} else if (level === false) {
+		level = 0
+	}
 	
-	if (self.levelOne == '' || delta == 0) { 
-		self.levelOne = level
-		
-		if(level === true){
-			var theLevel = 100
-		} else if(level === false){
-			var theLevel = 0
-		} else {var theLevel = level}
+	self.lastCommand = now
 
-		self.levelTimeout = setTimeout(function(){ 
-			setLevel.call(self,theLevel, function(){
-				self.levelOne = ''
-				callback(null, level)
-			})
-		}, debounceTimer + 100)
-		
-		self.lastCommand = now
+	clearTimeout(self.levelTimeout)
 
-	} else if (self.levelOne && delta < debounceTimer) {
-		clearTimeout(self.levelTimeout)
-		self.levelTwo = level
-		
-		if(self.levelOne === true){
-			setLevel.call(self,self.levelTwo, function(){
-				self.levelOne = ''
-				self.levelTwo = ''
-				callback(null, level)
-			})
-		} else if (self.levelTwo === true){
-			setLevel.call(self,self.levelOne, function(){
-				self.levelOne = ''
-				self.levelTwo = ''
-				callback(null, level)
-			})
-		} else {setLevel.call(self,self.levelOne,function(){
-			self.levelOne = ''
-			self.levelTwo = ''	
-			callback(null, level)
-		})
-		}
-	} 
+	self.levelTimeout = setTimeout(function(){ 
+		setLevel.call(self,level)
+	}, debounceTimer)
+
+	callback(null, level)
 		
 	function setLevel(level, callback){
 		var self = this
@@ -1038,10 +1024,13 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 		}
 		
 		hub.directCommand(self.id, cmd, timeout, function(error, status) {    
-			
 			if(error){
+				self.log('Error setting level of ' + self.name)   
+				self.getStatus.call(self)
+
 				if (typeof callback !== 'undefined') {
 					callback(error, null)
+					return
 				} else {
 					return
 				}	
@@ -1060,21 +1049,8 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 		
 			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + level + '%')
 			self.lastUpdate = moment()
-		
-			setTimeout(function() {
-				if (typeof status != 'undefined' && status.success) {                
-					//do nothing	
-				} else {
-					self.log('Error setting level of ' + self.name)   
-					self.getStatus.call(self)
-				}
-			}, 0)
-
-			if (typeof callback !== 'undefined') {
-				callback(null, level)
-			} else {
-				return
-			}
+			
+			return
 		})
 	}
 }
