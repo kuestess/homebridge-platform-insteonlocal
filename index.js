@@ -291,6 +291,7 @@ function InsteonLocalPlatform(log, config, api) {
 
 	for (var i = 0; i < self.devices.length; i++) {
 		if(self.devices[i].deviceID){
+			if(self.devices[i].deviceID.includes('.')){self.devices[i].deviceID = self.devices[i].deviceID.replace(/\./g,'')}
 			self.deviceIDs.push(self.devices[i].deviceID.toUpperCase())
 		}
 	}
@@ -429,9 +430,9 @@ InsteonLocalPlatform.prototype.checkHubConnection = function () {
 
 InsteonLocalPlatform.prototype.eventListener = function () {
 	var self = this
-    var eight_buttonArray = {'A': 1, 'B': 2, 'C': 3,'D': 4,'E': 5,'F': 6,'G': 7,'H': 8}
-    var six_buttonArray = {'ON': 1,'A': 3,'B': 4,'C': 5, 'D': 6, 'OFF': 1}
-    var buttonArray
+	var eight_buttonArray = {'A': 1, 'B': 2, 'C': 3,'D': 4,'E': 5,'F': 6,'G': 7,'H': 8}
+	var six_buttonArray = {'ON': 1,'A': 3,'B': 4,'C': 5, 'D': 6, 'OFF': 1}
+	var buttonArray
 	
 	var deviceIDs = self.deviceIDs
 	eventListener_init = true
@@ -643,6 +644,16 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						if(typeof foundDevice.groupMembers !== 'undefined') {
 							self.log('Getting status of scene members (group: ' + group + ')...')
 							foundDevice.groupMembers.forEach(function(deviceID){
+								if (!/^[0-9a-fA-F]{6}$/.test(deviceID)){
+									self.log.debug('Device ID is name...')
+									var namedDev = accessories.filter(function(item) {
+										return (item.name == deviceID)
+									})
+									
+									deviceID = namedDev[0].id
+									self.log.debug('Found matching device with id ' + deviceID)
+								}
+
 								var isDefined = _.contains(deviceIDs, deviceID, 0)
 								if(isDefined){
 									var groupDevice = accessories.filter(function(item) {
@@ -662,7 +673,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 						
 						break
 						
-					/*case 'iolinc':
+						/*case 'iolinc':
 						if (command1 == 11 || command1 == 13) {
 							setTimeout(function() {
 								foundDevice.getSensorStatus.call(foundDevice)
@@ -1278,24 +1289,26 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 
 InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 	var self = this
-	var buttonState
 	var timeout = 0
+	
 	var eight_buttonArray = {
-            'A': 0b00000001,
-            'B': 0b00000010,
-            'C': 0b00000100,
-            'D': 0b00001000,
-            'E': 0b00010000,
-            'F': 0b00100000,
-            'G': 0b01000000,
-            'H': 0b10000000}
+		'A': 0b00000001,
+		'B': 0b00000010,
+		'C': 0b00000100,
+		'D': 0b00001000,
+		'E': 0b00010000,
+		'F': 0b00100000,
+		'G': 0b01000000,
+		'H': 0b10000000}
+	
 	var six_buttonArray = {
-            'A': eight_buttonArray['C'],
-            'B': eight_buttonArray['D'],
-            'C': eight_buttonArray['E'],
-            'D': eight_buttonArray['F'],
-            'ON': eight_buttonArray['G'] | eight_buttonArray['H'],
-            'OFF': eight_buttonArray['A'] | eight_buttonArray['B']}
+		'A': eight_buttonArray['C'],
+		'B': eight_buttonArray['D'],
+		'C': eight_buttonArray['E'],
+		'D': eight_buttonArray['F'],
+		'ON': eight_buttonArray['G'] | eight_buttonArray['H'],
+		'OFF': eight_buttonArray['A'] | eight_buttonArray['B']}
+	
 	var buttonArray
 	
 	self.platform.checkHubConnection()
@@ -1357,15 +1370,15 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 			var hexButtonMap = status.response.standard.command2
 			var binaryButtonMap = parseInt(hexButtonMap, 16).toString(2)
 			binaryButtonMap = '00000000'.substr(binaryButtonMap.length) + binaryButtonMap //pad to 8 digits
-			
 			self.buttonMap = binaryButtonMap
 			self.log.debug('Binary map: ' + self.buttonMap)
-			
+
+			var decButtonMap = parseInt(binaryButtonMap, 2)
 			var buttonNumber = buttonArray[self.keypadbtn]
-			var buttonState = binaryButtonMap.charAt(buttonNumber)
-			self.log.debug('Button ' + self.keypadbtn + ' state is ' + ((buttonState == 1) ? 'on' : 'off'))
+			if(decButtonMap & buttonNumber) {var buttonState = true} else {var buttonState = false}
+			self.log.debug('Button ' + self.keypadbtn + ' state is ' + ((buttonState == true) ? 'on' : 'off'))
 			
-			if (buttonState > 0) {
+			if (buttonState ==true) {
 				self.currentState = true
 				self.level = 100
 			} else {
@@ -1394,24 +1407,24 @@ InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 	
 	var timeout = 0
 	var eight_buttonArray = {
-        'A': 7,
-        'B': 6,
-        'C': 5,
-        'D': 4,
-        'E': 3,
-        'F': 2,
-        'G': 1,
-        'H': 0
-    }
+		'A': 7,
+		'B': 6,
+		'C': 5,
+		'D': 4,
+		'E': 3,
+		'F': 2,
+		'G': 1,
+		'H': 0
+	}
 	var six_buttonArray = {
-        'A': eight_buttonArray['C'],
-        'B': eight_buttonArray['D'],
-        'C': eight_buttonArray['E'],
-        'D': eight_buttonArray['F']
-    }
+		'A': eight_buttonArray['C'],
+		'B': eight_buttonArray['D'],
+		'C': eight_buttonArray['E'],
+		'D': eight_buttonArray['F']
+	}
 	var buttonArray
 	
-    self.log('Setting state of ' + self.name + ' to ' + state)
+	self.log('Setting state of ' + self.name + ' to ' + state)
 	
 	self.platform.checkHubConnection()
 	
@@ -1554,88 +1567,99 @@ InsteonLocalAccessory.prototype.getFanState = function(callback) {
 
 InsteonLocalAccessory.prototype.setFanState = function(level, callback) {
 	var self = this
-	var targetLevel
 	
 	self.platform.checkHubConnection()
 	
 	hub.cancelPending(self.id)
-	
-	if (level == 0){
-		targetLevel = 'off'
-	} else if (level <= 33) {
-		targetLevel = 'low'
-		self.previousLevel = 'low'
-	} else if (level > 66) {
-		targetLevel = 'high'
-		self.previousLevel = 'high'    
-	} else {
-		targetLevel = 'medium'
-		self.previousLevel = 'medium'    
-	}
-	
-	if (typeof(level) == 'boolean') {
-		self.log('Setting state of ' + self.name + ' to ' + (level ? 'on' : 'off'))
-		if (level){
-			if(self.currentState !== level){
-				if(typeof self.previousLevel == 'undefined'){
-					self.previousLevel = 'medium'
-				}
-				self.log.debug('Setting state of ' + self.name + ' to previous level: ' + self.previousLevel)
-				self.light.fan(self.previousLevel)    		
-			}
-			self.service.getCharacteristic(Characteristic.On).updateValue(true)
-			self.currentState = true
-		} else {
-			self.light.fan('off')
-			self.service.getCharacteristic(Characteristic.On).updateValue(false)
-			self.currentState = false
-		}
-		
-		self.lastUpdate = moment()
-		
-		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
-			return
-		} else {
-			return
-		}
-	}
-	
-	self.log('Setting speed of ' + self.name + ' to ' + targetLevel + ' (' + level + '%)')
-	
-	self.light.fan(targetLevel).then(function(status)
-	{    
-		self.log.debug('Status: ' + util.inspect(status))
-		if (status.success) {                
-			self.level = parseInt(level)
-			self.service.getCharacteristic(Characteristic.RotationSpeed).updateValue(self.level)
 
-			if (self.level > 0) {
-				self.service.getCharacteristic(Characteristic.On).updateValue(true)
-				self.currentState = true
-			} else if (self.level == 0) {
-				self.service.getCharacteristic(Characteristic.On).updateValue(false)
-				self.currentState = false
+	var now = moment()
+	
+	if(typeof self.lastCommand == 'undefined'){self.lastCommand = now}
+	
+	var lastCommand = self.lastCommand
+	var delta = now.diff(lastCommand, 'milliseconds')
+	var debounceTimer = 600
+
+	if (level == self.currentState) {
+		self.log.debug("Discard on, already at commanded state")
+		callback()
+		return 
+	} else if (level === true && delta <= 50) {
+		self.log.debug("Discard on, sent too close to dim")
+		callback()
+		return
+	}
+	
+	self.lastCommand = now
+
+	clearTimeout(self.levelTimeout)
+
+	self.levelTimeout = setTimeout(function(){ 
+		setFanLevel.call(self, level)
+	}, debounceTimer)
+
+	callback(null, level)
+
+	function setFanLevel(level, callback){		
+		var targetLevel
+
+		if(typeof level == 'number'){
+			self.level = level
+
+			if (level == 0){
+				targetLevel = 'off'
+			} else if (level <= 33) {
+				targetLevel = 'low'
+			} else if (level > 66) {
+				targetLevel = 'high'    
+			} else {
+				targetLevel = 'medium'   
 			}
-			
-			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + level + '%')
-			self.lastUpdate = moment()
-			
-			if (typeof callback !== 'undefined') {
-				callback(null, self.level)	
-			} else {
-				return
-			}	
-		} else {
-			self.log('Error setting level of ' + self.name)   
-			if (typeof callback !== 'undefined') {
-				callback(error, null)
-				return
-			} else {
-				return
+		} else if(typeof level == 'boolean'){
+			if (level == false){
+				targetLevel = 'off'
+				self.level = 0
+			} else if (level == true){
+				targetLevel = 'on'
+				self.level = 100
 			}
 		}
-	})
+
+		self.log('Setting speed of ' + self.name + ' to ' + targetLevel + ' (' + level + '%)')
+
+		self.light.fan(targetLevel).then(function(status)
+		{    
+			//self.log.debug('Status: ' + util.inspect(status))
+			if (status.success) {                
+				self.service.getCharacteristic(Characteristic.RotationSpeed).updateValue(self.level)
+
+				if (self.level > 0) {
+					self.service.getCharacteristic(Characteristic.On).updateValue(true)
+					self.currentState = true
+				} else if (self.level == 0) {
+					self.service.getCharacteristic(Characteristic.On).updateValue(false)
+					self.currentState = false
+				}
+				
+				self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + targetLevel + ' (' + level + '%)')
+				self.lastUpdate = moment()
+				
+				if (typeof callback !== 'undefined') {
+					callback(null, self.level)	
+				} else {
+					return
+				}	
+			} else {
+				self.log('Error setting level of ' + self.name)   
+				if (typeof callback !== 'undefined') {
+					callback(error, null)
+					return
+				} else {
+					return
+				}
+			}
+		})
+	}
 }
 
 InsteonLocalAccessory.prototype.handleRemoteEvent = function(group, command) {
