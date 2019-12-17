@@ -3,7 +3,7 @@ Homebridge platform plugin for local Insteon control
 
 Overview
 --------
-Implements local control of Insteon devices including switches, dimmers, outlets, fans, blinds, scenes, iolincs (configured as a garage door), motion sensors, and leak sensors via Homebridge. Leverages [home-controller](https://github.com/automategreen/home-controller) to enable control and status of multiple Insteon devices.  Supports both Insteon Hub 2242 and 2245 and now has alpha support for running directly on a Hub Pro (thanks to @rasod).
+Implements local control of Insteon devices including switches, dimmers, outlets, fans, blinds, scenes, iolincs (configured as a garage door), motion sensors, door/window sensors, and leak sensors via Homebridge. Leverages [home-controller](https://github.com/automategreen/home-controller) to enable control and status of multiple Insteon devices.  Supports both Insteon Hub 2242 and 2245 and now has beta support for running directly on a Hub Pro (thanks to @rasod).
 
 Devices are not yet auto-discovered and must be defined in config.json (see configuration example)
 
@@ -19,7 +19,7 @@ Direct your browser to the host that you have Insteonlocal running on and the po
 Manage your Insteonlocal configuration.  Hub connection parameter settings are managed in the top section, device settings in the bottom.  No changes are made to your config.json until you click save.  To add a device, click the 'Add' button at the bottom of the page.  Configuration is limited to basics until I can figure out a new UI.
 
 * Hub<br />
-Information about your Hub.  To start, click 'Get Hub Info'.  Under the 'Action' menu, click 'Get Devices/Links'.  This will discover devices and links from the Hub and populate scenes controlled by the hub.  This must be done before any devices are displayed on the 'Devices' tab.<br /><br />In the 'Links' tab on the Hub page, ou can delete a link by clicking the trashcan icon (it wil confirm before deleteing).  Note that this only deletes the link from the Hub and not the corresponding device.  This is useful for deleting half-links from the Hub. 
+Information about your Hub.  To start, click 'Get Hub Info'.  Under the 'Action' menu, click 'Get Devices/Links'.  This will discover devices and links from the Hub and populate scenes controlled by the hub.  This must be done before any devices are displayed on the 'Devices' tab.<br /><br />In the 'Links' tab on the Hub page, ou can delete a link by clicking the trashcan icon (it wil confirm before deleteing).  Note that this only deletes the link from the Hub and not the corresponding device.  This is useful for deleting half-links from the Hub.
 
 * Devices<br />
 If you have already discovered devices from the Hub, you should se a list of devices in the left-hand column.  If not, click 'Get Devices' and the device list should populate after discovery is complete.<br /><br />Once devices are discovered, click on a device in the list.  In the right-hand pane, you can give the device a frienly name (be sure to click 'Save').  Devices that were in your config should already be named (you can change the name here without overwriting your config).  Under the 'Action' menu, you can get links information and links from the device by clicking 'Get Dev Info/Links'.  Depending upon the number of links in the device, this may take some time and is best to do when there is no other Insteon traffic.  If you want to do this for all devices at once, click 'Get All Dev Links' in the top right.  Again, this may take time.
@@ -56,8 +56,6 @@ The Express server is now optional and can be disabled if desired.
 
 ## Install
 
-**Now with more npm!**
-
 To install from npm:
 
 `npm -g install homebridge-platform-insteonlocal`
@@ -90,16 +88,14 @@ Devices are also defined in the config.json as follows:
   - `refresh`:  device-level refresh interval in seconds.  This will override the platform-level refresh value and will still refresh individual devices even if platform-level polling is turned off.
   - `controllers`: this is an array `["<Insteon ID>","<Insteon ID>"]` of other Insteon devices that this device is controlled by. ie if you have a plug in dimmer that is controlled by a wall switch you would add the wall switch ID as a controller for the plug in dimmer. The controller device does not need to be a device listed in the config.json
 
-**Scene config changes in 0.3.2 and later**
-
 Scenes:
 Scenes remain on/off only and support status when controlled via a Keypadlinc.  Scenes are configured using additional the parameters below:
 
   - `deviceID`: Insteon ID of a keypad that controls the scene
-  - `keypadbtn`: Keypadlinc button that indicates the status of the scene - valid values are 'A' - 'H' 
+  - `keypadbtn`: Keypadlinc button that indicates the status of the scene - valid values are 'A' - 'H'
   - `six_btn`: set to `true` if using a Keypadlinc configured as a 6-button; default is `false`
   - `groupID`: the group number in the Insteon app (Scenes->Edit Scene->Group Number)
-  - `groupMembers`: comma-delimited list of Insteon IDs that are part of the group/scene (optional); member device status will be automatically updated after a scene is triggered 
+  - `groupMembers`: comma-delimited list of Insteon IDs that are part of the group/scene (optional); member device status will be automatically updated after a scene is triggered
 
 Fanlinc support:
 To configure fanlinc support, use the 'fan' device type.  This will create a fan device only - you can add a separate entry in your config (using the same `deviceID`) to add the light as a device.
@@ -130,11 +126,11 @@ Connection Watcher
 The Insteon Hub seems to give up on connections after a certain period of time, resulting in no response or incorrect status in Homekit.  Starting with v0.3.4, a `connectionWatcher` will periodically reset the connection to the Hub.  This is a temporary workaround, but seems to address the issue and create a better experience without having to restart `homebridge`.
 The default connection reset duration is 1 hour and can be customized or disabled in you config as follows:
 
-- `keepAlive`: Hub connection reset duration in seconds (default is "3600" [1 hour]).  Set to "0" to disable. 
+- `keepAlive`: Hub connection reset duration in seconds (default is "3600" [1 hour]).  Set to "0" to disable.
 
 For model 2242 hubs, the Connection Watcher wil determine if a request is in progress and, if not, close the connection.  This model of hub seems particularly sensitive to connection duration/number of connections, so this will effectively spare connections as much as possible an only create them on-demand.  The downside is that the eventListener will not function (as it requires a persistent connection), however polling will still update device status.
 
-Using The HubPro Model 2243 (Alpha)
+Using The HubPro Model 2243 (Beta)
 -----------------------------------
 It is possible to use the official Insteon HubPro as a complete homebride server and Insteon Hub. This requires flashing the HubPro and installing homebridge as normal. Inside the HubPro is a BeagleBoard Black Computer and a Power Line Modem connected via a serial connection.
 
@@ -163,7 +159,6 @@ uboot_overlay_addr3=/lib/firmware/BB-UART5-00A0.dtbo
 
 8. Reboot and log back in (same as step 4 & 5)
 9. Install homebridge and this plug as usual seting the model in config.json to 2243
-
 
 Donate
 -----------------------------------

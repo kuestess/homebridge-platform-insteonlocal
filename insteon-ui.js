@@ -15,45 +15,45 @@ var InsteonUI = function (configPath, hub) {
 
 	self.configDir = configPath.replace('config.json','')
 	self.init(configPath, hub)
-	
+
 	self.deviceDatabase = deviceDatabase
-	self.wastebasket = "&#128465"
+	self.wastebasket = '&#128465'
 
 	self.getScripts()
 
-	var customCSS = `<style> 
-		li.active a{ 
+	var customCSS = `<style>
+		li.active a{
 			color: white;
 		}
 		.nav-tabs>li.active>a, .nav-tabs>li.active>a:hover, .nav-tabs>li.active>a:focus{
 			color: #337ab7 !important;
 		}
-		.row-height{ 
-			height: 100vh; 
-		} 
-		.left { 
-			height: 100%; 
-			overflow-y: scroll; 
-		} 
-		.right { 
-			height: 100%; 
-			overflow-y: scroll; 
-		} 	
-		.showinline { 
-			h2 { 
-				display: inline-block; 
-			} 
-			button { 
-				float: right; 
+		.row-height{
+			height: 100vh;
+		}
+		.left {
+			height: 100%;
+			overflow-y: scroll;
+		}
+		.right {
+			height: 100%;
+			overflow-y: scroll;
+		}
+		.showinline {
+			h2 {
+				display: inline-block;
 			}
-		} 
-		.has-error input[type="text"], .has-error select { 
-			border: 1px solid #a94442; 
-		} 
-		#flagsTable tbody tr td{ 
-			border: 0; 
-			rules: none; 
-		} 
+			button {
+				float: right;
+			}
+		}
+		.has-error input[type="text"], .has-error select {
+			border: 1px solid #a94442;
+		}
+		#flagsTable tbody tr td{
+			border: 0;
+			rules: none;
+		}
 		#progressModal .modal-body{
 			text-align: center;
 		}
@@ -65,14 +65,14 @@ var InsteonUI = function (configPath, hub) {
 
 	self.font = "<link href='https://fonts.googleapis.com/css?family=Open+Sans:300,600' rel='stylesheet' type='text/css'>"
 
-	self.tablestyle = "<style>" +
-		".responsive-wrapper { margin-bottom: 15px; }" +
-		".responsive-wrapper .row { display: flex; width: 100%; justify-content: space-between; padding: 1em 0.1em; margin: 0; }" +
-		".responsive-wrapper .row.content:hover { background-color: #e6e6e6; }" +
-		".row.header { border-bottom: 2px solid #ddd; }" +
-		".row.header div { font-weight: 600; font-size: 16px; }" +
-		".row.content { border: 1px solid hsla(0, 0%, 90%, 1); border-top: none; -webkit-transition: all 0.1s cubic-bezier(1, 0, 0.5, 1); transition: all 0.1s cubic-bezier(1, 0, 0.5, 1); }" +
-		"</style>"
+	self.tablestyle = '<style>' +
+		'.responsive-wrapper { margin-bottom: 15px; }' +
+		'.responsive-wrapper .row { display: flex; width: 100%; justify-content: space-between; padding: 1em 0.1em; margin: 0; }' +
+		'.responsive-wrapper .row.content:hover { background-color: #e6e6e6; }' +
+		'.row.header { border-bottom: 2px solid #ddd; }' +
+		'.row.header div { font-weight: 600; font-size: 16px; }' +
+		'.row.content { border: 1px solid hsla(0, 0%, 90%, 1); border-top: none; -webkit-transition: all 0.1s cubic-bezier(1, 0, 0.5, 1); transition: all 0.1s cubic-bezier(1, 0, 0.5, 1); }' +
+		'</style>'
 
 	self.style = "<style>h1, h2, h3, h4, h5, h6 {font-family: 'Open Sans', sans-serif;}p, div {font-family: 'Open Sans', sans-serif;} input[type='radio'], input[type='checkbox'] {line-height: normal; margin: 0;}</style>"
 
@@ -138,12 +138,48 @@ InsteonUI.prototype.renderMainPage = function (res) {
 		"<option value='leaksensor'>leaksensor</option>" +
 		"<option value='outlet'>outlet</option>" +
 		"<option value='fan'>fan</option>" +
-		"</select>"
+		'</select>'
+
+	function _getDevList (device) {
+		var deviceTypes = ['lightbulb','dimmer','switch','scene','remote','iolinc','motionsensor','leaksensor','outlet','fan']
+		var listHeader = "<select class='form-control' name='deviceType'>"
+		var listFooter = '</select>'
+		var devList = listHeader
+
+		deviceTypes.forEach(function(deviceType){
+			if (device.deviceType == deviceType) {
+				devList = devList + "<option selected value='" + deviceType + "'>" + deviceType + "</option>"
+			} else {
+				devList = devList + "<option value='" + deviceType + "'>" + deviceType + "</option>"
+			}
+		})
+
+		devList = devList + listFooter
+		return devList
+	}
 
 	self.dimList = "<select class='form-control' name='dimmable'>" +
 		"<option value='yes'>yes</option>" +
 		"<option value='no'>no</option>" +
-		"</select>"
+		'</select>'
+
+	function _getDimList (device) {
+		var dims = ['yes', 'no']
+		var listHeader = "<select class='form-control' name='dimmable'>"
+		var listFooter = '</select>'
+		var dimList = listHeader
+
+		dims.forEach(function(dim){
+			if (device.dimmable == dim) {
+				dimList = dimList + "<option selected value='" + dim + "'>" + dim + "</option>"
+			} else {
+				dimList = dimList + "<option value='" + dim + "'>" + dim + "</option>"
+			}
+		})
+
+		dimList = dimList + listFooter
+		return dimList
+	}
 
 	buildHubTable()
 	buildDeviceTable()
@@ -158,54 +194,58 @@ InsteonUI.prototype.renderMainPage = function (res) {
 
 	res.write(self.header + self.navBar);
 	res.write("<div class='container'>");
-	res.write("<h3>Hub Configuration</h3>");
+	res.write('<h3>Hub Configuration</h3>');
 	res.write("<form enctype='application/x-www-form-urlencoded' action='/saveHubSettings' method='post'>")
 	res.write(self.hubTable)
 	res.write("<input type='submit' class='btn btn-default center-block' style='width:135px' value='Save' />")
-	res.write("</form>")
-	res.write("<hr>")
-	res.write("<h3>Devices</h3>");
+	res.write('</form>')
+	res.write('<hr>')
+	res.write('<h3>Devices</h3>');
 
 	if (typeof (self.devices) != 'undefined') {
 		res.write("<form class='form-inline' width='100%' enctype='application/x-www-form-urlencoded' id='devConfigForm' name='devConfigForm' action='/saveConfigDeviceSettings' data-toggle='validator' novalidate='true' method='post'>")
-		res.write(self.hubDeviceTableHeader + self.deviceTable + "</div>")
+		res.write(self.hubDeviceTableHeader + self.deviceTable + '</div>')
 		res.write("<div class='col-xs-offset-1 col-sm-offset-1 col-md-offset-2 col-xs-10 col-sm-9 col-md-8 text-center'>")
 		res.write("<div class='btn-group'>")
 		res.write("<input href='#' class='btn btn-default center-block' id='add' style='width:135px' value='Add' />")
 		res.write("<input class='btn btn-default center-block' type='submit' style='width:135px' value='Save' />")
-		res.write("</div>")
-		res.write("</form>")
+		res.write('</div>')
+		res.write('</form>')
 	} else {
-		res.write("No devices installed or configured!");
+		res.write('No devices installed or configured!')
 	}
 
 	self.deviceTemplate = "<div class='row content'>" +
 		"<div class='input-group'><input type='text' class='form-control' name='name' required='required' data-error='Enter dev name' value=''><div class='help-block with-errors'></div></div>" +
 		"<div class='input-group'><input type='text' class='form-control' name='deviceID' required='required' data-error='Enter dev id' value=''><div class='help-block with-errors'></div></div>" +
-		"<div class='input-group'>" + self.devList + "</div>" +
-		"<div class='input-group'>" + self.dimList + "</div>" +
+		"<div class='input-group'>" + self.devList + '</div>' +
+		"<div class='input-group'>" + self.dimList + '</div>' +
 		"<div class='input-group'><a href='/removeDevice' class='btn btn-default btn-danger' style='outline:none !important'><span class='glyphicon glyphicon-trash'></span></a></div>" +
 		"</div class='row content'>"
 
-	self.addDevRow = "<script>" +
+	self.addDevRow = '<script>' +
 		'$("#add").click(function() {' +
 		'$("#devTable").append("' + self.deviceTemplate + '");' +
 		'$("#devConfigForm").validator("update");' +
 		'});' +
-		"</script>"
+		'</script>'
 
-	res.write("</div>")
+	res.write('</div>')
 	res.end(self.addDevRow + self.footer)
 
 	function buildDeviceTable() {
 		self.deviceTable = "<div id='devTable'>"
+
 		self.devices.forEach(function (device) {
+			var devList = _getDevList(device)
+			var dimList = _getDimList(device)
+
 			self.deviceTable = self.deviceTable +
 				"<div class='row content'>" +
 				"<div class='input-group'><input type='text' class='form-control' name='name' required='required' data-error='Enter dev name' value='" + device.name + "'><div class='help-block with-errors'></div></div>" +
 				"<div class='input-group'><input type='text' class='form-control' name='deviceID' required='required' data-error='Enter dev id' value='" + device.deviceID + "'><div class='help-block with-errors'></div></div>" +
-				"<div class='input-group'><name='deviceType' value='" + device.deviceType + "'>" + self.devList + "</div>" +
-				"<div class='input-group'><name='dimmable' value='" + device.dimmable + "'>" + self.dimList + "</div>" +
+				"<div class='input-group'><name='deviceType' value='" + device.deviceType + "'>" + devList + '</div>' +
+				"<div class='input-group'><name='dimmable' value='" + device.dimmable + "'>" + dimList + '</div>' +
 				"<div class='input-group'><a href='/removeDevice" + device.deviceID + "' class='btn btn-default btn-danger' style='outline:none !important'><span class='glyphicon glyphicon-trash'></span></a></div>" +
 				"</div class='row'>"
 		})
@@ -241,21 +281,21 @@ InsteonUI.prototype.renderHubPage = function (res) {
 	} else {
 
 		self.hubInfoTable = ''
-		var hubAddress = "<div class='form-group'><b>Hub address: </b>" + self.platform.host + "</div>"
-		var hubPort = "<div class='form-group'><b>Hub port: </b>" + self.platform.port + "</div>"
-		var hubModel = "<div class='form-group'><b>Hub model: </b>" + self.platform.model + "</div>"
-		var hubID = "<div class='form-group'><b>ID: </b>" + self.hubInfo.id + "</div>"
-		var hubFirmwareVersion = "<div class='form-group'><b>Firmware Version: </b>" + self.hubInfo.firmwareVersion + "</div>"
+		var hubAddress = "<div class='form-group'><b>Hub address: </b>" + self.platform.host + '</div>'
+		var hubPort = "<div class='form-group'><b>Hub port: </b>" + self.platform.port + '</div>'
+		var hubModel = "<div class='form-group'><b>Hub model: </b>" + self.platform.model + '</div>'
+		var hubID = "<div class='form-group'><b>ID: </b>" + self.hubInfo.id + '</div>'
+		var hubFirmwareVersion = "<div class='form-group'><b>Firmware Version: </b>" + self.hubInfo.firmwareVersion + '</div>'
 
 		self.hubInfoTable = hubAddress + hubPort + hubModel + hubID + hubFirmwareVersion
 	}
 
 	res.write(self.header + self.navBar)
 	res.write("<div class='container'>")
-	res.write("<h2>Hub Information</h2>")
+	res.write('<h2>Hub Information</h2>')
 	res.write(self.hubInfoTable)
 	res.write("<a class='btn btn-default center-block' role='button' href='/getHubInfo' style='width:135px; height:40px;'>Get Hub Info</a>")
-	res.write("<hr>")
+	res.write('<hr>')
 
 	self.hubLinkTableHeader = `<table id="linkTable" class="table table-striped table-bordered table-hover" cellspacing="0" width="100%">
 	<thead>
@@ -285,13 +325,13 @@ InsteonUI.prototype.renderHubPage = function (res) {
 
 	res.write("<div class='tab-content'>")
 	res.write('<div id="links" class="tab-pane fade in active">')//start links tab
-	res.write("<h2>Links</h2>")
+	res.write('<h2>Links</h2>')
 	res.write(self.hubLinkTableHeader)
 	res.write(self.hubLinkTable)
-	res.write("</div>") //end links tab
-	
+	res.write('</div>') //end links tab
+
 	res.write('<div id="scenes" class="tab-pane fade">')//start scenes tab
-	
+
 	self.sceneTable = ''
 	self.sceneControllerTableHeader = `<table id="sceneTable" class="table table-striped table-bordered table-hover" cellspacing="0" width="100%">
 	<thead>
@@ -309,7 +349,7 @@ InsteonUI.prototype.renderHubPage = function (res) {
 	buildSceneTable(res, function () {
 		res.write(self.header + self.navBar)
 		res.write("<div class='container'>")
-		res.write("<h3>Scenes</h3><hr>")
+		res.write('<h3>Scenes</h3><hr>')
 		res.write(self.sceneTable)
 	})
 
@@ -321,7 +361,7 @@ InsteonUI.prototype.renderHubPage = function (res) {
 			callback(res)
 			return
 		}
-		
+
 		self.scenes.forEach(function (scene) {
 			var sceneIndex = self.devices.findIndex(function (item) { return item.groupID == scene.group && item.deviceType == 'scene' })
 			var sceneNameText
@@ -331,7 +371,7 @@ InsteonUI.prototype.renderHubPage = function (res) {
 			} else {
 				sceneNameText = self.devices[sceneIndex].name + ' (Scene ' + scene.group + ')'
 			}
-			
+
 			var controllerTable = '<h4>Controllers - ' + sceneNameText + '</h4>' + self.sceneControllerTableHeader + '<tbody>'
 			var responderTable = '<h4>Responders - ' + sceneNameText + '</h4>' + self.sceneResponderTableHeader + '<tbody>'
 
@@ -351,10 +391,10 @@ InsteonUI.prototype.renderHubPage = function (res) {
 				}
 
 				controllerTable = controllerTable +
-					"<tr>" +
-					"<td>" + controller.group + "</td>" +
-					"<td>" + nameText + "</td>" +
-					"</tr>" +
+					'<tr>' +
+					'<td>' + controller.group + '</td>' +
+					'<td>' + nameText + '</td>' +
+					'</tr>' +
 					'</tbody>'
 			})
 
@@ -376,12 +416,12 @@ InsteonUI.prototype.renderHubPage = function (res) {
 				}
 
 				responderTable = responderTable +
-					"<tr>" +
-					"<td>" + responder.group + "</td>" +
-					"<td>" + nameText + "</td>" +
-					"<td>" + responder.onLevel + "</td>" +
-					"<td>" + (responder.rampRate) / 1000 + "</td>" +
-					"</tr>" +
+					'<tr>' +
+					'<td>' + responder.group + '</td>' +
+					'<td>' + nameText + '</td>' +
+					'<td>' + responder.onLevel + '</td>' +
+					'<td>' + (responder.rampRate) / 1000 + '</td>' +
+					'</tr>' +
 					'</tbody>'
 			})
 
@@ -393,7 +433,7 @@ InsteonUI.prototype.renderHubPage = function (res) {
 		callback(res)
 	}
 
-	res.write("</div>") //end scenes tab
+	res.write('</div>') //end scenes tab
 	res.write("</div class='tab-content'>")
 
 	self.progressModal = "<div id='progressModal' class='modal fade' role='dialog'>" +
@@ -402,84 +442,50 @@ InsteonUI.prototype.renderHubPage = function (res) {
 	"<div class='modal-header'>" +
 	"<button type='button' class='close' data-dismiss='modal'>&times;</button>" +
 	"<h4 class='modal-title'>Getting links and devices from Hub...</h4>" +
-	"</div>" +
+	'</div>' +
 	"<div class='modal-body' hidden='true'>" +
-	"<p> </p>" +
-	"</div>" +
+	'<p> </p>' +
+	'</div>' +
 	"<div class='modal-footer' hidden='true'>" +
 	"<button type='button' class='btn btn-danger' id='progressModalYes'>Yes</button>" +
 	"<button type='button' class='btn btn-default btn-primary' data-dismiss='modal'>Close</button>" +
-	"</div>" +
-	"</div>" +
-	"</div>" +
-	"</div>"
+	'</div>' +
+	'</div>' +
+	'</div>' +
+	'</div>'
 
-	self.sseInit = `<script>
-	function sseInit() {
-		$('#progressModal').modal({show:true});
-
-		if (!!window.EventSource) {
-			var source = new EventSource('/events');
-		}
-		
-		source.addEventListener('message', function(e) {
-			console.log(e.data);
-			var data = JSON.parse(e.data)
-			var message = data.message
-			
-		if(message == 'prompt') {
-				$('#progressModal .modal-footer').show();
-				message = 'No changes to device database.  Update links anyway?'
-				$('#progressModal .modal-body').text(message);
-			} else if(message == 'close') {
-				$('#progressModal').modal({show:false});
-			} else {$('#progressModal .modal-body').text(message);}
-		}, false);
-		
-		source.addEventListener('open', function(e) {
-			console.log('Connection opened');
-		}, false);
-		
-		source.addEventListener('error', function(e) {
-			if (e.readyState == EventSource.CLOSED) {
-				console.log('Connection closed');
-			}
-		}, false);
-	}	
-	</script>`
-	
 	self.confirmModal = "<div id='confirmModal' class='modal fade' role='dialog'>" +
 	"<div class='modal-dialog'>" +
 	"<div class='modal-content'>" +
 	"<div class='modal-header'>" +
 	"<button type='button' class='close' data-dismiss='modal'>&times;</button>" +
 	"<h4 class='modal-title'>Delete Link?</h4>" +
-	"</div>" +
+	'</div>' +
 	"<div class='modal-body'>" +
-	"<p>Click yes to delete the link, or close to cancel.</p>" +
-	"</div>" +
+	'<p>Click yes to delete the link, or close to cancel.</p>' +
+	'</div>' +
 	"<div class='modal-footer'>" +
 	"<button type='button' class='btn btn-danger' data-dismiss='modal' id='confirmModalYes'>Yes</button>" +
 	"<button type='button' class='btn btn-default btn-primary' data-dismiss='modal'>Close</button>" +
-	"</div>" +
-	"</div>" +
-	"</div>" +
-	"</div>"
+	'</div>' +
+	'</div>' +
+	'</div>' +
+	'</div>'
 
-	self.modalConfirmScript = "<script>" +
+	self.modalConfirmScript = '<script>' +
 	"$('.open-modal').on('click',function(){" +
 	"var link = $(this).attr('data-href');" +
 	"$('#confirmModal').modal({show:true});" +
 	"$('#confirmModalYes').click(function(e) {" +
-	"window.location.replace(link);" +
-	"});" +
-	"});" +
-	"</script>"
+	'window.location.replace(link);' +
+	'});' +
+	'});' +
+	'</script>'
 
 	res.end(self.sseInit + self.progressModal + self.confirmModal + self.modalConfirmScript + self.footer)
 
 	function buildHubLinkTable() {
-		self.hubLinkTable = "<tbody>"
+		self.hubLinkTable = '<tbody>'
 
 		self.hubLinks.forEach(function (link) {
 			var insteonDevIndex = self.hubDevices.findIndex(function (item) { return item.deviceID == link.id })
@@ -495,15 +501,15 @@ InsteonUI.prototype.renderHubPage = function (res) {
 			}
 
 			self.hubLinkTable = self.hubLinkTable +
-				"<tr>" +
-				"<td>" + link.group + "</td>" +
-				"<td>" + nameText + "</td>" +
-				"<td>" + link.controller + "</td>" +
-				"<td>" + link.isInUse + "</td>" +
-				"<td>" + link.onLevel + "</td>" +
-				"<td>" + (link.rampRate) / 1000 + "</td>" +
-				"<td><div><a href='#' data-href='/removeHubLink/" + self.hubInfo.id + "/" + link.number + "' class='btn btn-default center-block open-modal' style='outline:none !important;'><span style='font-size:12px;'>" + self.wastebasket + ";</span></a></div></td>" +
-				"</tr>"
+				'<tr>' +
+				'<td>' + link.group + '</td>' +
+				'<td>' + nameText + '</td>' +
+				'<td>' + link.controller + '</td>' +
+				'<td>' + link.isInUse + '</td>' +
+				'<td>' + link.onLevel + '</td>' +
+				'<td>' + (link.rampRate) / 1000 + '</td>' +
+				"<td><div><a href='#' data-href='/removeHubLink/" + self.hubInfo.id + '/' + link.number + "' class='btn btn-default center-block open-modal' style='outline:none !important;'><span style='font-size:12px;'>" + self.wastebasket + ';</span></a></div></td>' +
+				'</tr>'
 		})
 
 		self.hubLinkTable = self.hubLinkTable + '</tbody>' + '</table>'
@@ -621,31 +627,31 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 			if(typeof self.hubDevices[devIndex].info != 'undefined'){
 				var filtered = self.deviceDatabase.filter(function (item) {return item.category == self.hubDevices[devIndex].info.deviceCategory.id })
 				var found = filtered.find(function (item) { return (item.subcategory == self.hubDevices[devIndex].info.deviceSubcategory.id) })
-				
+
 				if (found.name.includes('Keypad')) {
-					var keyRow = "<td><b>Button Configuration: </b>" + keys + "</td>"
+					var keyRow = '<td><b>Button Configuration: </b>' + keys + '</td>'
 				} else { var keyRow = '' }
 			}
 
 			self.hubDeviceOpFlagsTableHeader = `<table id="flagsTable" class="table" cellspacing="0" cellpadding="0" width="100%">`
 
-			self.hubDeviceOpFlagsTable = "<tr>" +
-				"<td><b>Ramp Rate: </b>" + rampRate + "</td>" +
-				"<td><b>Programming Lock: </b>" + progLock + "</td>" +
-				"</tr>" +
-				"<tr>" +
-				"<td><b>On Level: </b>" + onLevel + "</td>" +
-				"<td><b>Resume Dim: </b>" + resumeDim + "</td>" +
-				"</tr>" +
-				"<tr>" +
-				"<td><b>LED Brightness: </b>" + ledBrightness + "</td>" +
-				"<td><b>Database Delta: </b>" + databaseDelta + "</td>" +
-				"</tr>" +
-				"<tr>" +
-				"<td><b>LED Enable: </b>" + ledEnable + "</td>" +
+			self.hubDeviceOpFlagsTable = '<tr>' +
+				'<td><b>Ramp Rate: </b>' + rampRate + '</td>' +
+				'<td><b>Programming Lock: </b>' + progLock + '</td>' +
+				'</tr>' +
+				'<tr>' +
+				'<td><b>On Level: </b>' + onLevel + '</td>' +
+				'<td><b>Resume Dim: </b>' + resumeDim + '</td>' +
+				'</tr>' +
+				'<tr>' +
+				'<td><b>LED Brightness: </b>' + ledBrightness + '</td>' +
+				'<td><b>Database Delta: </b>' + databaseDelta + '</td>' +
+				'</tr>' +
+				'<tr>' +
+				'<td><b>LED Enable: </b>' + ledEnable + '</td>' +
 				keyRow +
-				"</tr>" +
-				"</table>"
+				'</tr>' +
+				'</table>'
 
 			self.hubDeviceOpFlagsTable = self.hubDeviceOpFlagsTableHeader + self.hubDeviceOpFlagsTable
 		}
@@ -685,11 +691,11 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 	res.write("<div class='container-fluid'>")
 	res.write("<div class='btn-toolbar pull-right'>")
 	res.write("<a class='btn btn-default load center-block getlinks' onclick='sseInit()' id='getAllLinks' role='button' href='/getAllDeviceLinks' style='width:135px; height:30px;'>Get All Dev Links</a>")
-	res.write("</div>")
+	res.write('</div>')
 
 	res.write("<div class='col-xs-2 col-sm-4 left'>")
 	res.write("<div class='row'>")
-	res.write("<h4 class='sub-header pull-left'>Devices (" + numberDevices + ")</h4>")
+	res.write("<h4 class='sub-header pull-left'>Devices (" + numberDevices + ')</h4>')
 	res.write("<a class='btn btn-default load pull-right' role='button' href='/getHubDevices' style='width:135px; height:30px;'>Get Devices</a>")
 	res.write("</div class='row'>")
 	res.write("<div class='table-responsive'>")
@@ -701,11 +707,11 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 
 	//Device info form
 	res.write("<form enctype='application/x-www-form-urlencoded' action='/saveDeviceSettings' method='post'>")
-	res.write("<h3 class='sub-header'>Device Info - " + devName + "</h3>")
+	res.write("<h3 class='sub-header'>Device Info - " + devName + '</h3>')
 	res.write(self.hubDeviceInfoTable)
 	res.write("<input class='btn btn-default center-block' type='submit' style='width:135px' value='Save' />")
-	res.write("</form>")
-	res.write("<hr>")
+	res.write('</form>')
+	res.write('<hr>')
 
 	res.write(`<ul class="nav nav-tabs">
 	<li class="active"><a data-toggle="tab" href="#opflags">Operating Flags</a>
@@ -733,15 +739,15 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 	res.write("<h3 class='sub-header'>Operating Flags </h3>")
 	res.write("<form enctype='application/x-www-form-urlencoded' action='#' method='post'>")
 	res.write(self.hubDeviceOpFlagsTable)
-	res.write("</form>")
-	res.write("</div>") //end op flags tab
+	res.write('</form>')
+	res.write('</div>') //end op flags tab
 
-	self.getAllLinksScript = "<script>" + 
+	self.getAllLinksScript = '<script>' +
 	"$('.getlinks').bind('click', function(e) {" +
-	"e.preventDefault();" +
+	'e.preventDefault();' +
 	"$('#getAllLinks').load('/getAllDeviceLinks');" +
-	"});" +
-	"</script>"
+	'});' +
+	'</script>'
 
 	self.confirmModal = "<div id='confirmModal' class='modal fade' role='dialog'>" +
 		"<div class='modal-dialog'>" +
@@ -749,17 +755,17 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 		"<div class='modal-header'>" +
 		"<button type='button' class='close' data-dismiss='modal'>&times;</button>" +
 		"<h4 class='modal-title'>Delete Link?</h4>" +
-		"</div>" +
+		'</div>' +
 		"<div class='modal-body'>" +
-		"<p>Click yes to delete the link, or close to cancel.</p>" +
-		"</div>" +
+		'<p>Click yes to delete the link, or close to cancel.</p>' +
+		'</div>' +
 		"<div class='modal-footer'>" +
 		"<button type='button' class='btn btn-danger' data-dismiss='modal' id='confirmModalYes'>Yes</button>" +
 		"<button type='button' class='btn btn-default btn-primary' data-dismiss='modal'>Close</button>" +
-		"</div>" +
-		"</div>" +
-		"</div>" +
-		"</div>"
+		'</div>' +
+		'</div>' +
+		'</div>' +
+		'</div>'
 
 	self.databaseModal = "<div id='databaseModal' class='modal fade' role='dialog'>" +
 		"<div class='modal-dialog'>" +
@@ -767,17 +773,17 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 		"<div class='modal-header'>" +
 		"<button type='button' class='close' data-dismiss='modal'>&times;</button>" +
 		"<h4 class='modal-title'>Database already up to date</h4>" +
-		"</div>" +
+		'</div>' +
 		"<div class='modal-body'>" +
-		"<p>Click yes update device links anyway, or close to cancel.</p>" +
-		"</div>" +
+		'<p>Click yes update device links anyway, or close to cancel.</p>' +
+		'</div>' +
 		"<div class='modal-footer'>" +
 		"<button type='button' class='btn btn-danger' data-dismiss='modal' id='databaseModalYes'>Yes</button>" +
 		"<button type='button' class='btn btn-default btn-primary' data-dismiss='modal'>Close</button>" +
-		"</div>" +
-		"</div>" +
-		"</div>" +
-		"</div>"
+		'</div>' +
+		'</div>' +
+		'</div>' +
+		'</div>'
 
 	self.progressModal = "<div id='progressModal' class='modal fade' role='dialog'>" +
 		"<div class='modal-dialog'>" +
@@ -785,77 +791,43 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 		"<div class='modal-header'>" +
 		"<button type='button' class='close' data-dismiss='modal'>&times;</button>" +
 		"<h4 class='modal-title'><b>Updating device...</b></h4>" +
-		"</div>" +
+		'</div>' +
 		"<div class='modal-body'>" +
-		"<p> </p>" +
-		"</div>" +
+		'<p> </p>' +
+		'</div>' +
 		"<div class='modal-footer' hidden='true'>" +
 		"<button type='button' class='btn btn-danger' id='progressModalYes'>Yes</button>" +
 		"<button type='button' class='btn btn-default btn-primary' data-dismiss='modal'>Close</button>" +
-		"</div>" +
-		"</div>" +
-		"</div>" +
-		"</div>"
+		'</div>' +
+		'</div>' +
+		'</div>' +
+		'</div>'
 
-	self.ajaxLoadScript = "<script>" +
+	self.ajaxLoadScript = '<script>' +
 		"$('.ajaxload').bind('click', function(e) {" +
-			"e.preventDefault();" +
+			'e.preventDefault();' +
 			"var link = $(this).attr('data-href');" +
 			"$('.ajaxload').load(link);" +
-		"});" +
-		"</script>"
+		'});' +
+		'</script>'
 
-	self.modalConfirmScript = "<script>" +
+	self.modalConfirmScript = '<script>' +
 		"$('.open-modal').on('click',function(){" +
 		"var link = $(this).attr('data-href');" +
 		"$('#confirmModal').modal({show:true});" +
 		"$('#confirmModalYes').click(function(e) {" +
-		"window.location.replace(link);" +
-		"});" +
-		"});" +
-		"</script>"
+		'window.location.replace(link);' +
+		'});' +
+		'});' +
+		'</script>'
 
-	self.sseInit = `<script>
-		function sseInit() {
-			$('#progressModal').modal({show:true});
-
-			if (!!window.EventSource) {
-				var source = new EventSource('/events');
-			}
-			
-			source.addEventListener('message', function(e) {
-				console.log(e.data);
-				var data = JSON.parse(e.data)
-				var message = data.message
-				
-			if(message == 'prompt') {
-					$('#progressModal .modal-footer').show();
-					message = 'No changes to device database.  Update links anyway?'
-					$('#progressModal .modal-body').text(message);
-				} else if(message == 'close') {
-					$('#progressModal').modal({show:false});
-				} else {$('#progressModal .modal-body').text(message);}
-			}, false);
-			
-			source.addEventListener('open', function(e) {
-				console.log('Connection opened');
-			}, false);
-			
-			source.addEventListener('error', function(e) {
-				if (e.readyState == EventSource.CLOSED) {
-					console.log('Connection closed');
-				}
-			}, false);
-		}	
-	</script>`
-
-	self.progressModalYes = "<script>" +
+	self.progressModalYes = '<script>' +
 		"$('#progressModalYes').click(function(e) {" +
-		"e.preventDefault();" +
+		'e.preventDefault();' +
 		"$('#progressModal .modal-footer').hide();" +
 		"$('#progressModal').load('/getLinks/" + deviceID + "');" +
-		"});" +
-		"</script>"
+		'});' +
+		'</script>'
 
 	res.write('<div id="links" class="tab-pane fade">')//start links tab
 	res.write("<h3 class='sub-header'>Links</h3>")
@@ -881,7 +853,7 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 	res.end(self.ajaxLoadScript + self.sseInit + self.modalConfirmScript + self.progressModalYes + self.getAllLinksScript + self.footer)
 
 	function buildDeviceLinkTable() {
-		self.deviceLinkTable = "<tbody>"
+		self.deviceLinkTable = '<tbody>'
 
 		self.insteonJSON.devices[devIndex].links.forEach(function (link) {
 			if (link.isInUse) {
@@ -905,16 +877,16 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 				} else { rampRateText = parseInt(link.rampRate) / 1000 }
 
 				self.deviceLinkTable = self.deviceLinkTable +
-					"<tr>" +
-					"<td>" + link.group + "</td>" +
-					"<td>" + nameText + "</td>" +
-					"<td>" + link.controller + "</td>" +
-					"<td>" + link.onLevel + "</td>" +
-					"<td>" + rampRateText + "</td>" +
-					"<td>" + link.at + "</td>" +
-					"<td>" + link.data[2] + "</td>" +
-					"<td><div><a href='#' class='btn btn-default center-block open-modal' data-href='/removeLink/" + device.deviceID + "/" + link.at + "'' style='outline:none !important;'><span style='font-size:12px;'>" + self.wastebasket + ";</span></a></div></td>" +
-					"</tr>"
+					'<tr>' +
+					'<td>' + link.group + '</td>' +
+					'<td>' + nameText + '</td>' +
+					'<td>' + link.controller + '</td>' +
+					'<td>' + link.onLevel + '</td>' +
+					'<td>' + rampRateText + '</td>' +
+					'<td>' + link.at + '</td>' +
+					'<td>' + link.data[2] + '</td>' +
+					"<td><div><a href='#' class='btn btn-default center-block open-modal' data-href='/removeLink/" + device.deviceID + '/' + link.at + "'' style='outline:none !important;'><span style='font-size:12px;'>" + self.wastebasket + ';</span></a></div></td>' +
+					'</tr>'
 			}
 		})
 		self.deviceLinkTable = self.deviceLinkTable + '</tbody>' + '</table>'
@@ -977,7 +949,7 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 
 					if (responderIndex == -1 || typeof self.insteonJSON.devices[responderIndex].links == 'undefined') {
 						//device not in insteon.json
-						console.log("No links for " + responderID + "found in config")
+						console.log('No links for ' + responderID + ' found in config')
 						return
 					}
 
@@ -1029,9 +1001,9 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 							return item.deviceID == controllerID
 						})
 
-						if (controllerIndex == -1 || typeof self.insteonJSON.devices[controllerIndex].links == "undefined") {
+						if (controllerIndex == -1 || typeof self.insteonJSON.devices[controllerIndex].links == 'undefined') {
 							//device not in insteon.json
-							console.log("Device/links for " + controllerID + " not found in config")
+							console.log('Device/links for ' + controllerID + ' not found in config')
 							return
 						}
 
@@ -1049,7 +1021,7 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 									return item.deviceID == responderLink.id
 								})
 
-								if (responderIndex == -1 || typeof self.insteonJSON.devices[responderIndex].links == "undefined") {
+								if (responderIndex == -1 || typeof self.insteonJSON.devices[responderIndex].links == 'undefined') {
 									//device not in insteon.json
 									console.log('Device/links for ' + responderLink.id + ' not found in config')
 									return
@@ -1129,7 +1101,7 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 
 		self.keypadButtonArray = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
-		self.deviceSceneTable = "<tbody>"
+		self.deviceSceneTable = '<tbody>'
 
 		if (typeof self.insteonJSON.devices[devIndex].scenes == 'undefined' || self.insteonJSON.devices[devIndex].scenes.length == 0) {
 			self.deviceSceneTable = '<p>No scenes defined for ' + self.insteonJSON.devices[devIndex].name + '</p>'
@@ -1168,10 +1140,10 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 					} else { groupText = controller.group }
 				}
 				controllerTable = controllerTable +
-					"<tr>" +
-					"<td>" + groupText + "</td>" +
-					"<td>" + nameText + "</td>" +
-					"</tr>" +
+					'<tr>' +
+					'<td>' + groupText + '</td>' +
+					'<td>' + nameText + '</td>' +
+					'</tr>' +
 					'</tbody>'
 			})
 
@@ -1214,12 +1186,12 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 					}
 				}
 				responderTable = responderTable +
-					"<tr>" +
-					"<td>" + groupText + "</td>" +
-					"<td>" + nameText + "</td>" +
-					"<td>" + responder.onLevel + "</td>" +
-					"<td>" + (responder.rampRate) / 1000 + "</td>" +
-					"</tr>" +
+					'<tr>' +
+					'<td>' + groupText + '</td>' +
+					'<td>' + nameText + '</td>' +
+					'<td>' + responder.onLevel + '</td>' +
+					'<td>' + (responder.rampRate) / 1000 + '</td>' +
+					'</tr>' +
 					'</tbody>'
 			})
 
@@ -1268,28 +1240,47 @@ InsteonUI.prototype.renderAddPage = function (res, type) { //not used
 	self.deviceTemplate = "<div class='row content'>" +
 		"<div class='form-group'><input type='text' class='form-control' name='deviceName' value='" + "'></div>" +
 		"<div class='form-group'><input type='text' class='form-control' name='deviceID' value=''></div>" +
-		"<div class='form-group'>" + self.devList + "</div>" +
-		"<div class='form-group'>" + self.dimList + "</div>" +
-		"<div></div>" +
-		"<div></div>" +
+		"<div class='form-group'>" + self.devList + '</div>' +
+		"<div class='form-group'>" + self.dimList + '</div>' +
+		'<div></div>' +
+		'<div></div>' +
 		"</div class='row content'>"
 
-	res.write("<h2>Add " + type + "</h2>");
+
+	self.progressModal = "<div id='progressModal' class='modal fade' role='dialog'>" +
+		"<div class='modal-dialog'>" +
+		"<div class='modal-content'>" +
+		"<div class='modal-header'>" +
+		"<button type='button' class='close' data-dismiss='modal'>&times;</button>" +
+		"<h4 class='modal-title'><b>Updating device...</b></h4>" +
+		'</div>' +
+		"<div class='modal-body'>" +
+		'<p> </p>' +
+		'</div>' +
+		"<div class='modal-footer' hidden='true'>" +
+		"<button type='button' class='btn btn-danger' id='progressModalYes'>Yes</button>" +
+		"<button type='button' class='btn btn-default btn-primary' data-dismiss='modal'>Close</button>" +
+		'</div>' +
+		'</div>' +
+		'</div>' +
+		'</div>'
+
+	res.write('<h2>Add ' + type + '</h2>');
 
 	res.write("<form enctype='application/x-www-form-urlencoded' action='/save" + type + "Settings' method='post'>")
-	res.write(self.addDeviceTableHeader + self.deviceTemplate + "</div>")
-	res.write("<br>")
+	res.write(self.addDeviceTableHeader + self.deviceTemplate + '</div>')
+	res.write('<br>')
 	res.write("<div class='row'>")
 	res.write("<div class='col-xs-offset-1 col-sm-offset-1 col-md-offset-2 col-xs-10 col-sm-9 col-md-8 text-center'>");
 	res.write("<div class='btn-group' data-toggle='buttons'>");
 	res.write("<input type='submit' class='btn btn-default center-block' value='Save' onClick='submit()' style='width:135px' />");
 	res.write("<input type='submit' class='btn btn-default center-block' value='Cancel' onClick=\"location.href='/'\" style='width:135px' />");
-	res.write("</div>")
-	res.write("</div>")
-	res.write("</form>")
+	res.write('</div>')
+	res.write('</div>')
+	res.write('</form>')
 
-	res.write("<br>")
-	res.write("</div>")
+	res.write('<br>')
+	res.write('</div>')
 
 	res.end(self.footer)
 }
@@ -1311,8 +1302,8 @@ InsteonUI.prototype.renderScenePage = function (res) {
 		res.write("<div class='container'>")
 		res.write("<div class='btn-toolbar pull-right'>")
 		res.write("<a class='btn btn-default load center-block' role='button' href='/buildHubSceneData' style='width:140px; height:30px;'>Refresh Scene Data</a>")
-		res.write("</div>")
-		res.write("<h3>Scenes</h3><hr>")
+		res.write('</div>')
+		res.write('<h3>Scenes</h3><hr>')
 		res.write(self.sceneTableHeader)
 		res.write(self.sceneTable)
 		res.end(self.footer)
@@ -1337,12 +1328,12 @@ InsteonUI.prototype.renderScenePage = function (res) {
 				}
 
 				controllerTable = controllerTable +
-					"<tr>" +
-					"<td>" + controller.group + "</td>" +
-					"<td>" + nameText + "</td>" +
-					"<td>" + controller.onLevel + "</td>" +
-					"<td>" + controller.rampRate + "</td>" +
-					"</tr>" +
+					'<tr>' +
+					'<td>' + controller.group + '</td>' +
+					'<td>' + nameText + '</td>' +
+					'<td>' + controller.onLevel + '</td>' +
+					'<td>' + controller.rampRate + '</td>' +
+					'</tr>' +
 					'</tbody>'
 			})
 
@@ -1360,12 +1351,12 @@ InsteonUI.prototype.renderScenePage = function (res) {
 				}
 
 				responderTable = responderTable +
-					"<tr>" +
-					"<td>" + responder.group + "</td>" +
-					"<td>" + nameText + "</td>" +
-					"<td>" + responder.onLevel + "</td>" +
-					"<td>" + responder.rampRate + "</td>" +
-					"</tr>" +
+					'<tr>' +
+					'<td>' + responder.group + '</td>' +
+					'<td>' + nameText + '</td>' +
+					'<td>' + responder.onLevel + '</td>' +
+					'<td>' + responder.rampRate + '</td>' +
+					'</tr>' +
 					'</tbody>'
 			})
 
@@ -1382,29 +1373,29 @@ InsteonUI.prototype.renderLinkPage = function (res) {
 	res.write(self.header + self.navBar);
 	res.write("<div class='container'>")
 
-	self.linkTemplate = "<div class='form-group'><label for='deviceID'>Link To Hub</label><input type='text' class='form-control' required='required' data-error='Enter device id' name='deviceID' value='' placeholder='Enter device id to link to hub'><div class='help-block with-errors'></div></div>"
+	self.linkTemplate = "<div class='form-group'><label for='deviceID'>Link To Hub</label><input type='text' class='form-control' required='required' data-error='Enter device id' name='deviceID' value='' placeholder='Enter device id to link to hub.  Multiple devices can be separated with a comma.'><div class='help-block with-errors'></div></div>"
 
-	self.unlinkTemplate = "<div class='form-group'><label for='deviceID'>Unlink From Hub</label><input type='text' class='form-control' required='required' data-error='Enter device id' name='deviceID' value='' placeholder='Enter device id to link to hub'><div class='help-block with-errors'></div></div>"
+	self.unlinkTemplate = "<div class='form-group'><label for='deviceID'>Unlink From Hub</label><input type='text' class='form-control' required='required' data-error='Enter device id' name='deviceID' value='' placeholder='Enter device id to unlink from hub'><div class='help-block with-errors'></div></div>"
 
 	res.write("<form enctype='application/x-www-form-urlencoded' action='/linkToHub' data-toggle='validator' novalidate='true' method='post'>")
 	res.write(self.linkTemplate)
-	res.write("<br>")
+	res.write('<br>')
 	res.write("<div class='col-xs-offset-1 col-sm-offset-1 col-md-offset-2 col-xs-10 col-sm-9 col-md-8 text-center'>");
-	res.write("<input type='submit' class='btn btn-default center-block' value='Link' style='width:135px' />");
-	res.write("</div>")
-	res.write("</form>")
+	res.write("<input type='submit' class='btn btn-default center-block' onclick='sseInit()' value='Link' style='width:135px' />");
+	res.write('</div>')
+	res.write('</form>')
 
-	res.write("<br><hr>")
+	res.write('<br><hr>')
 
 	res.write("<form enctype='application/x-www-form-urlencoded' action='/unlinkFromHub' data-toggle='validator' novalidate='true' method='post'>")
 	res.write(self.unlinkTemplate)
-	res.write("<br>")
+	res.write('<br>')
 	res.write("<div class='col-xs-offset-1 col-sm-offset-1 col-md-offset-2 col-xs-10 col-sm-9 col-md-8 text-center'>");
 	res.write("<input type='submit' class='btn btn-default center-block' value='Unlink' style='width:135px' />");
-	res.write("</div>")
-	res.write("</form>")
+	res.write('</div>')
+	res.write('</form>')
 
-	res.write("<br><hr>")
+	res.write('<br><hr>')
 
 	self.cont_respList = "<select class='form-control' id=cont_resp name='cont_resp'>" +
 		"<option value='controller'>controller</option>" +
@@ -1427,25 +1418,25 @@ InsteonUI.prototype.renderLinkPage = function (res) {
 			} else { var listText = device.name }
 
 			self.deviceList = self.deviceList +
-				"<option value='" + device.deviceID + "'>" + listText + "</option>"
+				"<option value='" + device.deviceID + "'>" + listText + '</option>'
 		})
 		self.deviceList = self.deviceList + '</select>'
 	}
-	
+
 	self.sceneTemplateHeader = `<div class="responsive-wrapper">
 	<div class="row header">
 	<div>Create Scene</div>
 	</div>`
 
 	self.rateList = "<select class='form-control' name='rate'>"
-	
+
 	rampRates = rampRates.sort(function (x, y) { return x - y })
 
 	rampRates.forEach(function(rate){
-		self.rateList = self.rateList + "<option value='" + rate/1000 + "'>" + rate/1000 + "</option>"
+		self.rateList = self.rateList + "<option value='" + rate/1000 + "'>" + rate/1000 + '</option>'
 
 	})
-	
+
 	self.rateList = self.rateList + '</select>'
 
 	self.sceneTemplate = "<div class='row content'>" +
@@ -1458,24 +1449,24 @@ InsteonUI.prototype.renderLinkPage = function (res) {
 
 	res.write("<form enctype='application/x-www-form-urlencoded' id='sceneTemplateForm' name='sceneTemplateForm' action='/createScene' data-toggle='validator' novalidate='true' method='post'>")
 	res.write(self.sceneTemplateHeader + "<div id='sceneTemplateTable'>" + self.sceneTemplate + self.sceneTemplate)
-	res.write("</div>")
-	res.write("</div>")
-	res.write("<br>")
+	res.write('</div>')
+	res.write('</div>')
+	res.write('<br>')
 
 	res.write("<div class='col-xs-offset-1 col-sm-offset-1 col-md-offset-2 col-xs-10 col-sm-9 col-md-8 text-center'>")
 	res.write("<div class='btn-group'>")
 	res.write("<input href='#' class='btn btn-default center-block' id='addScene' style='width:135px' value='Add' />")
-	res.write("<input type='submit' class='btn btn-default center-block' value='Create Scene' style='width:135px' />")
-	res.write("</div>")
-	res.write("</div>")
-	res.write("</form>")
+	res.write("<input type='submit' class='btn btn-default center-block' onclick='sseInit()' value='Create Scene' style='width:135px' />")
+	res.write('</div>')
+	res.write('</div>')
+	res.write('</form>')
 
-	self.addSceneRow = "<script>" +
+	self.addSceneRow = '<script>' +
 		'$("#addScene").click(function() {' +
 		'$("#sceneTemplateTable").append("' + self.sceneTemplate + '");' +
 		'$("#sceneTemplateForm").validator("update");' +
 		'});' +
-		"</script>"
+		'</script>'
 
 	self.disableFormField = `<script>
 	$(function() {
@@ -1486,7 +1477,7 @@ InsteonUI.prototype.renderLinkPage = function (res) {
 				} else {
 					$('#level, #rate').prop('disabled', false);
 					$('#level, #rate').prop('required', 'required');
-				};			
+				};
 		});
 	});
 	</script>`
@@ -1501,7 +1492,7 @@ InsteonUI.prototype.renderLinkPage = function (res) {
 				dataType: 'json'
 			});
 		};
-		
+
 		$.fn.serializeObject = function()
 			{
 			   var o = {};
@@ -1518,7 +1509,7 @@ InsteonUI.prototype.renderLinkPage = function (res) {
 			   });
 			   return o;
 			};
-			
+
 		$(function() {
 			$('#sceneTemplateForm').on('submit', function(e) {
 				e.preventDefault();
@@ -1526,384 +1517,443 @@ InsteonUI.prototype.renderLinkPage = function (res) {
 				console.log(data);
 				sendData(data)
 			});
-		});		
+		});
 	</script>`
-
-	res.end(self.addSceneRow + self.formToJSON + self.footer)
+	res.write(self.progressModal)
+	res.end(self.sseInit + self.addSceneRow + self.formToJSON + self.footer)
 }
 
 InsteonUI.prototype.handleRequest = function (req, res) {
 	var self = ui
 
 	switch (req.url) {
-		case '/':
-			self.renderMainPage(res)
-			break
-		case '/redirect':
-			res.redirect('back')
-			break
-		case '/saveHubSettings':
-			if (req.method == 'POST') {
-				req.on('data', function (chunk) {
-					var receivedData = chunk.toString()
-					var arr = receivedData.split("&")
+	case '/':
+		self.renderMainPage(res)
+		break
+	case '/redirect':
+		res.redirect('back')
+		break
+	case '/saveHubSettings':
+		if (req.method == 'POST') {
+			req.on('data', function (chunk) {
+				var receivedData = chunk.toString()
+				var arr = receivedData.split('&')
 
-					self.config.platforms[self.platformIndex].user = self.stripEscapeCodes(arr[0].replace('hubUsername=', ''))
-					self.config.platforms[self.platformIndex].pass = self.stripEscapeCodes(arr[1].replace('hubPassword=', ''))
-					self.config.platforms[self.platformIndex].host = self.stripEscapeCodes(arr[2].replace('hubAddress=', ''))
-					self.config.platforms[self.platformIndex].port = self.stripEscapeCodes(arr[3].replace('hubPort=', ''))
-					self.config.platforms[self.platformIndex].model = self.stripEscapeCodes(arr[4].replace('hubModel=', ''))
-					self.config.platforms[self.platformIndex].refresh = self.stripEscapeCodes(arr[5].replace('hubRefresh=', ''))
-					self.config.platforms[self.platformIndex].keepAlive = self.stripEscapeCodes(arr[6].replace('hubKeepalive=', ''))
+				self.config.platforms[self.platformIndex].user = self.stripEscapeCodes(arr[0].replace('hubUsername=', ''))
+				self.config.platforms[self.platformIndex].pass = self.stripEscapeCodes(arr[1].replace('hubPassword=', ''))
+				self.config.platforms[self.platformIndex].host = self.stripEscapeCodes(arr[2].replace('hubAddress=', ''))
+				self.config.platforms[self.platformIndex].port = self.stripEscapeCodes(arr[3].replace('hubPort=', ''))
+				self.config.platforms[self.platformIndex].model = self.stripEscapeCodes(arr[4].replace('hubModel=', ''))
+				self.config.platforms[self.platformIndex].refresh = self.stripEscapeCodes(arr[5].replace('hubRefresh=', ''))
+				self.config.platforms[self.platformIndex].keepAlive = self.stripEscapeCodes(arr[6].replace('hubKeepalive=', ''))
 
-					self.saveConfig(res)
-				})
-				req.on('end', function (chunk) { })
-			} else {
-				console.log("[405] " + req.method + " to " + req.url)
-			}
-			break
-		case '/saveDeviceSettings':
-			if (req.method == 'POST') {
-				req.on('data', function (chunk) {
-					var receivedData = chunk.toString()
-					var arr = receivedData.split("&")
-					var deviceName = arr[0].replace('name=', '')
-
-					var referer = req.header('Referer')
-					var deviceID = referer.substring(referer.lastIndexOf('/') + 1, referer.length)
-
-					var devIndex = self.insteonJSON.devices.findIndex(function (item) { return item.deviceID == deviceID })
-					self.insteonJSON.devices[devIndex].name = deviceName
-
-					self.saveInsteonConfig(res)
-				})
-				req.on('end', function (chunk) { })
-			} else {
-				console.log("[405] " + req.method + " to " + req.url)
-			}
-			break
-		case '/hub':
-			self.renderHubPage(res)
-			break
-		case '/getHubInfo':
-			console.log('Getting Hub info')
-			self.hub.info(function (error, info) {
-				if (error) {
-					console.log('Error getting Hub info')
-				} else {
-					console.log(info)
-					self.hubInfo = info
-					self.insteonJSON.hub.info = self.hubInfo
-					self.saveInsteonConfig(res)
-				}
+				self.saveConfig(res)
 			})
-			break
-		case '/getHubDevices':
-			console.log('Getting devices from Hub')
-			self.getHubDevices(res, function (res) {
+			res.redirect('/hub')
+			//req.on('end', function (chunk) { })
+		} else {
+			console.log('[405] ' + req.method + ' to ' + req.url)
+		}
+		break
+	case '/saveDeviceSettings':
+		if (req.method == 'POST') {
+			req.on('data', function (chunk) {
+				var receivedData = chunk.toString()
+				var arr = receivedData.split('&')
+				var deviceName = arr[0].replace('name=', '')
+
+				var referer = req.header('Referer')
+				var deviceID = referer.substring(referer.lastIndexOf('/') + 1, referer.length)
+
+				var devIndex = self.insteonJSON.devices.findIndex(function (item) { return item.deviceID == deviceID })
+				self.insteonJSON.devices[devIndex].name = deviceName
+
 				self.saveInsteonConfig(res)
 			})
-			break
-		case '/addDevice':
-			self.renderAddPage(res, "Device")
-			break
-		case '/link':
-			self.renderLinkPage(res)
-			break
-		case '/linkToHub':
-			if (req.method == 'POST') {
-				req.on('data', function (chunk) {
-					var receivedData = chunk.toString()
-					var arr = receivedData.split("&")
-					var deviceID = arr[0].replace('deviceID=', '')
-
-					self.linkToHub(deviceID, res)
-				})
-				req.on('end', function (chunk) { })
+			req.on('end', function (chunk) { })
+		} else {
+			console.log('[405] ' + req.method + ' to ' + req.url)
+		}
+		break
+	case '/hub':
+		self.renderHubPage(res)
+		break
+	case '/getHubInfo':
+		console.log('Getting Hub info')
+		self.hub.info(function (error, info) {
+			if (error) {
+				console.log('Error getting Hub info')
 			} else {
-				console.log("[405] " + req.method + " to " + req.url)
+				console.log(info)
+				info.id = info.id.toUpperCase()
+				self.hubInfo = info
+				self.insteonJSON.hub.info = self.hubInfo
+				self.saveInsteonConfig(res)
 			}
-			break
-		case '/unlinkFromHub':
-			if (req.method == 'POST') {
-				req.on('data', function (chunk) {
-					var receivedData = chunk.toString()
-					var arr = receivedData.split("&")
-					var deviceID = arr[0].replace('deviceID=', '')
+		})
+		break
+	case '/getHubDevices':
+		console.log('Getting devices from Hub')
+		self.getHubDevices(res, function (res) {
+			self.saveInsteonConfig(res)
+		})
+		break
+	case '/addDevice':
+		self.renderAddPage(res, 'Device')
+		break
+	case '/link':
+		self.renderLinkPage(res)
+		break
+	case '/linkToHub':
+		if (req.method == 'POST') {
+			req.on('data', function (chunk) {
+				var receivedData = chunk.toString()
+				var arr = receivedData.split('&')
+				arr = self.stripEscapeCodes(arr[0].replace('deviceID=', ''))
+				var deviceIDs = arr.split(',')
 
-					self.unlinkFromHub(deviceID, res)
-				})
-				req.on('end', function (chunk) { })
-			} else {
-				console.log("[405] " + req.method + " to " + req.url)
-			}
-			break
-		case '/createScene':
-			var referer = req.header('Referer')
-			if (req.method == 'POST') {
-				req.on('data', function (data) {
-					var receivedData = JSON.parse(data.toString())
-					var sceneData = []
+				_linkToHub(deviceIDs)
 
-					for (var i = 0; i < receivedData.id.length; i++) {
-						sceneData.push({ id: receivedData.id[i], group: parseInt(receivedData.group[i]), level: parseInt(receivedData.level[i]), rate: parseFloat(receivedData.rate[i]), cont_resp: receivedData.cont_resp[i] })
+				function _linkToHub(devices) {
+					if (devices.length == 0) {
+						sse.emit('push', { 'message': 'Finished linking devices'})
+						setTimeout(function () { sse.emit('push', { 'message': 'close' }) }, 3000)
+						self.getHubDevices(res, function (res) {
+							self.saveInsteonConfig(res)
+						})
+						return
 					}
 
-					var controllers = sceneData.filter(function (item) {
-						return item.cont_resp == 'controller'
-					})
+					var device = devices.pop()
+					sse.emit('push', { 'message': 'Linking ' + device + ' to hub'})
 
-					var responders = sceneData.filter(function (item) {
-						return item.cont_resp == 'responder'
+					self.linkToHub(device, res, function(error, response){
+						if(error){
+							console.log('Error linking ' + device)
+							sse.emit('push', { 'message': 'Error linking ' + device})
+							setTimeout(function () { sse.emit('push', { 'message': 'close' }) }, 3000)
+							return _linkToHub(devices)
+						} else {
+							sse.emit('push', { 'message': 'Successfully linked ' + device + ' to hub'})
+							return _linkToHub(devices)
+						}
 					})
+				}
+			})
+		} else {
+			console.log('[405] ' + req.method + ' to ' + req.url)
+		}
+		break
+	case '/unlinkFromHub':
+		if (req.method == 'POST') {
+			req.on('data', function (chunk) {
+				var receivedData = chunk.toString()
+				var arr = receivedData.split('&')
+				var deviceID = arr[0].replace('deviceID=', '')
 
-					var both = sceneData.filter(function (item) {
-						return item.cont_resp == 'both'
-					})
+				self.unlinkFromHub(deviceID, res)
+			})
+			req.on('end', function (chunk) { })
+		} else {
+			console.log('[405] ' + req.method + ' to ' + req.url)
+		}
+		break
+	case '/createScene':
+		var referer = req.header('Referer')
+		if (req.method == 'POST') {
+			req.on('data', function (data) {
+				var receivedData = JSON.parse(data.toString())
+				var sceneData = []
 
-					both.forEach(function (item) {
+				for (var i = 0; i < receivedData.id.length; i++) {
+					sceneData.push({ id: receivedData.id[i], group: parseInt(receivedData.group[i]), level: parseInt(receivedData.level[i]), rate: parseFloat(receivedData.rate[i]), cont_resp: receivedData.cont_resp[i] })
+				}
+
+				var controllers = []
+				var responders = []
+
+				sceneData.forEach(function (item) {
+					if(item.cont_resp == 'controller') {
+						controllers.push(item)
+					} else if(item.cont_resp == 'responder'){
+						responders.push(item)
+					} else if(item.cont_resp == 'both') {
 						controllers.push(item)
 						responders.push(item)
-					})
-
-					responders.forEach(function (item) {
-						delete item.group
-						delete item.cont_resp
-					})
-					
-					controllers.forEach(function (controller) {
-						responders.forEach(function(responder) {
-							var responderJSON = {
-								id: responder.id, 
-								level: responder.level,
-								rate: responder.rate
-							}
-							var options = {
-								group: controller.group, 
-								remove: false
-							}
-							
-							self.createScene(controller.id, responder, options, function(error,response){
-									if(error){console.log('Error creating scene')
-									} else {
-										self.saveInsteonConfig(res)
-									}
-								}
-							)
-						})
-					})
-				})
-				req.on('end', function (chunk) { })
-			} else {
-				console.log("[405] " + req.method + " to " + req.url)
-			}
-			break
-		case '/buildHubSceneData':
-			var referer = req.header('Referer')
-			self.buildHubSceneData(function () {
-				res.redirect(referer)
-			})
-			break
-		case '/devices':
-			self.renderDevicePage(res)
-			break
-		case '/scenes':
-			self.renderScenePage(res)
-			break
-		case '/getAllDeviceLinks':
-			console.log('Getting all device links')
-			req.connection.setTimeout(1000 * 60 * 10)
-
-			var linkDevIDs = []
-
-			self.hubDevices.forEach(function (device) {
-				linkDevIDs.push(device.deviceID)
-			})
-
-			_getAllDevLinks()
-
-			function _getAllDevLinks() {
-				if (linkDevIDs.length === 0) {
-					console.log('Done getting all device links')
-					self.saveInsteonConfig(res)
-					return
-				}
-
-				var id = linkDevIDs.pop()
-				self.getAllDeviceInfo(id, res, function () {
-					setTimeout(function(){return _getAllDevLinks()}, 2000) //slight delay to minimize traffic and help eliminate errors
-				})
-			}
-
-			break
-		case '/getDeviceInfo':
-			req.connection.setTimeout(1000 * 60 * 10)
-			var referer = req.header('Referer')
-			var deviceID = referer.substring(referer.lastIndexOf('/') + 1, referer.length)
-			var devIndex = self.insteonJSON.devices.findIndex(function (item) { return item.deviceID == deviceID })
-
-			if (deviceID == 'devices') {
-				res.write("<div class='alert alert-warning alert-dismissible fade in out'><a href='/devices' class='close' data-dismiss='success'>&times;</a><strong>Success!</strong>Please select a device first</div>");
-				console.log('Error getting device id from url: ' + referer + '  Select a device first.')
-				break
-			}
-
-			sse.emit('push', { 'message': 'Getting device info for ' + deviceID })
-			self.getAllDeviceInfo(deviceID, res, function(){
-				console.log('Done getting device info for ' + deviceID)
-				setTimeout(function () { sse.emit('push', { 'message': 'close' }) }, 3000)
-				self.saveInsteonConfig(res)
-			})
-
-			break
-		case '/events':
-			res.writeHead(200, {
-				'Content-Type': 'text/event-stream',
-				'Cache-Control': 'no-cache',
-				'Connection': 'keep-alive'
-			})
-
-			sse.on('push', function (data) {
-				res.write('data: ' + JSON.stringify(data) + '\n\n');
-			})
-			break
-		case '/saveConfigDeviceSettings':
-			if (req.method == 'POST') {
-				req.on('data', function (chunk) {
-					var receivedData = self.stripEscapeCodes(chunk)
-					var arr = receivedData.split("&")
-					console.log('Got device data: ' + util.inspect(arr))
-
-					var devJSON = []
-					var tmpArray = []
-					var index = 0
-					var arrLength = arr.length
-
-					arr.forEach(function (item) {
-						var tmp = item.split('=')
-						var key = tmp[0]
-						var value = tmp[1]
-
-						if (key == 'name' && index > 1) {
-							devJSON.push(tmpArray)
-							tmpArray = []
-							tmpArray[key] = value
-							index++
-						} else {
-							tmpArray[key] = value
-							index++
-						}
-
-						if (index == arrLength) {
-							devJSON.push(tmpArray)
-						}
-					})
-
-					devJSON.forEach(function (savedDev) {
-						if (self.config.platforms[self.platformIndex].devices == undefined) {
-							console.log('No devices defined - adding to config')
-							self.config.platforms[self.platformIndex].devices = []
-						}
-
-						var devIndex = self.config.platforms[self.platformIndex].devices.findIndex(function (item) { return item.deviceID == savedDev.deviceID })
-						var keys = Object.keys(savedDev)
-
-						if (devIndex == -1) {
-							//add to config
-							console.log('Adding ' + savedDev.name + ' to config')
-							var insertIndex = self.config.platforms[self.platformIndex].devices.length
-							self.config.platforms[self.platformIndex].devices[insertIndex] = {}
-
-							keys.forEach(function (key) {
-								self.config.platforms[self.platformIndex].devices[insertIndex][key] = savedDev[key]
-							})
-						} else {
-							//modify existing
-							console.log('Modifying config for ' + savedDev.name)
-
-							keys.forEach(function (key) {
-								console.log('Key ' + key + savedDev[key])
-								self.config.platforms[self.platformIndex].devices[devIndex][key] = savedDev[key]
-							})
-						}
-					})
-					console.log('Config to save: ' + JSON.stringify(self.config))
-					self.saveConfig(res)
-				})
-				req.on('end', function (chunk) { })
-			} else {
-				console.log("[405] " + req.method + " to " + req.url);
-			}
-			break
-		default:
-			var url = req.url
-
-			if (url.indexOf('/removeDevice') !== -1) {
-				var deviceToRemove = req.url.replace('/removeDevice', '')
-
-				var devIndex = self.config.platforms[self.platformIndex].devices.findIndex(function (item) { return item.deviceID == deviceToRemove })
-				console.log(devIndex)
-				self.config.platforms[self.platformIndex].devices.splice(devIndex, 1)
-				console.log('Removing ' + deviceToRemove + ' from config')
-				self.saveConfig(res)
-			}
-
-			if (url.indexOf('/removeLink') !== -1) {
-				var deviceLink = (req.url.replace('/removeLink/', '')).split('/')
-				var deviceID = deviceLink[0]
-				var linkAt = parseInt(deviceLink[1])
-				self.removeLinkAt(deviceID, linkAt, res)
-			}
-
-			if (url.indexOf('/removeHubLink') !== -1) {
-				var deviceLink = (req.url.replace('/removeHubLink/', '')).split('/')
-				var deviceID = deviceLink[0]
-				var linkNumber = parseInt(deviceLink[1])
-
-				var linkToDelete = self.hubLinks.filter(function (link) {
-					return link.number == linkNumber
-				})
-
-				linkToDelete = linkToDelete[0]
-
-				self.removeLink(deviceID, linkToDelete, function(error, response){
-					if(error){
-						console.log('Error removing link from hub')
-					} else if (response){
-						console.log('Successfully removed link from hub')
-						self.saveInsteonConfig(res)	
 					}
 				})
-			}
 
-			if (url.indexOf('/beep') !== -1) {
-				var deviceID = req.url.replace('/beep/', '')
-				self.beep(deviceID)
-			}
+				var sceneArray = []
 
-			if (url.indexOf('/getLinks') !== -1) {
-				var deviceID = req.url.replace('/getLinks/', '')
-				self.getDeviceLinks(deviceID, function (error, links) {
-					if (error) {
-						res.write(self.header + self.navBar);
-						res.write("<div class='alert alert-danger alert-dismissible fade in out' id='saveAlert'><a href='/devices/" + self.selectedDevice + "' class='close' data-dismiss='alert'>&times;</a><strong>Note!</strong>Error getting device info/flags/links</div>");
-						res.end(self.footer)
-					} else { self.saveInsteonConfig(res) }
+				controllers.forEach(function (controller) {
+					for (let i = 0; i < responders.length; i++) {
+						if (controller.id == responders[i].id) {continue}
+
+						//convert to 'gw' - Hub Pro uses lower case so using 'gw' takes care of that for us
+						if(controller.id.toUpperCase() == self.hubInfo.id.toUpperCase()) {
+							controller.id = 'gw'
+						}
+
+						if(responders[i].id.toUpperCase() == self.hubInfo.id.toUpperCase()) {
+							responders[i].id = 'gw'
+						}
+
+						var responderJSON = {
+							id: responders[i].id,
+							level: responders[i].level,
+							rate: responders[i].rate,
+							data: ['00', '00', responders[i].group.toString().padStart(2, '0')]
+						}
+						var options = {
+							group: controller.group,
+							remove: false
+						}
+
+						sceneArray.push({'controller': controller.id, 'responder': responderJSON, 'options': options})
+					}
 				})
+
+				_createScene(sceneArray)
+
+				function _createScene(scenes) {
+					if (scenes.length == 0) {
+						sse.emit('push', { 'message': 'Finished creating scene!'})
+						setTimeout(function () { sse.emit('push', { 'message': 'close' }) }, 3000)
+						self.saveInsteonConfig(res)
+						return
+					}
+
+					sse.emit('push', { 'message': 'Creating scene...'})
+					var scene = scenes.pop()
+
+					sse.emit('push', { 'message': 'Linking ' + scene.responder.id + ' to ' + scene.controller})
+
+					self.createScene(scene.controller, scene.responder, scene.options, function(error,response){
+						if(error){
+							console.log('Error creating scene')
+							sse.emit('push', { 'message': 'Error creating scene'})
+							setTimeout(function () { sse.emit('push', { 'message': 'close' }) }, 3000)
+							return _createScene(scenes)
+						} else {
+							sse.emit('push', { 'message': 'Successfully linked ' + scene.responder.id + ' to ' + scene.controller})
+							return _createScene(scenes)
+						}
+					})
+				}
+			})
+		} else {
+			console.log('[405] ' + req.method + ' to ' + req.url)
+		}
+		break
+	case '/buildHubSceneData':
+		var referer = req.header('Referer')
+		self.buildHubSceneData(function () {
+			res.redirect(referer)
+		})
+		break
+	case '/devices':
+		self.selectedDevice = req.url.replace('/devices/', '')
+		self.renderDevicePage(res)
+		break
+	case '/scenes':
+		self.renderScenePage(res)
+		break
+	case '/getAllDeviceLinks':
+		console.log('Getting all device links')
+		req.connection.setTimeout(1000 * 60 * 10)
+
+		var linkDevIDs = []
+
+		self.hubDevices.forEach(function (device) {
+			linkDevIDs.push(device.deviceID)
+		})
+
+		_getAllDevLinks()
+
+		function _getAllDevLinks() {
+			if (linkDevIDs.length === 0) {
+				console.log('Done getting all device links')
+				self.saveInsteonConfig(res)
+				return
 			}
 
-			if (url.indexOf('/devices') !== -1) {
-				var selectedDevice = req.url.replace('/devices/', '')
-				var device
+			var id = linkDevIDs.pop()
+			self.getAllDeviceInfo(id, res, function () {
+				setTimeout(function(){return _getAllDevLinks()}, 2000) //slight delay to minimize traffic and help eliminate errors
+			})
+		}
 
-				if (typeof selectedDevice == 'undefined' || selectedDevice == null) {
-					device = ''
-				} else { device = selectedDevice }
+		break
+	case '/getDeviceInfo':
+		req.connection.setTimeout(1000 * 60 * 10)
 
-				self.renderDevicePage(res, device)
-				self.selectedDevice = device
-			}
+		var referer = req.header('Referer')
+		var deviceID = referer.substring(referer.lastIndexOf('/') + 1, referer.length)
+		var devIndex = self.insteonJSON.devices.findIndex(function (item) { return item.deviceID == deviceID })
+		self.selectedDevice = deviceID
+
+		if (deviceID == 'devices') {
+			res.write("<div class='alert alert-warning alert-dismissible fade in out'><a href='/devices' class='close' data-dismiss='success'>&times;</a><strong>Success!</strong>Please select a device first</div>");
+			console.log('Error getting device id from url: ' + referer + '  Select a device first.')
+			break
+		}
+
+		sse.emit('push', { 'message': 'Getting device info for ' + deviceID })
+		self.getAllDeviceInfo(deviceID, res, function(){
+			console.log('Done getting device info for ' + deviceID)
+			setTimeout(function () { sse.emit('push', { 'message': 'close' }) }, 3000)
+			self.saveInsteonConfig(res)
+		})
+
+		break
+	case '/events':
+		res.writeHead(200, {
+			'Content-Type': 'text/event-stream',
+			'Cache-Control': 'no-cache',
+			'Connection': 'keep-alive'
+		})
+
+		sse.on('push', function (data) {
+			res.write('data: ' + JSON.stringify(data) + '\n\n');
+		})
+		break
+	case '/saveConfigDeviceSettings':
+		if (req.method == 'POST') {
+			req.on('data', function (chunk) {
+				var receivedData = self.stripEscapeCodes(chunk)
+				var arr = receivedData.split('&')
+				console.log('Got device data: ' + util.inspect(arr))
+
+				var devJSON = []
+				var tmpArray = []
+				var index = 0
+				var arrLength = arr.length
+
+				arr.forEach(function (item) {
+					var tmp = item.split('=')
+					var key = tmp[0]
+					var value = tmp[1]
+
+					if (key == 'name' && index > 1) {
+						devJSON.push(tmpArray)
+						tmpArray = []
+						tmpArray[key] = value
+						index++
+					} else {
+						tmpArray[key] = value
+						index++
+					}
+
+					if (index == arrLength) {
+						devJSON.push(tmpArray)
+					}
+				})
+
+				devJSON.forEach(function (savedDev) {
+					if (self.config.platforms[self.platformIndex].devices == undefined) {
+						console.log('No devices defined - adding to config')
+						self.config.platforms[self.platformIndex].devices = []
+					}
+
+					var devIndex = self.config.platforms[self.platformIndex].devices.findIndex(function (item) { return item.deviceID == savedDev.deviceID })
+					var keys = Object.keys(savedDev)
+
+					if (devIndex == -1) {
+						//add to config
+						console.log('Adding ' + savedDev.name + ' to config')
+						var insertIndex = self.config.platforms[self.platformIndex].devices.length
+						self.config.platforms[self.platformIndex].devices[insertIndex] = {}
+
+						keys.forEach(function (key) {
+							self.config.platforms[self.platformIndex].devices[insertIndex][key] = savedDev[key]
+						})
+					} else {
+						//modify existing
+						console.log('Modifying config for ' + savedDev.name)
+
+						keys.forEach(function (key) {
+							console.log('Key ' + key + savedDev[key])
+							self.config.platforms[self.platformIndex].devices[devIndex][key] = savedDev[key]
+						})
+					}
+				})
+				console.log('Config to save: ' + JSON.stringify(self.config))
+				self.saveConfig(res)
+			})
+			req.on('end', function (chunk) { })
+		} else {
+			console.log('[405] ' + req.method + ' to ' + req.url);
+		}
+		break
+	default:
+		var url = req.url
+
+		if (url.indexOf('/removeDevice') !== -1) {
+			var deviceToRemove = req.url.replace('/removeDevice', '')
+
+			var devIndex = self.config.platforms[self.platformIndex].devices.findIndex(function (item) { return item.deviceID == deviceToRemove })
+			console.log(devIndex)
+			self.config.platforms[self.platformIndex].devices.splice(devIndex, 1)
+			console.log('Removing ' + deviceToRemove + ' from config')
+			self.saveConfig(res)
+		}
+
+		if (url.indexOf('/removeLink') !== -1) {
+			var deviceLink = (req.url.replace('/removeLink/', '')).split('/')
+			var deviceID = deviceLink[0]
+			var linkAt = parseInt(deviceLink[1])
+			self.removeLinkAt(deviceID, linkAt, res)
+		}
+
+		if (url.indexOf('/removeHubLink') !== -1) {
+			var deviceLink = (req.url.replace('/removeHubLink/', '')).split('/')
+			var deviceID = deviceLink[0]
+			var linkNumber = parseInt(deviceLink[1])
+
+			var linkToDelete = self.hubLinks.filter(function (link) {
+				return link.number == linkNumber
+			})
+
+			linkToDelete = linkToDelete[0]
+
+			self.removeLink(deviceID, linkToDelete, function(error, response){
+				if(error){
+					console.log('Error removing link from hub')
+				} else {
+					console.log('Successfully removed link from hub')
+					self.saveInsteonConfig(res)
+				}
+			})
+		}
+
+		if (url.indexOf('/beep') !== -1) {
+			var deviceID = req.url.replace('/beep/', '')
+			self.beep(deviceID)
+		}
+
+		if (url.indexOf('/getLinks') !== -1) {
+			var deviceID = req.url.replace('/getLinks/', '')
+			self.selectedDevice = deviceID
+			self.getDeviceLinks(deviceID, function (error, links) {
+				if (error) {
+					res.write(self.header + self.navBar);
+					res.write("<div class='alert alert-danger alert-dismissible fade in out' id='saveAlert'><a href='/devices/" + self.selectedDevice + "' class='close' data-dismiss='alert'>&times;</a><strong>Note!</strong>Error getting device info/flags/links</div>");
+					res.end(self.footer)
+				} else { self.saveInsteonConfig(res) }
+			})
+		}
+
+		if (url.indexOf('/devices') !== -1) {
+			var selectedDevice = req.url.replace('/devices/', '')
+			var device
+
+			if (typeof selectedDevice == 'undefined' || selectedDevice == null) {
+				device = ''
+			} else { device = selectedDevice }
+
+			self.renderDevicePage(res, device)
+			self.selectedDevice = device
+		}
 	}
 }
 
@@ -1938,12 +1988,12 @@ InsteonUI.prototype.getDatabaseDelta = function (deviceID, callback) {
 
 	self.hub.directCommand(deviceID, cmd, timeout, function (error, response) {
 		if (error || typeof response.response == 'undefined' || typeof response.response.standard == 'undefined') {
-			console.log("Error getting database delta")
+			console.log('Error getting database delta')
 			sse.emit('push', { 'message': 'Error getting database delta for ' + deviceID })
 			callback(error, null)
 		} else {
 			var databaseDelta = response.response.standard.command1
-			console.log('dbDelta: ' + databaseDelta) 
+			console.log('dbDelta: ' + databaseDelta)
 			callback(null, databaseDelta)
 		}
 	})
@@ -1969,7 +2019,7 @@ InsteonUI.prototype.buildDeviceList = function () {
 		} else { var listText = device.name }
 
 		self.deviceList = self.deviceList +
-			"<option value='" + device.deviceID + "'>" + listText + "</option>"
+			"<option value='" + device.deviceID + "'>" + listText + '</option>'
 	})
 	self.deviceList = self.deviceList + '</select>'
 }
@@ -1992,10 +2042,10 @@ InsteonUI.prototype.saveConfig = function (res, backup) {
 		if (err) { console.log('Error creating backup: ' + err) } else { console.log('Created backup of previous config') }
 	})
 
-	console.log("Saved new Homebridge config")
+	console.log('Saved new Homebridge config')
 	res.write(self.header + self.navBar);
 	res.write("<div class='alert alert-info alert-dismissible fade in out id=saveAlert'><a href='/' class='close' data-dismiss='alert'>&times;</a><strong>Note!</strong> Please restart Homebridge to activate your changes.</div>");
-	fs.writeFile(self.configPath, newConfig, "utf8", function (err, data) {
+	fs.writeFile(self.configPath, newConfig, 'utf8', function (err, data) {
 		if (err) {
 			return console.log(err)
 		} else {
@@ -2017,11 +2067,12 @@ InsteonUI.prototype.saveInsteonConfig = function (res) {
 	})
 
 	//write new config
-	console.log("Saved new insteon config")
-	res.write(self.header + self.navBar);
-	res.write("<div class='alert alert-success alert-dismissible fade in out' id='saveAlert'><a href='/devices/" + self.selectedDevice + "' class='close' data-dismiss='alert'>&times;</a><strong>Note!</strong> Successfully saved devices/link to Insteon config.</div>");
+	console.log('Saved new insteon config')
+	res.write(self.header + self.navBar)
+
+	res.write("<div class='alert alert-success alert-dismissible fade in out' id='saveAlert'><a href='/devices/" + self.selectedDevice + "' class='close' data-dismiss='alert'>&times;</a><strong>Note!</strong> Successfully saved devices/link to Insteon config.</div>")
 	res.end(self.footer)
-	fs.writeFile(self.configDir + './insteon.json', newInsteonJSON, "utf8", function (err, data) {
+	fs.writeFile(self.configDir + './insteon.json', newInsteonJSON, 'utf8', function (err, data) {
 		if (err) {
 			return console.log(err)
 		} else {
@@ -2098,7 +2149,7 @@ InsteonUI.prototype.getHubDevices = function (res, callback) {
 
 	self.hub.links(function (error, links) {
 		if (error) {
-			console.log("Error getting devices")
+			console.log('Error getting devices')
 		} else {
 			var num = 0
 			links.forEach(function (link) {
@@ -2110,6 +2161,7 @@ InsteonUI.prototype.getHubDevices = function (res, callback) {
 
 			links.forEach(function (link) {
 				if (link !== null && link.isInUse) {
+					link.id = link.id.toUpperCase()
 					devices.push(link.id)
 				}
 			})
@@ -2138,11 +2190,11 @@ InsteonUI.prototype.getHubDevices = function (res, callback) {
 					devName = oldDevices[insteonDevIndex].name
 					console.log('Found ' + devName + ' in Insteon config')
 				}
-				
+
 				if (insteonDevIndex !== -1 && typeof oldDevices[insteonDevIndex].info != 'undefined') {
 					var devInfo = oldDevices[insteonDevIndex].info
 					var devLinks = oldDevices[insteonDevIndex].links
-					var opFlags = oldDevices[insteonDevIndex].operatingFlags					
+					var opFlags = oldDevices[insteonDevIndex].operatingFlags
 					var dbDelta = oldDevices[insteonDevIndex].databaseDelta
 
 					self.hubDevices.push({ name: devName, deviceID: deviceID, info: devInfo, links: devLinks, operatingFlags: opFlags, databaseDelta: dbDelta})
@@ -2164,9 +2216,6 @@ InsteonUI.prototype.getAllDeviceInfo = function (deviceID, res, callback) {
 	self.getDeviceInfo(deviceID, res, function (error, response) {
 		if (error) {
 			sse.emit('push', { 'message': 'Error getting device info for ' + deviceID })
-			/*res.write(self.header + self.navBar);
-			res.write("<div class='alert alert-danger alert-dismissible fade in out' id='saveAlert'><a href='/devices/" + self.selectedDevice + "' class='close' data-dismiss='alert'>&times;</a><strong>Note!</strong>Error getting device info/flags/links</div>");
-			res.end(self.footer)*/
 		}
 
 		self.getOpFlags(deviceID, function (error, response) {
@@ -2226,6 +2275,10 @@ InsteonUI.prototype.getDeviceLinks = function (deviceID, callback) {
 			return
 		}
 
+		linkArray.forEach(function(item) {
+			item.id = item.id.toUpperCase()
+		})
+
 		self.insteonJSON.devices[devIndex].links = linkArray
 		sse.emit('push', { 'message': 'close' })
 		callback(null, linkArray)
@@ -2233,7 +2286,11 @@ InsteonUI.prototype.getDeviceLinks = function (deviceID, callback) {
 
 	function _getDeviceLinks(deviceID, at, linkArray, callback) {
 		self.hub.linkAt(deviceID, at, linkArray, function (error, links) {
-			if (error) { console.log('Error getting links') }
+			if (error) {
+				console.log('Error getting links')
+				callback(error, null)
+				return
+			}
 
 			sse.emit('push', { 'message': 'Getting links for ' + deviceID + ' (Found ' + links.length + ' links)' })
 
@@ -2270,7 +2327,7 @@ InsteonUI.prototype.getOpFlags = function (deviceID, callback) {
 
 	self.hub.directCommand(deviceID, cmd, timeout, function (error, response) {
 		if (error || typeof response.response == 'undefined' || typeof response.response.extended == 'undefined') {
-			console.log("Error getting operating flags (ED)")
+			console.log('Error getting operating flags (ED)')
 		} else {
 			var operatingFlags = response.response.extended.userData
 			console.log('Flags (ED): ' + JSON.stringify(operatingFlags))
@@ -2293,14 +2350,14 @@ InsteonUI.prototype.getOpFlags = function (deviceID, callback) {
 
 	self.hub.directCommand(deviceID, cmd, timeout, function (error, response) {
 		if (error || typeof response.response == 'undefined' || typeof response.response.standard == 'undefined') {
-			console.log("Error getting operating flags (SD)")
+			console.log('Error getting operating flags (SD)')
 			callback()
 		} else {
 			var operatingFlagsSD = response.response.standard.command2
 			console.log('Flags (SD): ' + JSON.stringify(operatingFlagsSD))
 
 			var binaryMap = parseInt(operatingFlagsSD, 16).toString(2)
-			binaryMap = "0000".substr(binaryMap.length) + binaryMap //pad to at least 4 digits
+			binaryMap = '0000'.substr(binaryMap.length) + binaryMap //pad to at least 4 digits
 			binaryMap = binaryMap.substring(binaryMap.length - 4, binaryMap.length) //only need last 4 bits
 
 			var progLock = (parseInt(binaryMap.substring(3, 1)) == 1) ? 'on' : 'off' //1=on, 0=off
@@ -2331,35 +2388,43 @@ InsteonUI.prototype.getOpFlags = function (deviceID, callback) {
 	})
 }
 
-InsteonUI.prototype.linkToHub = function (deviceID, res) {
+InsteonUI.prototype.linkToHub = function (deviceID, res, callback) {
 	var self = this
+
+	var options = {
+		controller: false,
+		group: 0
+	}
 
 	console.log('Linking ' + deviceID + ' to hub')
 
-	self.hub.link(deviceID, function (error, link) {
+	self.hub.link(deviceID, options, function (error, link) {
 		if (error || link == null) {
 			console.log('Error linking ' + deviceID + ' to hub')
+			callback (error, null)
+			return
 		} else {
 			console.log(link)
-			self.insteonJSON.devices.push({
-				name: '', deviceID: link.id,
-				info: {
-					id: link.id,
-					firmware: link.firmwareVersion,
-					deviceCategory: {
-						id: link.deviceCategory.id,
-						name: link.deviceCategory.name
-					},
-					deviceSubcategory: {
-						id: link.deviceSubcategory.id
-					},
-					isDimmable: '',
-					isLighting: '',
-					isThermostat: ''
-				}
-			})
-			self.saveInsteonConfig(res)
 		}
+
+		//link device group 1 as controller to hub
+		options = {
+			controller: true,
+			group: 1
+		}
+
+		console.log('Linking hub to ' + deviceID)
+		self.hub.link(deviceID, options,function (error, link) {
+			if (error || link == null) {
+				console.log('Error linking ' + deviceID + ' to hub' + error)
+				callback (error, null)
+				return
+			} else {
+				console.log(link)
+				callback (null, link)
+				return
+			}
+		})
 	})
 }
 
@@ -2420,9 +2485,9 @@ InsteonUI.prototype.removeLink = function (deviceID, link, callback) {
 		var group = toByte(link.group)
 		var data = link.data.join('')
 		var command = '6F80' + flags + group + id + data
-		
+
 		var linkNumber = link.number
-		
+
 		console.log('Removing link from hub')
 		self.hub.sendCommand(command, timeout, function (error, response) {
 			if (error || response.success == false) {
@@ -2432,13 +2497,13 @@ InsteonUI.prototype.removeLink = function (deviceID, link, callback) {
 				} else return
 			} else if(response.success == true){
 				console.log('Successfully removed link for ' + id + ' from Hub')
-	
+
 				var linkIndex = self.insteonJSON.hub.links.filter(function(link){
 					return link.number == linkNumber
 				})
 
 				if(linkIndex != -1){
-					self.insteonJSON.hub.links.splice(linkIndex, 1)				
+					self.insteonJSON.hub.links.splice(linkIndex, 1)
 				}
 
 				if (callback) {
@@ -2457,10 +2522,11 @@ InsteonUI.prototype.createScene = function (controller, responder, options, call
 	self.hub.scene(controller, responder, options, function (error, link) {
 		if (error) {
 			console.log('Error creating scene: ' + error)
+			callback(error, null)
 		} else {
 			console.log('Sucessfully created scene!')
 			if (callback) {
-				callback()
+				callback(null, link)
 			}
 		}
 	})
@@ -2489,7 +2555,7 @@ InsteonUI.prototype.buildHubSceneData = function (callback) {
 	var hubGroups = groups.filter(function (item, index, inputArray) {
 		return inputArray.indexOf(item) == index
 	})
-	
+
 	hubGroups = hubGroups.sort(function (x, y) { return x - y })
 
 	//remove groups 0 and 1
@@ -2506,12 +2572,12 @@ InsteonUI.prototype.buildHubSceneData = function (callback) {
 	hubGroups.forEach(function (groupNum) {
 		var responders = []
 		var controllers = []
-		var controllerID 
-		
+		var controllerID
+
 		if (typeof self.hubinfo == 'undefined' || typeof self.hubInfo.id == 'undefined') {
 			controllerID = '[hub]'
 		} else {controllerID = self.hubInfo.id}
-		
+
 		//only interested in links where the hub is controller
 		var hubhubResponderLinks = self.insteonJSON.hub.links.filter(function (link) {
 			return link.group == groupNum &&
@@ -2591,19 +2657,19 @@ InsteonUI.prototype.beep = function (deviceID, res) {
 InsteonUI.prototype.getScripts = function () {
 	var self = this
 
-	self.addDevRow = "<script>" +
+	self.addDevRow = '<script>' +
 		'$("#add").click(function() {' +
 		'$("#devTable").append("' + self.deviceTemplate + '");' +
 		'$("#devConfigForm").validator("update");' +
 		'});' +
-		"</script>"
+		'</script>'
 
-	self.addSceneRow = "<script>" +
+	self.addSceneRow = '<script>' +
 		'$("#addScene").click(function() {' +
 		'$("#sceneTemplate").append("' + self.sceneTemplate + '");' +
 		'$("#sceneTemplate").validator("update");' +
 		'});' +
-		"</script>"
+		'</script>'
 
 	self.validator = '<script src="https://cdnjs.cloudflare.com/ajax/libs/1000hz-bootstrap-validator/0.11.9/validator.min.js"></script>'
 
@@ -2611,38 +2677,95 @@ InsteonUI.prototype.getScripts = function () {
 		'<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.12/js/dataTables.bootstrap.min.js"></script>' +
 		'<script>' +
 		'$(document).ready(function() {' +
-		"$('#linkTable').DataTable({'pageLength': 25, 'responsive': true});" +
+		"$('#linkTable').DataTable({'pageLength': 25, 'responsive': true, 'retrieve': true});" +
 		'});' +
 		'</script>'
 
 	self.buttonAnimation = '<script>' +
 		"$('.btn.load').on('click', function() {" +
-		"var $this = $(this);" +
+		'var $this = $(this);' +
 		"$this.button('loading');" +
-		"setTimeout(function() {" +
+		'setTimeout(function() {' +
 		"$this.button('reset');" +
-		"}, 300000);" +
-		"});" +
+		'}, 300000);' +
+		'});' +
 		'</script>'
 
 	self.listHighlight = '<script>' +
 		"$('.list-group-item').on('click', function() {" +
-		"var $this = $(this);" +
+		'var $this = $(this);' +
 		"$('.active').removeClass('active');" +
 		"$this.toggleClass('active')" +
-		"})" +
+		'})' +
 		'</script>'
 
-	self.alertFade = '<script>' +
-		'$(document).ready (function(){' +
-		'$("#saveAlert").fadeTo(2000, 500).slideUp(500, function(){' +
-		'$("#saveAlert").slideUp(500);' +
-		'window.location.replace(document.referrer);' +
-		'});' +
-		'});' +
-		'</script>'
+	self.alertFade = `<script>
+		$(document).ready (function(){
+			$("#saveAlert").fadeTo(2000, 500).slideUp(500, function(){
+				$("#saveAlert").slideUp(500);
+				if(window.location.pathname.indexOf('/devices/') >= 0) {
+					var url = window.location.href
+				} else {
+					var url = document.referrer
+				}
+					window.location.replace(url);
+				});
+		});
+		</script>`
 
-	self.scripts = self.validator + self.dataTable + self.buttonAnimation + self.alertFade
+	self.sseInit = `<script>
+		function sseInit() {
+			$('#progressModal').modal({show:true});
+
+			if (!!window.EventSource) {
+				var source = new EventSource('/events');
+			}
+
+			source.addEventListener('message', function(e) {
+				console.log(e.data);
+				var data = JSON.parse(e.data)
+				var message = data.message
+
+			if(message == 'prompt') {
+					$('#progressModal .modal-footer').show();
+					message = 'No changes to device database.  Update links anyway?'
+					$('#progressModal .modal-body').text(message);
+				} else if(message == 'close') {
+					$('#progressModal').modal({show:false});
+				} else {$('#progressModal .modal-body').text(message);}
+			}, false);
+
+			source.addEventListener('open', function(e) {
+				console.log('Connection opened');
+			}, false);
+
+			source.addEventListener('error', function(e) {
+				if (e.readyState == EventSource.CLOSED) {
+					console.log('Connection closed');
+				}
+			}, false);
+		}
+		</script>`
+
+	self.progressModal = "<div id='progressModal' class='modal fade' role='dialog'>" +
+		"<div class='modal-dialog'>" +
+		"<div class='modal-content'>" +
+		"<div class='modal-header'>" +
+		"<button type='button' class='close' data-dismiss='modal'>&times;</button>" +
+		"<h4 class='modal-title'>Getting links and devices from Hub...</h4>" +
+		'</div>' +
+		"<div class='modal-body' hidden='true'>" +
+		'<p> </p>' +
+		'</div>' +
+		"<div class='modal-footer' hidden='true'>" +
+		"<button type='button' class='btn btn-danger' id='progressModalYes'>Yes</button>" +
+		"<button type='button' class='btn btn-default btn-primary' data-dismiss='modal'>Close</button>" +
+		'</div>' +
+		'</div>' +
+		'</div>' +
+		'</div>'
+
+	self.scripts = self.validator + self.dataTable + self.buttonAnimation + self.alertFade + self.sseInit + self.progressModal
 }
 
 InsteonUI.prototype.stripEscapeCodes = function (chunk) {

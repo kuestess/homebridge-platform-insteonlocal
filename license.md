@@ -1,0 +1,2 @@
+## License
+Free for non-commercial use.  You may not exercise any of the rights granted to you in any manner that is primarily intended for or directed toward commercial advantage or private monetary compensation.
