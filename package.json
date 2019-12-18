@@ -21,7 +21,7 @@
     "request": "^2.81.0",
     "moment": ">=2.20.1",
     "underscore": ">=1.8.3",
-    "home-controller": "automategreen/home-controller#master",
+    "home-controller": ">=0.8.0",
     "express": "^4.16.2"
   }
 }
