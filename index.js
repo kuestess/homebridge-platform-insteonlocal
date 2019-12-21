@@ -547,6 +547,32 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							foundDevice.getStatus.call(foundDevice)
 						}
 
+						if (messageType == '6') { //group broadcast - manual button press
+							if(command1 == '06'){
+								var commandedState = gateway.substring(0,2)
+								var group = parseInt(gateway.substring(4,6)) //button number
+							} else {
+								var commandedState = command1
+								var group = parseInt(gateway.substring(4,6)) //button number
+							}
+
+							if(commandedState == 11) {
+								self.log('Got on event for ' + foundDevice.name)
+								foundDevice.currentState = true
+								foundDevice.lastUpdate = moment()
+								foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true)
+								foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(100)
+							}
+
+							if(commandedState == 13) {
+								self.log('Got off event for ' + foundDevice.name)
+								foundDevice.currentState = false
+								foundDevice.lastUpdate = moment()
+								foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false)
+								foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(0)
+							}
+						}
+
 						break
 
 					case 'scene':
@@ -671,16 +697,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 								}
 							})
 						}
-
 						break
-
-						/*case 'iolinc':
-						if (command1 == 11 || command1 == 13) {
-							setTimeout(function() {
-								foundDevice.getSensorStatus.call(foundDevice)
-							}, 1000 * foundDevice.gdo_delay)
-						}
-						break*/
 
 					case 'fan':
 						self.log('Got updated status for ' + foundDevice.name)
@@ -722,6 +739,22 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							foundDevice.service.getCharacteristic(Characteristic.SmokeDetected).updateValue(0)
 						}
 
+						foundDevice.lastUpdate = moment()
+						break
+
+					case 'doorsensor':
+					case 'windowsensor':
+					case 'contactsensor':
+					case 'leaksensor':
+					case 'motionsensor':
+						if(command2 == '03'){ //low battery
+							self.log('Got low battery status for ' + foundDevice.name)
+							self.statusLowBattery = true
+							foundDevice.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1)
+						} else if (command2 !== '03') {
+							foundDevice.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(0)
+							self.statusLowBattery = false
+						}
 						foundDevice.lastUpdate = moment()
 						break
 					}
@@ -1167,10 +1200,13 @@ InsteonLocalAccessory.prototype.getSensorStatus = function(callback) {
 			}
 
 			self.log.debug(self.name + ' sensor is ' + status.sensor + ', currentState: ' + self.currentState)
-			//Characteristic.CurrentDoorState.OPEN = 0
-			//Characteristic.CurrentDoorState.CLOSED = 1
-			self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(self.currentState)
-			self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(self.currentState)
+
+			if (self.deviceType == 'iolinc') {
+				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(self.currentState)
+				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(self.currentState)
+			} else (
+				self.service.getCharacteristic(Characteristic.On).updateValue(self.currentState)
+			)
 
 			self.lastUpdate = moment()
 			if (typeof callback !== 'undefined') {
@@ -1190,23 +1226,30 @@ InsteonLocalAccessory.prototype.setRelayState = function(state, callback) {
 
 	self.log('Setting ' + self.name + ' relay to ' + state)
 
+
 	if (state !== self.currentState){
 		self.iolinc.relayOn().then(function(status){
 			if (status.success) {
-				self.targetState = (self.currentState == 0) ? 1 : 0
-				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(self.targetState)
-				self.log('Setting ' + self.name + ' target state to ' + self.targetState)
+				if (self.deviceType == 'iolinc') {
+					self.targetState = (self.currentState == 0) ? 1 : 0
+					self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(self.targetState)
+					self.log('Setting ' + self.name + ' target state to ' + self.targetState)
 
-				setTimeout(function() {
-					self.getSensorStatus(function() {
-						self.lastUpdate = moment()
-						if (typeof callback !== 'undefined') {
-							callback(null, self.targetState)
-						} else {
-							return
-						}
-					})
-				}, 1000 * self.gdo_delay)
+					setTimeout(function() {
+						self.getSensorStatus(function() {
+							self.lastUpdate = moment()
+							if (typeof callback !== 'undefined') {
+								callback(null, self.targetState)
+							} else {
+								return
+							}
+						})
+					}, 1000 * self.gdo_delay)
+				} else {
+					self.currentState = (self.currentState == 0) ? 1 : 0
+					self.service.getCharacteristic(Characteristic.On).updateValue(self.currentState)
+					self.log('Setting ' + self.name + ' state to ' + self.currentState)
+				}
 			} else {
 				self.log('Error setting relay state of ' + self.name + ' to ' + state)
 				if (typeof callback !== 'undefined') {
@@ -2161,9 +2204,32 @@ InsteonLocalAccessory.prototype.getServices = function() {
 
 		break
 
+	case 'valve':
+		self.service = new Service.Switch(self.name)
+
+		self.service.getCharacteristic(Characteristic.On).on('set', self.setRelayState.bind(self))
+
+		self.iolinc = hub.ioLinc(self.id)
+
+		hub.once('connect', function() {
+			self.getSensorStatus.call(self)
+		})
+
+		break
+
 	case 'leaksensor':
 		self.service = new Service.LeakSensor(self.name)
 		self.service.getCharacteristic(Characteristic.LeakDetected).updateValue(0) //Initialize as dry
+
+		self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(0) //0=normal, 1=low
+		self.statusLowBattery = false
+
+		var buffer = 300 * 1000 //5 minute buffer
+		self.log.debug('Initializing heartbeat timer for ' + self.name)
+		self.heartbeatTimer = setTimeout(function() {
+			self.statusLowBattery = true
+			self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+		}, (1000*24*60*60 + buffer))
 
 		self.leaksensor = hub.leak(self.id)
 
@@ -2177,11 +2243,30 @@ InsteonLocalAccessory.prototype.getServices = function() {
 			self.service.getCharacteristic(Characteristic.LeakDetected).updateValue(0) //dry
 		})
 
+		self.leaksensor.on('heartbeat', function(){
+			self.log.debug('Heartbeat from ' + self.name)
+			clearTimeout(self.heartbeatTimer)
+
+			self.heartbeatTimer = setTimeout(function() {
+				self.statusLowBattery = true
+				self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+			}, (1000*24*60*60 + buffer))
+		})
+
 		break
 
 	case 'motionsensor':
 		self.service = new Service.MotionSensor(self.name)
 		self.service.getCharacteristic(Characteristic.MotionDetected).updateValue(0) //Initialize with no motion
+		self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(0) //0=normal, 1=low
+		self.statusLowBattery = false
+
+		var buffer = 300 * 1000 //5 minute buffer
+		self.log.debug('Initializing heartbeat timer for ' + self.name)
+		self.heartbeatTimer = setTimeout(function() {
+			self.statusLowBattery = true
+			self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+		}, (1000*24*60*60 + buffer))
 
 		self.motionsensor = hub.motion(self.id)
 
@@ -2197,6 +2282,15 @@ InsteonLocalAccessory.prototype.getServices = function() {
 			self.service.getCharacteristic(Characteristic.MotionDetected).updateValue(0)
 		})
 
+		self.motionsensor.on('heartbeat', function(){
+			self.log.debug('Heartbeat from ' + self.name)
+
+			self.heartbeatTimer = setTimeout(function() {
+				self.statusLowBattery = true
+				self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+			}, (1000*24*60*60 + buffer))
+		})
+
 		break
 
 	case 'doorsensor':
@@ -2204,6 +2298,15 @@ InsteonLocalAccessory.prototype.getServices = function() {
 	case 'contactsensor':
 		self.service = new Service.ContactSensor(self.name)
 		self.service.getCharacteristic(Characteristic.ContactSensorState).updateValue(0) //Initialize closed
+		self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(0) //0=normal, 1=low
+		self.statusLowBattery = false
+
+		var buffer = 300 * 1000 //5 minute buffer
+		self.log.debug('Initializing heartbeat timer for ' + self.name)
+		self.heartbeatTimer = setTimeout(function() {
+			self.statusLowBattery = true
+			self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+		}, (1000*24*60*60 + buffer))
 
 		self.door = hub.door(self.id)
 
@@ -2217,6 +2320,15 @@ InsteonLocalAccessory.prototype.getServices = function() {
 			self.log.debug(self.name + ' is closed')
 			self.currentState = false
 			self.service.getCharacteristic(Characteristic.ContactSensorState).updateValue(0)
+		})
+
+		self.door.on('heartbeat', function(){
+			self.log.debug('Heartbeat from ' + self.name)
+
+			self.heartbeatTimer = setTimeout(function() {
+				self.statusLowBattery = true
+				self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+			}, (1000*24*60*60 + buffer))
 		})
 
 		break
