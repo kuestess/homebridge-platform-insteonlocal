@@ -1245,10 +1245,24 @@ InsteonLocalAccessory.prototype.setRelayState = function(state, callback) {
 							}
 						})
 					}, 1000 * self.gdo_delay)
-				} else {
+				} else if (self.deviceType == 'valve') {
 					self.currentState = (self.currentState == 0) ? 1 : 0
-					self.service.getCharacteristic(Characteristic.On).updateValue(self.currentState)
+					self.service.getCharacteristic(Characteristic.Active).updateValue(self.currentState)
+					self.service.getCharacteristic(Characteristic.InUse).updateValue(self.currentState)
 					self.log('Setting ' + self.name + ' state to ' + self.currentState)
+
+					setTimeout(function() {
+						self.getSensorStatus(function() {
+							self.lastUpdate = moment()
+							self.service.getCharacteristic(Characteristic.Active).updateValue(0)
+							self.service.getCharacteristic(Characteristic.InUse).updateValue(0)
+							if (typeof callback !== 'undefined') {
+								callback(null, self.targetState)
+							} else {
+								return
+							}
+						})
+					}, 1000 * self.valve_delay)
 				}
 			} else {
 				self.log('Error setting relay state of ' + self.name + ' to ' + state)
@@ -2050,6 +2064,11 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 		self.invert_sensor = device.invert_sensor || false
 	}
 
+	if (self.deviceType == 'valve') {
+		self.valve_delay = device.valve_delay || 5
+		self.invert_sensor = device.invert_sensor || false
+	}
+
 	if (self.deviceType == 'remote') {
 		self.button = device.remotebtn
 		self.stateless = device.stateless
@@ -2163,6 +2182,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		break
 
 	case 'iolinc':
+	case 'garage':
 		self.service = new Service.GarageDoorOpener(self.name)
 
 		self.service.getCharacteristic(Characteristic.ObstructionDetected).updateValue(false)
@@ -2205,9 +2225,13 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		break
 
 	case 'valve':
-		self.service = new Service.Switch(self.name)
+		self.service = new Service.Valve(self.name)
 
-		self.service.getCharacteristic(Characteristic.On).on('set', self.setRelayState.bind(self))
+		self.service.getCharacteristic(Characteristic.Active).updateValue(0)
+		self.service.getCharacteristic(Characteristic.InUse).updateValue(0)
+		self.service.getCharacteristic(Characteristic.ValveType).updateValue(0)
+
+		self.service.getCharacteristic(Characteristic.Active).on('set', self.setRelayState.bind(self))
 
 		self.iolinc = hub.ioLinc(self.id)
 
