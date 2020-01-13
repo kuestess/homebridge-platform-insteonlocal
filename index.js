@@ -1364,8 +1364,8 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 		'B': eight_buttonArray['D'],
 		'C': eight_buttonArray['E'],
 		'D': eight_buttonArray['F'],
-		'ON': eight_buttonArray['G'] | eight_buttonArray['H'],
-		'OFF': eight_buttonArray['A'] | eight_buttonArray['B']}
+		'ON': eight_buttonArray['A'] | eight_buttonArray['B'],
+		'OFF': eight_buttonArray['G'] | eight_buttonArray['H']}
 
 	var buttonArray
 
