@@ -688,12 +688,10 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 
 									groupDevice = groupDevice[0]
 
-									if(groupDevice.deviceType !== 'scene'){
-										self.log('Getting status of scene device ' + groupDevice.name)
-										self.log.debug('Group device type ' + groupDevice.deviceType)
-										//Add slight delay to get correct status and ensure device is not mid-dim
-										setTimeout(function(){groupDevice.getStatus.call(groupDevice)}, 2000)
-									}
+									self.log('Getting status of scene device ' + groupDevice.name)
+									self.log.debug('Group device type ' + groupDevice.deviceType)
+									//Add slight delay to get correct status and ensure device is not mid-dim
+									setTimeout(function(){groupDevice.getStatus.call(groupDevice)}, 2000)
 								}
 							})
 						}
