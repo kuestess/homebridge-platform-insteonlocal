@@ -671,27 +671,28 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							self.log('Getting status of scene members (group: ' + group + ')...')
 							foundDevice.groupMembers.forEach(function(deviceID){
 								if (!/^[0-9a-fA-F]{6}$/.test(deviceID)){
-									self.log.debug('Device ID is name...')
+									self.log.debug('Group device is a name...')
 									var namedDev = accessories.filter(function(item) {
 										return (item.name == deviceID)
 									})
 
-									deviceID = namedDev[0].id
+									namedDev = namedDev[0]
 									self.log.debug('Found matching device with id ' + deviceID)
-								}
+									setTimeout(function(){namedDev.getStatus.call(namedDev)}, 2000)
+								} else { //group member defined by id
+									var isDefined = _.contains(deviceIDs, deviceID, 0)
+									if(isDefined){
+										var groupDevice = accessories.filter(function(item) {
+											return (item.id == deviceID)
+										})
 
-								var isDefined = _.contains(deviceIDs, deviceID, 0)
-								if(isDefined){
-									var groupDevice = accessories.filter(function(item) {
-										return (item.id == deviceID)
-									})
+										groupDevice = groupDevice[0]
 
-									groupDevice = groupDevice[0]
-
-									self.log('Getting status of scene device ' + groupDevice.name)
-									self.log.debug('Group device type ' + groupDevice.deviceType)
-									//Add slight delay to get correct status and ensure device is not mid-dim
-									setTimeout(function(){groupDevice.getStatus.call(groupDevice)}, 2000)
+										self.log('Getting status of scene device ' + groupDevice.name)
+										self.log.debug('Group device type ' + groupDevice.deviceType)
+										//Add slight delay to get correct status and ensure device is not mid-dim
+										setTimeout(function(){groupDevice.getStatus.call(groupDevice)}, 2000)
+									}
 								}
 							})
 						}
