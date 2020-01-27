@@ -667,35 +667,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							}
 						}
 
-						if(typeof foundDevice.groupMembers !== 'undefined') {
-							self.log('Getting status of scene members (group: ' + group + ')...')
-							foundDevice.groupMembers.forEach(function(deviceID){
-								if (!/^[0-9a-fA-F]{6}$/.test(deviceID)){
-									self.log.debug('Group device is a name...')
-									var namedDev = accessories.filter(function(item) {
-										return (item.name == deviceID)
-									})
-
-									namedDev = namedDev[0]
-									self.log.debug('Found matching device with id ' + deviceID)
-									setTimeout(function(){namedDev.getStatus.call(namedDev)}, 2000)
-								} else { //group member defined by id
-									var isDefined = _.contains(deviceIDs, deviceID, 0)
-									if(isDefined){
-										var groupDevice = accessories.filter(function(item) {
-											return (item.id == deviceID)
-										})
-
-										groupDevice = groupDevice[0]
-
-										self.log('Getting status of scene device ' + groupDevice.name)
-										self.log.debug('Group device type ' + groupDevice.deviceType)
-										//Add slight delay to get correct status and ensure device is not mid-dim
-										setTimeout(function(){groupDevice.getStatus.call(groupDevice)}, 2000)
-									}
-								}
-							})
-						}
+						foundDevice.getGroupMemberStatus.call(foundDevice)
 						break
 
 					case 'fan':
@@ -1301,6 +1273,8 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 				self.currentState = true
 				self.lastUpdate = moment()
 
+				self.getGroupMemberStatus()
+
 				if (typeof callback !== 'undefined') {
 					callback(null, self.currentState)
 					return
@@ -1324,6 +1298,8 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 				self.service.getCharacteristic(Characteristic.On).updateValue(false)
 				self.currentState = false
 				self.lastUpdate = moment()
+
+				self.getGroupMemberStatus()
 
 				if (typeof callback !== 'undefined') {
 					callback(null, self.currentState)
@@ -1987,6 +1963,44 @@ InsteonLocalAccessory.prototype.setPosition = function(level, callback) { //get 
 				return
 			} else {
 				return
+			}
+		}
+	})
+}
+
+InsteonLocalAccessory.prototype.getGroupMemberStatus = function(){
+	var self = this
+	var deviceIDs = platform.deviceIDs
+
+	if(typeof self.groupMembers == 'undefined') {
+		self.log('No group members defined for ' + self.name)
+		return
+	}
+
+	self.groupMembers.forEach(function(deviceID){
+		if (!/^[0-9a-fA-F]{6}$/.test(deviceID)){
+			self.log.debug('Group device is a name...')
+			var namedDev = accessories.filter(function(item) {
+				return (item.name == deviceID)
+			})
+
+			namedDev = namedDev[0]
+			self.log.debug('Found matching device with id ' + deviceID)
+			self.log('Getting status of scene device ' + namedDev.name)
+			setTimeout(function(){namedDev.getStatus.call(namedDev)}, 2000)
+		} else { //group member defined by id
+			var isDefined = _.contains(deviceIDs, deviceID, 0)
+			if(isDefined){
+				var groupDevice = accessories.filter(function(item) {
+					return (item.id == deviceID)
+				})
+
+				groupDevice = groupDevice[0]
+
+				self.log('Getting status of scene device ' + groupDevice.name)
+				self.log.debug('Group device type ' + groupDevice.deviceType)
+				//Add slight delay to get correct status and ensure device is not mid-dim
+				setTimeout(function(){groupDevice.getStatus.call(groupDevice)}, 2000)
 			}
 		}
 	})
