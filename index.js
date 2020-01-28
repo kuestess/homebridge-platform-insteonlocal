@@ -1352,16 +1352,31 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 		buttonArray = eight_buttonArray
 	}
 
-	if (self.keypadbtn == 'A' || (self.six_btn == true && self.keypadbtn == 'B') || (self.six_btn == true && self.keypadbtn == 'G') || (self.six_btn == true && self.keypadbtn == 'H') || self.keypadbtn == 'ON')
-	{
-		var cmd = {
-			cmd1: '19',
-			cmd2: '00',
+	if(self.six_btn == true){
+		if (self.keypadbtn == 'ON')
+		{
+			var cmd = {
+				cmd1: '19',
+				cmd2: '00',
+			}
+		} else {
+			var cmd = {
+				cmd1: '19',
+				cmd2: '01',
+			}
 		}
-	} else {
-		var cmd = {
-			cmd1: '19',
-			cmd2: '01',
+	} else { //eight button
+		if (self.keypadbtn == 'A')
+		{
+			var cmd = {
+				cmd1: '19',
+				cmd2: '00',
+			}
+		} else {
+			var cmd = {
+				cmd1: '19',
+				cmd2: '01',
+			}
 		}
 	}
 
