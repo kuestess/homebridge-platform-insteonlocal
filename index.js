@@ -1396,7 +1396,7 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 
 		} else {
 
-			if (self.keypadbtn == 'A' || (self.six_btn == true && self.keypadbtn == 'B') || (self.six_btn == true && self.keypadbtn == 'G') || (self.six_btn == true && self.keypadbtn == 'H') || self.keypadbtn == 'ON')
+			if (self.keypadbtn == 'ON' || (self.six_btn == false && self.keypadbtn == 'A') || (typeof self.six_btn == 'undefined' && self.keypadbtn == 'A'))
 			{
 				self.level = parseInt(status.response.standard.command2, 16)
 				if (self.level > 0) {
@@ -1419,7 +1419,7 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 			var binaryButtonMap = parseInt(hexButtonMap, 16).toString(2)
 			binaryButtonMap = '00000000'.substr(binaryButtonMap.length) + binaryButtonMap //pad to 8 digits
 			self.buttonMap = binaryButtonMap
-			self.log.debug('Binary map: ' + self.buttonMap)
+			self.log.debug('Binary map: ' + self.buttonMap + ' (' + self.name + ')')
 
 			var decButtonMap = parseInt(binaryButtonMap, 2)
 			var buttonNumber = buttonArray[self.keypadbtn]
