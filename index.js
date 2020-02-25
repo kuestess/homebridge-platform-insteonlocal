@@ -1712,7 +1712,16 @@ InsteonLocalAccessory.prototype.setFanState = function(level, callback) {
 
 InsteonLocalAccessory.prototype.handleRemoteEvent = function(group, command) {
 	var self = this
-	var buttonArray = [{group: 1, button: 'B'},{group: 2, button: 'A'},{group: 3, button: 'D'},{group: 4, button: 'C'},{group: 5, button: 'F'},{group: 6, button: 'E'},{group: 7, button: 'H'},{group: 8, button: 'G'}] //button to group number map; documentation is wrong
+	var eight_buttonArray = [{group: 1, button: 'B'},{group: 2, button: 'A'},{group: 3, button: 'D'},{group: 4, button: 'C'},{group: 5, button: 'F'},{group: 6, button: 'E'},{group: 7, button: 'H'},{group: 8, button: 'G'}] //button to group number map; documentation is wrong
+	var four_buttonArray = [{group: 1, button: 'A'},{group: 2, button: 'B'},{group: 3, button: 'C'},{group: 4, button: 'D'}] //button to group number map; documentation is wrong
+
+	var buttonArray
+
+	if(self.four_btn == true){
+		buttonArray = four_buttonArray
+	} else {
+		buttonArray = eight_buttonArray
+	}
 
 	self.platform.checkHubConnection()
 
@@ -2100,6 +2109,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 	if (self.deviceType == 'remote') {
 		self.button = device.remotebtn
 		self.stateless = device.stateless
+		self.four_btn = device.four_btn || false
 	}
 
 	if (self.deviceType == 'outlet') {

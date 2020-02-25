@@ -1,5 +1,11 @@
+[![Support via PayPal][paypal-button]][paypal-kuestess]
+
 # homebridge-platform-insteonlocal
 Homebridge platform plugin for local Insteon control
+
+See [CHANGELOG][].
+
+[changelog]: CHANGELOG.md
 
 Overview
 --------
@@ -10,10 +16,15 @@ Devices are not yet auto-discovered and must be defined in config.json (see conf
 InsteonUI
 ---------
 
-Introducing InsteonUI, a new way to manage your Insteon devices and InsteonLocal configuration.  The code is a bit of a mess, and I'm sure there are better ways to achieve the same end, but it does work :-).
+Introducing InsteonUI, a new way to manage your Insteon devices and InsteonLocal configuration.  Think of it as 'Houselinc' in a browser.
 
 ### InsteonUI Quick Start
-Direct your browser to the host that you have Insteonlocal running on and the port configured in your config.json (ie, 127.0.0.1:3000 if running on the local machine).  For the best experience, go to the 'Hub' tab first and click 'Get Hub Info', and then 'Get Devices/Links' under the 'Action' menu.
+Direct your browser to the host that you have Insteonlocal running on and the port configured in your config.json (ie, 127.0.0.1:3000 if running on the local machine).  Before using any of the pages described below, you will need to complete the following steps:
+
+  1. Click on the 'Hub' link.  In the top section of the page, click 'Get Hub Info'.  This pulls information from the Hub, most notably the Insteon ID.
+  2. Still on the 'Hub' page, click 'Get Devices/Links' under the action menu.
+
+You should now have devices populated on the 'Devices' page, and be able to link/unlink devices from the Hub, as well as create scenes.
 
 * Config:<br />
 Manage your Insteonlocal configuration.  Hub connection parameter settings are managed in the top section, device settings in the bottom.  No changes are made to your config.json until you click save.  To add a device, click the 'Add' button at the bottom of the page.  Configuration is limited to basics until I can figure out a new UI.
@@ -115,10 +126,11 @@ For iolinc devices, there is an additional parameter that can be defined:
 - `invert_sensor`: set to true if your iolinc sensor is inverted, ie off when closed and on when open; default value is false
 
 Remote support:
-Remotes are supported as on/off switches or stateless switches intended to be used in Homekit automation and/or scenes.  Only 8-button mode is supported for now (happy to add 4-button support if someone is willing to test).  Additional parameters that should be used when defining a Remote device are:
+Remotes are supported as on/off switches or stateless switches intended to be used in Homekit automation and/or scenes.  Both 8-button and 4-button remotes are supported.  Additional parameters that should be used when defining a Remote device are:
 
 - `remotebtn`: Remote button that triggers the switch - valid values are 'A' - 'H'
 - `stateless`: Define as a stateless switch - valid values are true or false [default = false]
+- `four_btn`: set to `true` for 4-button remotes [default = false]
 
 Outlet support:
 On/off outlets are supported with independent control over each outlet (each is defined as an individual device).  Additional parameters that should be used when defining an outlet are:
@@ -169,3 +181,6 @@ Donate
 If you find this plugin useful you may make a donation using the button below.  Donations are not expected, but appreciated!
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AP4SUF96E39GU)
+
+[paypal-button]: https://img.shields.io/badge/Donate-PayPal-green.svg
+[paypal-kuestess]: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AP4SUF96E39GU
