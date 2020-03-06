@@ -96,10 +96,11 @@ Devices are also defined in the config.json as follows:
   - `deviceID`: Insteon ID
   - `groupID`:  Insteon group ID for a scene
   - `keypadbtn`: Keypad button to check for status of a scene, in caps.  For a six-button configuration, use 'ON' if the ON/OFF buttons are your scene controller.
-  - `dimmable`:  dimmable or non-dimming device - valid values are "yes" or "no"
+  - `dimmable`:  dimmable or non-dimming device - valid values are "yes" or "no".  This is automatically set to 'yes' for dimmer/lightbulb device types.
   - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'remote', 'iolinc', 'motionsensor', 'leaksensor', 'outlet', 'keypad', 'shades', 'blinds', 'smoke', and 'fan'.
   - `refresh`:  device-level refresh interval in seconds.  This will override the platform-level refresh value and will still refresh individual devices even if platform-level polling is turned off.
   - `controllers`: this is an array `["<Insteon ID>","<Insteon ID>"]` of other Insteon devices that this device is controlled by. ie if you have a plug in dimmer that is controlled by a wall switch you would add the wall switch ID as a controller for the plug in dimmer. The controller device does not need to be a device listed in the config.json
+  - `disabled`: set to true to disable Insteon communication for a device (defaults to false).  Device will still appear in Home (or other apps), but can't be controlled.  Good to use for 'seasonal' devices.
 
 Battery operated devices: Battery status is monitored for battery operated devices (leak, motion, door/window sensors) and will alert when the device sends a low battery signal.  The heartbeat for those devices is also monitored (sent from device every 24 hours).  You will also receive a low battery alert if no heartbeat is received within 24 hours.
 

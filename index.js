@@ -872,6 +872,16 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 	var powerOn = state ? 'on' : 'off'
 	var self = this
 
+	if(self.disabled){
+		self.log.debug('Device ' + self.name + ' is disabled')
+		if (typeof callback !== 'undefined') {
+			callback(null, self.currentState)
+			return
+		} else {
+			return
+		}
+	}
+
 	self.platform.checkHubConnection()
 
 	if (state !== self.currentState) {
@@ -986,6 +996,16 @@ InsteonLocalAccessory.prototype.getPowerState = function(callback) {
 
 InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 	var self = this
+
+	if(self.disabled){
+		self.log.debug('Device ' + self.name + ' is disabled')
+		if (typeof callback !== 'undefined') {
+			callback(null, self.currentState)
+			return
+		} else {
+			return
+		}
+	}
 
 	self.platform.checkHubConnection()
 
@@ -1193,6 +1213,16 @@ InsteonLocalAccessory.prototype.setRelayState = function(state, callback) {
 	var self = this
 	//0=open 1=close
 
+	if(self.disabled){
+		self.log.debug('Device ' + self.name + ' is disabled')
+		if (typeof callback !== 'undefined') {
+			callback(null, self.currentState)
+			return
+		} else {
+			return
+		}
+	}
+
 	self.platform.checkHubConnection()
 
 	self.log('Setting ' + self.name + ' relay to ' + state)
@@ -1260,6 +1290,16 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 	var self = this
 	var powerOn = state ? 'on' : 'off'
 	var groupID = parseInt(self.groupID)
+
+	if(self.disabled){
+		self.log.debug('Device ' + self.name + ' is disabled')
+		if (typeof callback !== 'undefined') {
+			callback(null, self.currentState)
+			return
+		} else {
+			return
+		}
+	}
 
 	self.platform.checkHubConnection()
 
@@ -1453,6 +1493,16 @@ InsteonLocalAccessory.prototype.getSceneState = function(callback) {
 InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 	var self = this
 
+	if(self.disabled){
+		self.log.debug('Device ' + self.name + ' is disabled')
+		if (typeof callback !== 'undefined') {
+			callback(null, self.currentState)
+			return
+		} else {
+			return
+		}
+	}
+
 	var timeout = 0
 	var eight_buttonArray = {
 		'A': 7,
@@ -1616,6 +1666,16 @@ InsteonLocalAccessory.prototype.getFanState = function(callback) {
 InsteonLocalAccessory.prototype.setFanState = function(level, callback) {
 	var self = this
 
+	if(self.disabled){
+		self.log.debug('Device ' + self.name + ' is disabled')
+		if (typeof callback !== 'undefined') {
+			callback(null, self.currentState)
+			return
+		} else {
+			return
+		}
+	}
+
 	self.platform.checkHubConnection()
 
 	hub.cancelPending(self.id)
@@ -1761,6 +1821,16 @@ InsteonLocalAccessory.prototype.setOutletState = function(state, callback) {
 	var self = this
 	var cmd
 	var timeout = 0
+
+	if(self.disabled){
+		self.log.debug('Device ' + self.name + ' is disabled')
+		if (typeof callback !== 'undefined') {
+			callback(null, self.currentState)
+			return
+		} else {
+			return
+		}
+	}
 
 	self.platform.checkHubConnection()
 
@@ -1957,6 +2027,16 @@ InsteonLocalAccessory.prototype.setPosition = function(level, callback) { //get 
 	var self = this
 	var oldLevel = self.level
 
+	if(self.disabled){
+		self.log.debug('Device ' + self.name + ' is disabled')
+		if (typeof callback !== 'undefined') {
+			callback(null, self.currentState)
+			return
+		} else {
+			return
+		}
+	}
+
 	self.platform.checkHubConnection()
 
 	hub.cancelPending(self.id)
@@ -2068,6 +2148,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 	self.lastUpdate = ''
 	self.refreshInterval = device.refresh || platform.refreshInterval
 	self.server_port = platform.server_port
+	self.disabled = device.disabled || false
 
 	if(self.id){
 		self.id = self.id.trim().replace(/\./g, '')
@@ -2146,7 +2227,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 	case 'lightbulb':
 	case 'dimmer':
 		self.service = new Service.Lightbulb(self.name)
-
+		self.dimmable = true
 		self.service.getCharacteristic(Characteristic.On).on('set', self.setBrightnessLevel.bind(self))
 		//self.service.getCharacteristic(Characteristic.On).on('set', self.setPowerState.bind(self))
 
