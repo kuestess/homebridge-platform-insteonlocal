@@ -1086,6 +1086,10 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + level + '%')
 			self.lastUpdate = moment()
 
+			if(!self.linkedKeypadID == ''){ //Check if associated Keypad is configured
+				self.setLinkedKeypadBtn.call(self)
+				return
+			}
 			return
 		})
 	}
@@ -1598,6 +1602,116 @@ InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 				self.buttonMap = binaryButtonMap
 
 				self.log.debug('Binary map: ' + binaryButtonMap)
+				callback()
+			}
+		})
+	}
+}
+
+InsteonLocalAccessory.prototype.setLinkedKeypadBtn = function(state, callback) {
+	var self = this
+
+	var timeout = 0
+	var eight_buttonArray = {
+		'A': 7,
+		'B': 6,
+		'C': 5,
+		'D': 4,
+		'E': 3,
+		'F': 2,
+		'G': 1,
+		'H': 0
+	}
+	var six_buttonArray = {
+		'A': eight_buttonArray['C'],
+		'B': eight_buttonArray['D'],
+		'C': eight_buttonArray['E'],
+		'D': eight_buttonArray['F']
+	}
+	var buttonArray
+
+	self.log('... also setting [Button ' + self.linkedKeypadBtn + '] of linked [Keypad ' + self.linkedKeypadID + '] to ' + self.currentState)
+
+	self.platform.checkHubConnection()
+
+	getButtonMap(function(){
+		var currentButtonMap = self.buttonMap
+
+		self.six_btn = self.linkedKeypadSixBtn //can expand to support multiple devices using array
+		self.keypadbtn = self.linkedKeypadBtn //can expand to support multiple devices using array
+
+		if(self.six_btn == true){
+			buttonArray = six_buttonArray
+		} else {
+			buttonArray = eight_buttonArray
+		}
+
+		var buttonNumber = buttonArray[self.keypadbtn]
+		self.log.debug('Six Button Keypad: ' + self.six_btn)
+		self.log.debug('Button number: ' + buttonNumber)
+		
+		var binaryButtonMap = currentButtonMap.substring(0,buttonNumber) +
+            (self.currentState ? '1' : '0') +
+            currentButtonMap.substring(buttonNumber+1)
+		self.log.debug('New binary map: ' + binaryButtonMap)
+		
+		var buttonMap = ('00'+parseInt(binaryButtonMap, 2).toString(16)).substr(-2).toUpperCase()
+		
+		self.log.debug('Hex value: ' + buttonMap)
+		var cmd = {
+			cmd1: '2E',
+			cmd2: '00',
+			extended: true,
+			userData: ['01', '09', buttonMap],
+			isStandardResponse: true
+		}
+
+		hub.directCommand(self.linkedKeypadID, cmd, timeout, function(err,status){
+			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
+				self.log('Error setting button state of linked keypad [' + self.linkedKeypadID + ']')
+				self.log.debug('Err: ' + util.inspect(err))
+
+				if (typeof callback !== 'undefined') {
+					callback(err, null)
+					return
+				} else {
+					return
+				}
+			} else {
+				self.lastUpdate = moment()
+				self.buttonMap = binaryButtonMap
+				/// self.currentState = state
+
+				if (typeof callback !== 'undefined') {
+				 	callback(null, self.currentState)
+					return
+				} else {
+					return
+				}
+
+			}
+		})
+	})
+
+	function getButtonMap(callback) {
+		var command = {
+			cmd1: '19',
+			cmd2: '01',
+		}
+
+		hub.directCommand(self.linkedKeypadID, command, timeout, function(err,status){
+			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
+				self.log('Error getting button states for linked keypad ' + self.linkedKeypadID)
+				self.log.debug('Err: ' + util.inspect(err))
+				return
+			} else {
+				var hexButtonMap = status.response.standard.command2
+				var binaryButtonMap = parseInt(hexButtonMap, 16).toString(2)
+				binaryButtonMap = '00000000'.substr(binaryButtonMap.length) + binaryButtonMap //pad to 8 digits
+
+				self.buttonMap = binaryButtonMap
+
+				self.log.debug('Current binary map: ' + binaryButtonMap)
 				callback()
 			}
 		})
@@ -2149,7 +2263,10 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 	self.refreshInterval = device.refresh || platform.refreshInterval
 	self.server_port = platform.server_port
 	self.disabled = device.disabled || false
-
+	self.linkedKeypadID = device.linkedKeypadID || ''
+	self.linkedKeypadSixBtn = device.linkedKeypadSixBtn || true
+	self.linkedKeypadBtn = device.linkedKeypadBtn || ''
+	
 	if(self.id){
 		self.id = self.id.trim().replace(/\./g, '')
 	}
