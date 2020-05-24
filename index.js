@@ -1086,7 +1086,7 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + level + '%')
 			self.lastUpdate = moment()
 
-			if(!self.targetKeypadID == ''){ //Check if associated Keypad is configured
+			if(!self.targetKeypadID == ''){
 				self.setTargetKeypadBtn.call(self)
 				return
 			}
@@ -1610,7 +1610,6 @@ InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 
 InsteonLocalAccessory.prototype.setTargetKeypadBtn = function(state, callback) {
 	var self = this
-
 	var timeout = 0
 	var eight_buttonArray = {
 		'A': 7,
@@ -1637,17 +1636,20 @@ InsteonLocalAccessory.prototype.setTargetKeypadBtn = function(state, callback) {
 	getButtonMap(function(){
 		var currentButtonMap = self.buttonMap
 
-		self.six_btn = self.targetKeypadSixBtn //can expand to support multiple devices using array
-		self.keypadbtn = self.targetKeypadBtn //can expand to support multiple devices using array
+		self.six_btn = self.targetKeypadSixBtn
+		self.keypadbtn = self.targetKeypadBtn
 
+		//self.log.debug('Six-button Keypad: ' + self.six_btn)
 		if(self.six_btn == true){
 			buttonArray = six_buttonArray
+			self.log.debug('Configured as 6-button Keypad')
 		} else {
 			buttonArray = eight_buttonArray
+			self.log.debug('Configured as 8-button Keypad')
 		}
 
 		var buttonNumber = buttonArray[self.keypadbtn]
-		self.log.debug('Six Button Keypad: ' + self.six_btn)
+		self.log.debug('Target button: ' + self.keypadbtn)
 		self.log.debug('Button number: ' + buttonNumber)
 		
 		var binaryButtonMap = currentButtonMap.substring(0,buttonNumber) +
@@ -2263,10 +2265,11 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 	self.refreshInterval = device.refresh || platform.refreshInterval
 	self.server_port = platform.server_port
 	self.disabled = device.disabled || false
+
 	self.targetKeypadID = device.targetKeypadID || ''
-	self.targetKeypadSixBtn = device.targetKeypadSixBtn || true
+	self.targetKeypadSixBtn = device.targetKeypadSixBtn
 	self.targetKeypadBtn = device.targetKeypadBtn || ''
-	
+
 	if(self.id){
 		self.id = self.id.trim().replace(/\./g, '')
 	}
