@@ -1086,8 +1086,8 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + level + '%')
 			self.lastUpdate = moment()
 
-			if(!self.linkedKeypadID == ''){ //Check if associated Keypad is configured
-				self.setLinkedKeypadBtn.call(self)
+			if(!self.targetKeypadID == ''){ //Check if associated Keypad is configured
+				self.setTargetKeypadBtn.call(self)
 				return
 			}
 			return
@@ -1608,7 +1608,7 @@ InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 	}
 }
 
-InsteonLocalAccessory.prototype.setLinkedKeypadBtn = function(state, callback) {
+InsteonLocalAccessory.prototype.setTargetKeypadBtn = function(state, callback) {
 	var self = this
 
 	var timeout = 0
@@ -1630,15 +1630,15 @@ InsteonLocalAccessory.prototype.setLinkedKeypadBtn = function(state, callback) {
 	}
 	var buttonArray
 
-	self.log('... also setting [Button ' + self.linkedKeypadBtn + '] of linked [Keypad ' + self.linkedKeypadID + '] to ' + self.currentState)
+	self.log('... also setting [Button ' + self.targetKeypadBtn + '] of target [Keypad ' + self.targetKeypadID + '] to ' + self.currentState)
 
 	self.platform.checkHubConnection()
 
 	getButtonMap(function(){
 		var currentButtonMap = self.buttonMap
 
-		self.six_btn = self.linkedKeypadSixBtn //can expand to support multiple devices using array
-		self.keypadbtn = self.linkedKeypadBtn //can expand to support multiple devices using array
+		self.six_btn = self.targetKeypadSixBtn //can expand to support multiple devices using array
+		self.keypadbtn = self.targetKeypadBtn //can expand to support multiple devices using array
 
 		if(self.six_btn == true){
 			buttonArray = six_buttonArray
@@ -1666,9 +1666,9 @@ InsteonLocalAccessory.prototype.setLinkedKeypadBtn = function(state, callback) {
 			isStandardResponse: true
 		}
 
-		hub.directCommand(self.linkedKeypadID, cmd, timeout, function(err,status){
+		hub.directCommand(self.targetKeypadID, cmd, timeout, function(err,status){
 			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
-				self.log('Error setting button state of linked keypad [' + self.linkedKeypadID + ']')
+				self.log('Error setting button state of target keypad [' + self.targetKeypadID + ']')
 				self.log.debug('Err: ' + util.inspect(err))
 
 				if (typeof callback !== 'undefined') {
@@ -1699,9 +1699,9 @@ InsteonLocalAccessory.prototype.setLinkedKeypadBtn = function(state, callback) {
 			cmd2: '01',
 		}
 
-		hub.directCommand(self.linkedKeypadID, command, timeout, function(err,status){
+		hub.directCommand(self.targetKeypadID, command, timeout, function(err,status){
 			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
-				self.log('Error getting button states for linked keypad ' + self.linkedKeypadID)
+				self.log('Error getting button states for target keypad ' + self.targetKeypadID)
 				self.log.debug('Err: ' + util.inspect(err))
 				return
 			} else {
@@ -2263,9 +2263,9 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 	self.refreshInterval = device.refresh || platform.refreshInterval
 	self.server_port = platform.server_port
 	self.disabled = device.disabled || false
-	self.linkedKeypadID = device.linkedKeypadID || ''
-	self.linkedKeypadSixBtn = device.linkedKeypadSixBtn || true
-	self.linkedKeypadBtn = device.linkedKeypadBtn || ''
+	self.targetKeypadID = device.targetKeypadID || ''
+	self.targetKeypadSixBtn = device.targetKeypadSixBtn || true
+	self.targetKeypadBtn = device.targetKeypadBtn || ''
 	
 	if(self.id){
 		self.id = self.id.trim().replace(/\./g, '')
