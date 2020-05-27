@@ -1086,8 +1086,28 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + level + '%')
 			self.lastUpdate = moment()
 
-			if(!self.targetKeypadID == ''){
-				self.setTargetKeypadBtn.call(self)
+			if(self.targetKeypadID.length > 0){ // check if device has any target keypad(s) defined.
+				self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
+
+				for(var temp = 0; temp < self.targetKeypadID.length; temp++){
+					self.log.debug(' targetKeypadID[' + temp + '] = ' + '[' + self.targetKeypadID[temp] + ']')
+				}
+
+				var count
+
+				for(count = 0; count < self.targetKeypadID.length; count++){
+					//self.log.debug('<Check point 0> count = ' + count)
+					
+					self.setTargetKeypadCount = count
+					run()
+
+					//Async-Wait function to insure multiple keypads are processed in order 
+					async function run() {
+				  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
+				  		let result = await promise // wait until the promise resolves
+				  		return // "done!"
+					}
+				}
 				return
 			}
 			return
@@ -1611,6 +1631,7 @@ InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 InsteonLocalAccessory.prototype.setTargetKeypadBtn = function(state, callback) {
 	var self = this
 	var timeout = 0
+
 	var eight_buttonArray = {
 		'A': 7,
 		'B': 6,
@@ -1628,71 +1649,78 @@ InsteonLocalAccessory.prototype.setTargetKeypadBtn = function(state, callback) {
 		'D': eight_buttonArray['F']
 	}
 	var buttonArray
+	var index1 = self.setTargetKeypadCount
 
-	self.log('... also setting [Button ' + self.targetKeypadBtn + '] of target [Keypad ' + self.targetKeypadID + '] to ' + self.currentState)
+	self.log(' also setting target keypad [' + self.targetKeypadID[index1] + '] button [' + self.targetKeypadBtn[index1] + '] to ' + this.currentState)
+	//self.log.debug('<Check point 1> index1 = ' + index1)
 
 	self.platform.checkHubConnection()
 
 	getButtonMap(function(){
-		var currentButtonMap = self.buttonMap
+		var currentButtonMap = self.buttonMap //binary button states from getButtonMap
 
-		self.six_btn = self.targetKeypadSixBtn
-		self.keypadbtn = self.targetKeypadBtn
+		//self.log.debug('<Check point 4> index1 = ' + index1)
 
-		//self.log.debug('Six-button Keypad: ' + self.six_btn)
-		if(self.six_btn == true){
+		if(self.targetKeypadSixBtn[index1] == true){
 			buttonArray = six_buttonArray
-			self.log.debug('Configured as 6-button Keypad')
+			self.log.debug(' Using 6-button keypad layout')
 		} else {
 			buttonArray = eight_buttonArray
-			self.log.debug('Configured as 8-button Keypad')
+			self.log.debug(' Using 8-button keypad layout')
 		}
 
-		var buttonNumber = buttonArray[self.keypadbtn]
-		self.log.debug('Target button: ' + self.keypadbtn)
-		self.log.debug('Button number: ' + buttonNumber)
-		
+		var buttonNumber = buttonArray[self.targetKeypadBtn[index1]]
+
+		self.log.debug(' Target button: ' + self.targetKeypadBtn[index1])
+		self.log.debug(' Button number: ' + buttonNumber)
+			
 		var binaryButtonMap = currentButtonMap.substring(0,buttonNumber) +
             (self.currentState ? '1' : '0') +
             currentButtonMap.substring(buttonNumber+1)
-		self.log.debug('New binary map: ' + binaryButtonMap)
-		
-		var buttonMap = ('00'+parseInt(binaryButtonMap, 2).toString(16)).substr(-2).toUpperCase()
-		
-		self.log.debug('Hex value: ' + buttonMap)
-		var cmd = {
-			cmd1: '2E',
-			cmd2: '00',
-			extended: true,
-			userData: ['01', '09', buttonMap],
-			isStandardResponse: true
-		}
 
-		hub.directCommand(self.targetKeypadID, cmd, timeout, function(err,status){
-			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
-				self.log('Error setting button state of target keypad [' + self.targetKeypadID + ']')
+		self.log.debug(' New binary button map: ' + binaryButtonMap)
+			
+		var buttonMap = ('00'+parseInt(binaryButtonMap, 2).toString(16)).substr(-2).toUpperCase()
+			
+		//self.log.debug(' New hex value: ' + buttonMap)
+
+		var cmd = {
+				cmd1: '2E',
+				cmd2: '00',
+				extended: true,
+				userData: ['01', '09', buttonMap],
+				isStandardResponse: true
+			}
+
+			hub.directCommand(self.targetKeypadID[index1], cmd, timeout, function(err,status){
+			
+			//self.log.debug('<Check point 5> index1 = ' + index1)
+
+			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' 
+			|| typeof status.response.standard == 'undefined' || status.success == false){
+					
+				self.log('Error setting button state of target keypad [' + self.targetKeypadID[index1] + ']')
 				self.log.debug('Err: ' + util.inspect(err))
 
 				if (typeof callback !== 'undefined') {
 					callback(err, null)
-					return
+					return 1
 				} else {
-					return
+					return 1
 				}
 			} else {
 				self.lastUpdate = moment()
 				self.buttonMap = binaryButtonMap
-				/// self.currentState = state
 
 				if (typeof callback !== 'undefined') {
 				 	callback(null, self.currentState)
-					return
+					return 1
 				} else {
-					return
+					return 1
 				}
-
 			}
 		})
+
 	})
 
 	function getButtonMap(callback) {
@@ -1701,19 +1729,24 @@ InsteonLocalAccessory.prototype.setTargetKeypadBtn = function(state, callback) {
 			cmd2: '01',
 		}
 
-		hub.directCommand(self.targetKeypadID, command, timeout, function(err,status){
-			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' || typeof status.response.standard == 'undefined' || status.success == false){
-				self.log('Error getting button states for target keypad ' + self.targetKeypadID)
+		//self.log.debug('<Check point 2> index1 = ' + index1)
+		self.log.debug(' Reading button map for target keypad [' + self.targetKeypadID[index1] + ']')
+
+		hub.directCommand(self.targetKeypadID[index1], command, timeout, function(err,status){
+			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' 
+			|| typeof status.response.standard == 'undefined' || status.success == false){
+				self.log('Error getting button states for target keypad [' + self.targetKeypadID[index1] + ']')
 				self.log.debug('Err: ' + util.inspect(err))
 				return
 			} else {
 				var hexButtonMap = status.response.standard.command2
 				var binaryButtonMap = parseInt(hexButtonMap, 16).toString(2)
 				binaryButtonMap = '00000000'.substr(binaryButtonMap.length) + binaryButtonMap //pad to 8 digits
-
 				self.buttonMap = binaryButtonMap
 
-				self.log.debug('Current binary map: ' + binaryButtonMap)
+				self.log.debug(' Current button map: ' + binaryButtonMap)
+				//self.log.debug('<Check point 3> index1 = ' + index1)
+
 				callback()
 			}
 		})
@@ -2266,9 +2299,10 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 	self.server_port = platform.server_port
 	self.disabled = device.disabled || false
 
-	self.targetKeypadID = device.targetKeypadID || ''
-	self.targetKeypadSixBtn = device.targetKeypadSixBtn
-	self.targetKeypadBtn = device.targetKeypadBtn || ''
+	self.targetKeypadID = device.targetKeypadID || []
+	self.targetKeypadSixBtn = device.targetKeypadSixBtn || []
+	self.targetKeypadBtn = device.targetKeypadBtn || []
+	self.setTargetKeypadCount = 0
 
 	if(self.id){
 		self.id = self.id.trim().replace(/\./g, '')
