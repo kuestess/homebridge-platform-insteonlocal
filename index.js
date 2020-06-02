@@ -908,6 +908,31 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 			self.currentState = true
 			self.lastUpdate = moment()
 
+			//Check if any target keypad button(s) to process
+			if(self.targetKeypadID.length > 0){
+				self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
+
+				for(var temp = 0; temp < self.targetKeypadID.length; temp++){
+					self.log.debug(' targetKeypadID[' + temp + '] = ' + '[' + self.targetKeypadID[temp] + ']')
+				}
+
+				var count
+
+				for(count = 0; count < self.targetKeypadID.length; count++){
+					//self.log.debug('<Check point 0> count = ' + count)
+					
+					self.setTargetKeypadCount = count
+					run()
+
+					//Async-Wait function to insure multiple keypads are processed in order 
+					async function run() {
+				  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
+				  		let result = await promise // wait until the promise resolves
+				  		return // "done!"
+					}
+				}
+			}
+
 			if (typeof callback !== 'undefined') {
 				callback(null, self.currentState)
 				return
@@ -933,6 +958,31 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 			self.service.getCharacteristic(Characteristic.On).updateValue(false)
 			self.currentState = false
 			self.lastUpdate = moment()
+
+			//Check if any target keypad button(s) to process
+			if(self.targetKeypadID.length > 0){
+				self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
+
+				for(var temp = 0; temp < self.targetKeypadID.length; temp++){
+					self.log.debug(' targetKeypadID[' + temp + '] = ' + '[' + self.targetKeypadID[temp] + ']')
+				}
+
+				var count
+
+				for(count = 0; count < self.targetKeypadID.length; count++){
+					//self.log.debug('<Check point 0> count = ' + count)
+					
+					self.setTargetKeypadCount = count
+					run()
+
+					//Async-Wait function to insure multiple keypads are processed in order 
+					async function run() {
+				  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
+				  		let result = await promise // wait until the promise resolves
+				  		return // "done!"
+					}
+				}
+			}
 
 			if (typeof callback !== 'undefined') {
 				callback(null, self.currentState)
@@ -1086,7 +1136,8 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + level + '%')
 			self.lastUpdate = moment()
 
-			if(self.targetKeypadID.length > 0){ // check if device has any target keypad(s) defined.
+			//Check if any target keypad button(s) to process
+			if(self.targetKeypadID.length > 0){
 				self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
 
 				for(var temp = 0; temp < self.targetKeypadID.length; temp++){
@@ -2018,6 +2069,31 @@ InsteonLocalAccessory.prototype.setOutletState = function(state, callback) {
 					self.service.getCharacteristic(Characteristic.On).updateValue(true)
 					self.lastUpdate = moment()
 
+					//Check if any target keypad button(s) to process
+					if(self.targetKeypadID.length > 0){
+						self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
+
+						for(var temp = 0; temp < self.targetKeypadID.length; temp++){
+							self.log.debug(' targetKeypadID[' + temp + '] = ' + '[' + self.targetKeypadID[temp] + ']')
+						}
+
+						var count
+
+						for(count = 0; count < self.targetKeypadID.length; count++){
+							//self.log.debug('<Check point 0> count = ' + count)
+							
+							self.setTargetKeypadCount = count
+							run()
+
+							//Async-Wait function to insure multiple keypads are processed in order 
+							async function run() {
+						  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
+						  		let result = await promise // wait until the promise resolves
+						  		return // "done!"
+							}
+						}
+					}
+
 					if (typeof callback !== 'undefined') {
 						callback(null, self.currentState)
 						return
@@ -2059,6 +2135,31 @@ InsteonLocalAccessory.prototype.setOutletState = function(state, callback) {
 					self.service.getCharacteristic(Characteristic.On).updateValue(false)
 					self.currentState = false
 					self.lastUpdate = moment()
+
+					//Check if any target keypad button(s) to process
+					if(self.targetKeypadID.length > 0){
+						self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
+
+						for(var temp = 0; temp < self.targetKeypadID.length; temp++){
+							self.log.debug(' targetKeypadID[' + temp + '] = ' + '[' + self.targetKeypadID[temp] + ']')
+						}
+
+						var count
+
+						for(count = 0; count < self.targetKeypadID.length; count++){
+							//self.log.debug('<Check point 0> count = ' + count)
+							
+							self.setTargetKeypadCount = count
+							run()
+
+							//Async-Wait function to insure multiple keypads are processed in order 
+							async function run() {
+						  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
+						  		let result = await promise // wait until the promise resolves
+						  		return // "done!"
+							}
+						}
+					}			
 
 					if (typeof callback !== 'undefined') {
 						callback(null, self.currentState)
