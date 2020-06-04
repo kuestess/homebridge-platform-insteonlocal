@@ -1227,25 +1227,13 @@ InsteonLocalAccessory.prototype.setRelayState = function(state, callback) {
 
 	self.log('Setting ' + self.name + ' relay to ' + state)
 
-
 	if (state !== self.currentState){
 		self.iolinc.relayOn().then(function(status){
 			if (status.success) {
 				if (self.deviceType == 'iolinc') {
 					self.targetState = (self.currentState == 0) ? 1 : 0
-					self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(self.targetState)
-					self.log('Setting ' + self.name + ' target state to ' + self.targetState)
-
-					setTimeout(function() {
-						self.getSensorStatus(function() {
-							self.lastUpdate = moment()
-							if (typeof callback !== 'undefined') {
-								callback(null, self.targetState)
-							} else {
-								return
-							}
-						})
-					}, 1000 * self.gdo_delay)
+					self.log(' >>> New target state is ' + self.targetState + ((self.targetState == 0) ? ' (Open)' : ' (Closed)'))
+					callback()		
 				} else if (self.deviceType == 'valve') {
 					self.currentState = (self.currentState == 0) ? 1 : 0
 					self.service.getCharacteristic(Characteristic.Active).updateValue(self.currentState)
@@ -2310,30 +2298,30 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.iolinc = hub.ioLinc(self.id)
 
 		self.iolinc.on('sensorOn', function(){
-			self.log.debug(self.name + ' sensor is on')
+			self.log.debug(self.name + ' sensor is on. invert_sensor = ' + self.invert_sensor)
 
-			if(self.invert_sensor == 'false' || self.invert_sensor == false){
-				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
-				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
-				self.currentState = 1
-			} else if(self.invert_sensor == true || self.invert_sensor == 'true') {
-				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
-				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
-				self.currentState = 0
+			if(self.invert_sensor == false || self.invert_sensor == 'false') { //Door Closed (non-inverted): No delay to action, since sensor isn't triggered until door is fully closed.
+				self.log.debug(' >>> No Delayed Action <<<')
+				actionDoorClosed()
+			} else { //Door Open (inviered): Add delay to action, since sensor is triggered immediatly upon door closing. 
+				setTimeout(function(){
+					self.log.debug(' >>> Delayed Action <<<')
+					actionDoorOpen()
+				}, 1000 * self.gdo_delay)
 			}
 		})
 
 		self.iolinc.on('sensorOff', function(){
-			self.log.debug(self.name + ' sensor is off')
+			self.log.debug(self.name + ' sensor is off invert_sensor = ' + self.invert_sensor)
 
-			if(self.invert_sensor == 'false' || self.invert_sensor == false) {
-				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
-				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
-				self.currentState = 0
-			} else if(self.invert_sensor == true || self.invert_sensor == 'true') {
-				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
-				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
-				self.currentState = 1
+			if(self.invert_sensor == false || self.invert_sensor == 'false') { //Door Open (non-inverted): Add delay to action, since sensor is triggered immediately upon door opening.   
+				setTimeout(function(){
+					self.log.debug(' >>> Delayed Action <<<')
+					actionDoorOpen()
+				}, 1000 * self.gdo_delay)
+			} else { //Door Closed (inverted): No delay to action, since sensor isn't triggered until door fully opens.
+				self.log.debug(' >>> No Delayed Action <<<')
+				actionDoorClosed()
 			}
 		})
 
@@ -2341,22 +2329,17 @@ InsteonLocalAccessory.prototype.getServices = function() {
 			self.getSensorStatus.call(self)
 		})
 
-		break
+		function actionDoorClosed(){
+			self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
+			self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
+			self.currentState = 1
+		}
 
-	case 'valve':
-		self.service = new Service.Valve(self.name)
-
-		self.service.getCharacteristic(Characteristic.Active).updateValue(0)
-		self.service.getCharacteristic(Characteristic.InUse).updateValue(0)
-		self.service.getCharacteristic(Characteristic.ValveType).updateValue(0)
-
-		self.service.getCharacteristic(Characteristic.Active).on('set', self.setRelayState.bind(self))
-
-		self.iolinc = hub.ioLinc(self.id)
-
-		hub.once('connect', function() {
-			self.getSensorStatus.call(self)
-		})
+		function actionDoorOpen(){
+			self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
+			self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
+			self.currentState = 0
+		}
 
 		break
 
