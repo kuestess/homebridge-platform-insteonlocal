@@ -2343,6 +2343,23 @@ InsteonLocalAccessory.prototype.getServices = function() {
 
 		break
 
+	case 'valve':
+		self.service = new Service.Valve(self.name)
+
+		self.service.getCharacteristic(Characteristic.Active).updateValue(0)
+		self.service.getCharacteristic(Characteristic.InUse).updateValue(0)
+		self.service.getCharacteristic(Characteristic.ValveType).updateValue(0)
+
+		self.service.getCharacteristic(Characteristic.Active).on('set', self.setRelayState.bind(self))
+
+		self.iolinc = hub.ioLinc(self.id)
+
+		hub.once('connect', function() {
+			self.getSensorStatus.call(self)
+		})
+
+		break
+
 	case 'leaksensor':
 		self.service = new Service.LeakSensor(self.name)
 		self.service.getCharacteristic(Characteristic.LeakDetected).updateValue(0) //Initialize as dry
