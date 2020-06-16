@@ -920,11 +920,11 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 
 				for(count = 0; count < self.targetKeypadID.length; count++){
 					//self.log.debug('<Check point 0> count = ' + count)
-					
+
 					self.setTargetKeypadCount = count
 					run()
 
-					//Async-Wait function to insure multiple keypads are processed in order 
+					//Async-Wait function to insure multiple keypads are processed in order
 					async function run() {
 				  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
 				  		let result = await promise // wait until the promise resolves
@@ -971,11 +971,11 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 
 				for(count = 0; count < self.targetKeypadID.length; count++){
 					//self.log.debug('<Check point 0> count = ' + count)
-					
+
 					self.setTargetKeypadCount = count
 					run()
 
-					//Async-Wait function to insure multiple keypads are processed in order 
+					//Async-Wait function to insure multiple keypads are processed in order
 					async function run() {
 				  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
 				  		let result = await promise // wait until the promise resolves
@@ -1148,11 +1148,11 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 
 				for(count = 0; count < self.targetKeypadID.length; count++){
 					//self.log.debug('<Check point 0> count = ' + count)
-					
+
 					self.setTargetKeypadCount = count
 					run()
 
-					//Async-Wait function to insure multiple keypads are processed in order 
+					//Async-Wait function to insure multiple keypads are processed in order
 					async function run() {
 				  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
 				  		let result = await promise // wait until the promise resolves
@@ -1308,7 +1308,7 @@ InsteonLocalAccessory.prototype.setRelayState = function(state, callback) {
 				if (self.deviceType == 'iolinc') {
 					self.targetState = (self.currentState == 0) ? 1 : 0
 					self.log(' >>> New target state is ' + self.targetState + ((self.targetState == 0) ? ' (Open)' : ' (Closed)'))
-					callback()		
+					callback()
 				} else if (self.deviceType == 'valve') {
 					self.currentState = (self.currentState == 0) ? 1 : 0
 					self.service.getCharacteristic(Characteristic.Active).updateValue(self.currentState)
@@ -1712,15 +1712,15 @@ InsteonLocalAccessory.prototype.setTargetKeypadBtn = function(state, callback) {
 
 		self.log.debug(' Target button: ' + self.targetKeypadBtn[index1])
 		self.log.debug(' Button number: ' + buttonNumber)
-			
+
 		var binaryButtonMap = currentButtonMap.substring(0,buttonNumber) +
             (self.currentState ? '1' : '0') +
             currentButtonMap.substring(buttonNumber+1)
 
 		self.log.debug(' New binary button map: ' + binaryButtonMap)
-			
+
 		var buttonMap = ('00'+parseInt(binaryButtonMap, 2).toString(16)).substr(-2).toUpperCase()
-			
+
 		//self.log.debug(' New hex value: ' + buttonMap)
 
 		var cmd = {
@@ -1732,12 +1732,12 @@ InsteonLocalAccessory.prototype.setTargetKeypadBtn = function(state, callback) {
 			}
 
 			hub.directCommand(self.targetKeypadID[index1], cmd, timeout, function(err,status){
-			
+
 			//self.log.debug('<Check point 5> index1 = ' + index1)
 
-			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' 
+			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined'
 			|| typeof status.response.standard == 'undefined' || status.success == false){
-					
+
 				self.log('Error setting button state of target keypad [' + self.targetKeypadID[index1] + ']')
 				self.log.debug('Err: ' + util.inspect(err))
 
@@ -1772,7 +1772,7 @@ InsteonLocalAccessory.prototype.setTargetKeypadBtn = function(state, callback) {
 		self.log.debug(' Reading button map for target keypad [' + self.targetKeypadID[index1] + ']')
 
 		hub.directCommand(self.targetKeypadID[index1], command, timeout, function(err,status){
-			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' 
+			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined'
 			|| typeof status.response.standard == 'undefined' || status.success == false){
 				self.log('Error getting button states for target keypad [' + self.targetKeypadID[index1] + ']')
 				self.log.debug('Err: ' + util.inspect(err))
@@ -2069,11 +2069,11 @@ InsteonLocalAccessory.prototype.setOutletState = function(state, callback) {
 
 						for(count = 0; count < self.targetKeypadID.length; count++){
 							//self.log.debug('<Check point 0> count = ' + count)
-							
+
 							self.setTargetKeypadCount = count
 							run()
 
-							//Async-Wait function to insure multiple keypads are processed in order 
+							//Async-Wait function to insure multiple keypads are processed in order
 							async function run() {
 						  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
 						  		let result = await promise // wait until the promise resolves
@@ -2136,18 +2136,18 @@ InsteonLocalAccessory.prototype.setOutletState = function(state, callback) {
 
 						for(count = 0; count < self.targetKeypadID.length; count++){
 							//self.log.debug('<Check point 0> count = ' + count)
-							
+
 							self.setTargetKeypadCount = count
 							run()
 
-							//Async-Wait function to insure multiple keypads are processed in order 
+							//Async-Wait function to insure multiple keypads are processed in order
 							async function run() {
 						  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
 						  		let result = await promise // wait until the promise resolves
 						  		return // "done!"
 							}
 						}
-					}			
+					}
 
 					if (typeof callback !== 'undefined') {
 						callback(null, self.currentState)
@@ -2558,7 +2558,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 			if(self.invert_sensor == false || self.invert_sensor == 'false') { //Door Closed (non-inverted): No delay to action, since sensor isn't triggered until door is fully closed.
 				self.log.debug(' >>> No Delayed Action <<<')
 				actionDoorClosed()
-			} else { //Door Open (inviered): Add delay to action, since sensor is triggered immediatly upon door closing. 
+			} else { //Door Open (inverted): Add delay to action, since sensor is triggered immediately upon door closing.
 				setTimeout(function(){
 					self.log.debug(' >>> Delayed Action <<<')
 					actionDoorOpen()
@@ -2569,7 +2569,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.iolinc.on('sensorOff', function(){
 			self.log.debug(self.name + ' sensor is off invert_sensor = ' + self.invert_sensor)
 
-			if(self.invert_sensor == false || self.invert_sensor == 'false') { //Door Open (non-inverted): Add delay to action, since sensor is triggered immediately upon door opening.   
+			if(self.invert_sensor == false || self.invert_sensor == 'false') { //Door Open (non-inverted): Add delay to action, since sensor is triggered immediately upon door opening.
 				setTimeout(function(){
 					self.log.debug(' >>> Delayed Action <<<')
 					actionDoorOpen()
