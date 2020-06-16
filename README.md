@@ -97,9 +97,12 @@ Devices are also defined in the config.json as follows:
   - `groupID`:  Insteon group ID for a scene
   - `keypadbtn`: Keypad button to check for status of a scene, in caps.  For a six-button configuration, use 'ON' if the ON/OFF buttons are your scene controller.
   - `dimmable`:  dimmable or non-dimming device - valid values are "yes" or "no".  This is automatically set to 'yes' for dimmer/lightbulb device types.
-  - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'remote', 'iolinc', 'motionsensor', 'leaksensor', 'outlet', 'keypad', 'shades', 'blinds', 'smoke', and 'fan'.
+  - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'remote', 'iolinc', 'motionsensor', 'leaksensor', 'doorsensor', 'outlet', 'keypad', 'shades', 'blinds', 'smoke', and 'fan'.
   - `refresh`:  device-level refresh interval in seconds.  This will override the platform-level refresh value and will still refresh individual devices even if platform-level polling is turned off.
   - `controllers`: this is an array `["<Insteon ID>","<Insteon ID>"]` of other Insteon devices that this device is controlled by. ie if you have a plug in dimmer that is controlled by a wall switch you would add the wall switch ID as a controller for the plug in dimmer. The controller device does not need to be a device listed in the config.json
+  - `targetKeypadID`: this is an array `["<Insteon ID>","<Insteon ID>"]` of Insteon keypad(s), whose scene button LED you would like to set accoridngly to the state of the device. See additional notes below on Target Keypad Button.
+  - `targetKeypadBtn`: this is an array `["button_letter","button_letter"]` of Insteon keypad button(s), 'A' - 'H', that corresponds to the array `targetKeypadID`. See additional notes below on Target Keypad Button.
+  - `targetKeypadSixBtn`: this is an array `[true/false, true/false]` of Insteon keypad button configuration(s) corresponding to the array `targetKeypadID`. `true` denote a 6-button keypad, while `false` denotes an 8-button keypad. See additional notes below on Target Keypad Button.
   - `disabled`: set to true to disable Insteon communication for a device (defaults to false).  Device will still appear in Home (or other apps), but can't be controlled.  Good to use for 'seasonal' devices.
 
 Battery operated devices: Battery status is monitored for battery operated devices (leak, motion, door/window sensors) and will alert when the device sends a low battery signal.  The heartbeat for those devices is also monitored (sent from device every 24 hours).  You will also receive a low battery alert if no heartbeat is received within 24 hours.
@@ -113,6 +116,16 @@ Scenes remain on/off only and support status when controlled via a Keypadlinc.  
   - `groupID`: the group number in the Insteon app (Scenes->Edit Scene->Group Number)
   - `groupMembers`: comma-delimited list of Insteon IDs that are part of the group/scene (optional); member device status will be automatically updated after a scene is triggered
 
+Target Keypad Button:
+By Insteon's design, keypad (scene) buttons only follow the state of a linked scene; they do not follow the state of a device. This is a workaround for the (scene) buttons to follow the state of devices, even if dimmed; effetively turning (scene) buttons into true device status indicators.
+For the following example, when `Light 1` is turned on (or at any dim level), button "A" of 6-button keypad "AABBCC" is lit up, as do button "D" of 8-button keypad "BBCCDD".
+  ```
+  "name" : "Light 1",
+  "deviceID" : "XXYYZZ",
+  "targetKeypadID" : [ "AABBCC", "BBCCDD" ],
+  "targetKeypadBtn" : [ "A", "D" ],
+  "targetKeypadSixBtn" : [ true, false ]
+  ```
 Fanlinc support:
 To configure fanlinc support, use the 'fan' device type.  This will create a fan device only - you can add a separate entry in your config (using the same `deviceID`) to add the light as a device.
 
@@ -123,8 +136,8 @@ In addition to scenes as described above, keypads are supported as on/off switch
 
 For iolinc devices, there is an additional parameter that can be defined:
 
-- `gdo_delay`: number of seconds before status of the sensor is checked when opening/closing the door (ie, how long does it take the door to open/close) [default = 15]
-- `invert_sensor`: set to true if your iolinc sensor is inverted, ie off when closed and on when open; default value is false
+- `gdo_delay`: number of seconds before status of the garage door is updated. This delay should be configured to closely approximate the time it takes the garage door to fully close (if `invert_sensor` = false) or fully open (if `invert_sensor` = true). [default = 15]
+- `invert_sensor`: set to true if your iolinc sensor is inverted, ie off when closed and on when open. [default = false]
 
 Remote support:
 Remotes are supported as on/off switches or stateless switches intended to be used in Homekit automation and/or scenes.  Both 8-button and 4-button remotes are supported.  Additional parameters that should be used when defining a Remote device are:
