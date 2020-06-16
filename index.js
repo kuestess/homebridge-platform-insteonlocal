@@ -908,6 +908,31 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 			self.currentState = true
 			self.lastUpdate = moment()
 
+			//Check if any target keypad button(s) to process
+			if(self.targetKeypadID.length > 0){
+				self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
+
+				for(var temp = 0; temp < self.targetKeypadID.length; temp++){
+					self.log.debug(' targetKeypadID[' + temp + '] = ' + '[' + self.targetKeypadID[temp] + ']')
+				}
+
+				var count
+
+				for(count = 0; count < self.targetKeypadID.length; count++){
+					//self.log.debug('<Check point 0> count = ' + count)
+					
+					self.setTargetKeypadCount = count
+					run()
+
+					//Async-Wait function to insure multiple keypads are processed in order 
+					async function run() {
+				  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
+				  		let result = await promise // wait until the promise resolves
+				  		return // "done!"
+					}
+				}
+			}
+
 			if (typeof callback !== 'undefined') {
 				callback(null, self.currentState)
 				return
@@ -933,6 +958,31 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 			self.service.getCharacteristic(Characteristic.On).updateValue(false)
 			self.currentState = false
 			self.lastUpdate = moment()
+
+			//Check if any target keypad button(s) to process
+			if(self.targetKeypadID.length > 0){
+				self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
+
+				for(var temp = 0; temp < self.targetKeypadID.length; temp++){
+					self.log.debug(' targetKeypadID[' + temp + '] = ' + '[' + self.targetKeypadID[temp] + ']')
+				}
+
+				var count
+
+				for(count = 0; count < self.targetKeypadID.length; count++){
+					//self.log.debug('<Check point 0> count = ' + count)
+					
+					self.setTargetKeypadCount = count
+					run()
+
+					//Async-Wait function to insure multiple keypads are processed in order 
+					async function run() {
+				  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
+				  		let result = await promise // wait until the promise resolves
+				  		return // "done!"
+					}
+				}
+			}
 
 			if (typeof callback !== 'undefined') {
 				callback(null, self.currentState)
@@ -1086,6 +1136,31 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 			self.log.debug(self.name + ' is ' + (self.currentState ? 'on' : 'off') + ' at ' + level + '%')
 			self.lastUpdate = moment()
 
+			//Check if any target keypad button(s) to process
+			if(self.targetKeypadID.length > 0){
+				self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
+
+				for(var temp = 0; temp < self.targetKeypadID.length; temp++){
+					self.log.debug(' targetKeypadID[' + temp + '] = ' + '[' + self.targetKeypadID[temp] + ']')
+				}
+
+				var count
+
+				for(count = 0; count < self.targetKeypadID.length; count++){
+					//self.log.debug('<Check point 0> count = ' + count)
+					
+					self.setTargetKeypadCount = count
+					run()
+
+					//Async-Wait function to insure multiple keypads are processed in order 
+					async function run() {
+				  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
+				  		let result = await promise // wait until the promise resolves
+				  		return // "done!"
+					}
+				}
+				return
+			}
 			return
 		})
 	}
@@ -1227,25 +1302,13 @@ InsteonLocalAccessory.prototype.setRelayState = function(state, callback) {
 
 	self.log('Setting ' + self.name + ' relay to ' + state)
 
-
 	if (state !== self.currentState){
 		self.iolinc.relayOn().then(function(status){
 			if (status.success) {
 				if (self.deviceType == 'iolinc') {
 					self.targetState = (self.currentState == 0) ? 1 : 0
-					self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(self.targetState)
-					self.log('Setting ' + self.name + ' target state to ' + self.targetState)
-
-					setTimeout(function() {
-						self.getSensorStatus(function() {
-							self.lastUpdate = moment()
-							if (typeof callback !== 'undefined') {
-								callback(null, self.targetState)
-							} else {
-								return
-							}
-						})
-					}, 1000 * self.gdo_delay)
+					self.log(' >>> New target state is ' + self.targetState + ((self.targetState == 0) ? ' (Open)' : ' (Closed)'))
+					callback()		
 				} else if (self.deviceType == 'valve') {
 					self.currentState = (self.currentState == 0) ? 1 : 0
 					self.service.getCharacteristic(Characteristic.Active).updateValue(self.currentState)
@@ -1604,6 +1667,131 @@ InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 	}
 }
 
+InsteonLocalAccessory.prototype.setTargetKeypadBtn = function(state, callback) {
+	var self = this
+	var timeout = 0
+
+	var eight_buttonArray = {
+		'A': 7,
+		'B': 6,
+		'C': 5,
+		'D': 4,
+		'E': 3,
+		'F': 2,
+		'G': 1,
+		'H': 0
+	}
+	var six_buttonArray = {
+		'A': eight_buttonArray['C'],
+		'B': eight_buttonArray['D'],
+		'C': eight_buttonArray['E'],
+		'D': eight_buttonArray['F']
+	}
+	var buttonArray
+	var index1 = self.setTargetKeypadCount
+
+	self.log(' also setting target keypad [' + self.targetKeypadID[index1] + '] button [' + self.targetKeypadBtn[index1] + '] to ' + this.currentState)
+	//self.log.debug('<Check point 1> index1 = ' + index1)
+
+	self.platform.checkHubConnection()
+
+	getButtonMap(function(){
+		var currentButtonMap = self.buttonMap //binary button states from getButtonMap
+
+		//self.log.debug('<Check point 4> index1 = ' + index1)
+
+		if(self.targetKeypadSixBtn[index1] == true){
+			buttonArray = six_buttonArray
+			self.log.debug(' Using 6-button keypad layout')
+		} else {
+			buttonArray = eight_buttonArray
+			self.log.debug(' Using 8-button keypad layout')
+		}
+
+		var buttonNumber = buttonArray[self.targetKeypadBtn[index1]]
+
+		self.log.debug(' Target button: ' + self.targetKeypadBtn[index1])
+		self.log.debug(' Button number: ' + buttonNumber)
+			
+		var binaryButtonMap = currentButtonMap.substring(0,buttonNumber) +
+            (self.currentState ? '1' : '0') +
+            currentButtonMap.substring(buttonNumber+1)
+
+		self.log.debug(' New binary button map: ' + binaryButtonMap)
+			
+		var buttonMap = ('00'+parseInt(binaryButtonMap, 2).toString(16)).substr(-2).toUpperCase()
+			
+		//self.log.debug(' New hex value: ' + buttonMap)
+
+		var cmd = {
+				cmd1: '2E',
+				cmd2: '00',
+				extended: true,
+				userData: ['01', '09', buttonMap],
+				isStandardResponse: true
+			}
+
+			hub.directCommand(self.targetKeypadID[index1], cmd, timeout, function(err,status){
+			
+			//self.log.debug('<Check point 5> index1 = ' + index1)
+
+			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' 
+			|| typeof status.response.standard == 'undefined' || status.success == false){
+					
+				self.log('Error setting button state of target keypad [' + self.targetKeypadID[index1] + ']')
+				self.log.debug('Err: ' + util.inspect(err))
+
+				if (typeof callback !== 'undefined') {
+					callback(err, null)
+					return 1
+				} else {
+					return 1
+				}
+			} else {
+				self.lastUpdate = moment()
+				self.buttonMap = binaryButtonMap
+
+				if (typeof callback !== 'undefined') {
+				 	callback(null, self.currentState)
+					return 1
+				} else {
+					return 1
+				}
+			}
+		})
+
+	})
+
+	function getButtonMap(callback) {
+		var command = {
+			cmd1: '19',
+			cmd2: '01',
+		}
+
+		//self.log.debug('<Check point 2> index1 = ' + index1)
+		self.log.debug(' Reading button map for target keypad [' + self.targetKeypadID[index1] + ']')
+
+		hub.directCommand(self.targetKeypadID[index1], command, timeout, function(err,status){
+			if(err || status == null || typeof status == 'undefined' || typeof status.response == 'undefined' 
+			|| typeof status.response.standard == 'undefined' || status.success == false){
+				self.log('Error getting button states for target keypad [' + self.targetKeypadID[index1] + ']')
+				self.log.debug('Err: ' + util.inspect(err))
+				return
+			} else {
+				var hexButtonMap = status.response.standard.command2
+				var binaryButtonMap = parseInt(hexButtonMap, 16).toString(2)
+				binaryButtonMap = '00000000'.substr(binaryButtonMap.length) + binaryButtonMap //pad to 8 digits
+				self.buttonMap = binaryButtonMap
+
+				self.log.debug(' Current button map: ' + binaryButtonMap)
+				//self.log.debug('<Check point 3> index1 = ' + index1)
+
+				callback()
+			}
+		})
+	}
+}
+
 InsteonLocalAccessory.prototype.getFanState = function(callback) {
 	var self = this
 	var currentState
@@ -1869,6 +2057,31 @@ InsteonLocalAccessory.prototype.setOutletState = function(state, callback) {
 					self.service.getCharacteristic(Characteristic.On).updateValue(true)
 					self.lastUpdate = moment()
 
+					//Check if any target keypad button(s) to process
+					if(self.targetKeypadID.length > 0){
+						self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
+
+						for(var temp = 0; temp < self.targetKeypadID.length; temp++){
+							self.log.debug(' targetKeypadID[' + temp + '] = ' + '[' + self.targetKeypadID[temp] + ']')
+						}
+
+						var count
+
+						for(count = 0; count < self.targetKeypadID.length; count++){
+							//self.log.debug('<Check point 0> count = ' + count)
+							
+							self.setTargetKeypadCount = count
+							run()
+
+							//Async-Wait function to insure multiple keypads are processed in order 
+							async function run() {
+						  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
+						  		let result = await promise // wait until the promise resolves
+						  		return // "done!"
+							}
+						}
+					}
+
 					if (typeof callback !== 'undefined') {
 						callback(null, self.currentState)
 						return
@@ -1910,6 +2123,31 @@ InsteonLocalAccessory.prototype.setOutletState = function(state, callback) {
 					self.service.getCharacteristic(Characteristic.On).updateValue(false)
 					self.currentState = false
 					self.lastUpdate = moment()
+
+					//Check if any target keypad button(s) to process
+					if(self.targetKeypadID.length > 0){
+						self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
+
+						for(var temp = 0; temp < self.targetKeypadID.length; temp++){
+							self.log.debug(' targetKeypadID[' + temp + '] = ' + '[' + self.targetKeypadID[temp] + ']')
+						}
+
+						var count
+
+						for(count = 0; count < self.targetKeypadID.length; count++){
+							//self.log.debug('<Check point 0> count = ' + count)
+							
+							self.setTargetKeypadCount = count
+							run()
+
+							//Async-Wait function to insure multiple keypads are processed in order 
+							async function run() {
+						  		let promise = new Promise((resolve, reject) => self.setTargetKeypadBtn.call(self))
+						  		let result = await promise // wait until the promise resolves
+						  		return // "done!"
+							}
+						}
+					}			
 
 					if (typeof callback !== 'undefined') {
 						callback(null, self.currentState)
@@ -2150,6 +2388,11 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 	self.server_port = platform.server_port
 	self.disabled = device.disabled || false
 
+	self.targetKeypadID = device.targetKeypadID || []
+	self.targetKeypadSixBtn = device.targetKeypadSixBtn || []
+	self.targetKeypadBtn = device.targetKeypadBtn || []
+	self.setTargetKeypadCount = 0
+
 	if(self.id){
 		self.id = self.id.trim().replace(/\./g, '')
 	}
@@ -2310,36 +2553,48 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.iolinc = hub.ioLinc(self.id)
 
 		self.iolinc.on('sensorOn', function(){
-			self.log.debug(self.name + ' sensor is on')
+			self.log.debug(self.name + ' sensor is on. invert_sensor = ' + self.invert_sensor)
 
-			if(self.invert_sensor == 'false' || self.invert_sensor == false){
-				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
-				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
-				self.currentState = 1
-			} else if(self.invert_sensor == true || self.invert_sensor == 'true') {
-				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
-				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
-				self.currentState = 0
+			if(self.invert_sensor == false || self.invert_sensor == 'false') { //Door Closed (non-inverted): No delay to action, since sensor isn't triggered until door is fully closed.
+				self.log.debug(' >>> No Delayed Action <<<')
+				actionDoorClosed()
+			} else { //Door Open (inviered): Add delay to action, since sensor is triggered immediatly upon door closing. 
+				setTimeout(function(){
+					self.log.debug(' >>> Delayed Action <<<')
+					actionDoorOpen()
+				}, 1000 * self.gdo_delay)
 			}
 		})
 
 		self.iolinc.on('sensorOff', function(){
-			self.log.debug(self.name + ' sensor is off')
+			self.log.debug(self.name + ' sensor is off invert_sensor = ' + self.invert_sensor)
 
-			if(self.invert_sensor == 'false' || self.invert_sensor == false) {
-				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
-				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
-				self.currentState = 0
-			} else if(self.invert_sensor == true || self.invert_sensor == 'true') {
-				self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
-				self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
-				self.currentState = 1
+			if(self.invert_sensor == false || self.invert_sensor == 'false') { //Door Open (non-inverted): Add delay to action, since sensor is triggered immediately upon door opening.   
+				setTimeout(function(){
+					self.log.debug(' >>> Delayed Action <<<')
+					actionDoorOpen()
+				}, 1000 * self.gdo_delay)
+			} else { //Door Closed (inverted): No delay to action, since sensor isn't triggered until door fully opens.
+				self.log.debug(' >>> No Delayed Action <<<')
+				actionDoorClosed()
 			}
 		})
 
 		hub.once('connect', function() {
 			self.getSensorStatus.call(self)
 		})
+
+		function actionDoorClosed(){
+			self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(1)
+			self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(1)
+			self.currentState = 1
+		}
+
+		function actionDoorOpen(){
+			self.service.getCharacteristic(Characteristic.TargetDoorState).updateValue(0)
+			self.service.getCharacteristic(Characteristic.CurrentDoorState).updateValue(0)
+			self.currentState = 0
+		}
 
 		break
 
