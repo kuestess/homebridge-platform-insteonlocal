@@ -1,0 +1,26 @@
+name: Releases
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Echo GITHUB_REF
+        run: echo $GITHUB_REF
+      - name: Publish release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: "*"
+          artifactContentType: "raw"
+          bodyFile: "body.md"
+          draft: false
+          prerelease: false
+          replacesArtifacts: true
+          token: ${{ secrets.GITHUB_TOKEN }}

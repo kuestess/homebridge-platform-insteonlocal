@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.14
+
+- [ENHANCED] Update eventListener to better capture off status events (#110)
+
 ## 0.4.13
 
 - [FIXED] Fix for 'no response' from garage door (thanks to @THX723) (#97)

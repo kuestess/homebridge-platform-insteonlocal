@@ -469,7 +469,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 					case 'lightbulb':
 					case 'dimmer':
 					case 'switch':
-						if (command1 == '19' || command1 == '03' || command1 == '04' || (command1 == '00' && command2 != '00')|| (command1 == '06' && messageType == '1')) { //19 = status
+						if (command1 == '19' || command1 == '03' || command1 == '04' || /*(command1 == '00' && command2 != '00')||*/ (command1 == '06' && messageType == '1')) { //19 = status
 							var level_int = parseInt(command2, 16) * (100 / 255)
 							var level = Math.ceil(level_int)
 
@@ -490,7 +490,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							foundDevice.lastUpdate = moment()
 						}
 
-						if (command1 == 11) { //11 = on
+						if (command1 == 11 && messageType == '1') { //11 = on
 							var level_int = parseInt(command2, 16)*(100/255)
 							var level = Math.ceil(level_int)
 
