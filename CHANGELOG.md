@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.15
+
+- [FIXED] Fix fan light status in eventListener (#102)
 ## 0.4.14
 
 - [ENHANCED] Update eventListener to better capture off status events (#110)

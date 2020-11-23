@@ -461,6 +461,12 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 				self.log.debug('Found ' + foundDevices.length + ' accessories matching ' + id)
 				self.log.debug('Hub command: ' + info)
 
+				var isFan = false
+
+				if (foundDevices.some(function(item){return item['deviceType'] === 'fan'})) {
+					isFan = true
+				} else {isFan = false}
+
 				for (var i = 0, len = foundDevices.length; i < len; i++) {
 					var foundDevice = foundDevices[i]
 					self.log.debug('Got event for ' + foundDevice.name + ' (' + foundDevice.id + ')')
@@ -469,6 +475,12 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 					case 'lightbulb':
 					case 'dimmer':
 					case 'switch':
+						if(isFan){
+							foundDevice.getStatus.call(foundDevice)
+							foundDevice.lastUpdate = moment()
+							break
+						}
+
 						if (command1 == '19' || command1 == '03' || command1 == '04' || /*(command1 == '00' && command2 != '00')||*/ (command1 == '06' && messageType == '1')) { //19 = status
 							var level_int = parseInt(command2, 16) * (100 / 255)
 							var level = Math.ceil(level_int)
