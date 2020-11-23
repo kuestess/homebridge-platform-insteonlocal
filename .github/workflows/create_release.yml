@@ -10,6 +10,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: checkout
+        uses: actions/checkout@v1
+      - name: setup Node
+        uses: actions/setup-node@v1
+      - name: package-version-to-git-tag
+        uses: pkgdeps/git-tag-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_repo: ${{ github.repository }}
+          git_commit_sha: ${{ github.sha }}
+          version: "1.0.0"
+          git_tag_prefix: "v"
       - uses: actions/checkout@v1
       - name: Echo GITHUB_REF
         run: echo $GITHUB_REF
