@@ -3,7 +3,7 @@ name: Releases
 on:
   workflow_dispatch:
     tags:
-      - 'v0.4.15'
+      - '*'
 
 jobs:
 
