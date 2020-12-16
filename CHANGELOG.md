@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.16
+
+- [FIXED] Fix crash when no devices defined (#77)
+- [FIXED] Fix dimmer/switch/fan status check on every hub reconnect (#127)
 ## 0.4.15
 
 - [FIXED] Fix fan light status in eventListener (#102)

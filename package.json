@@ -1,6 +1,6 @@
 {
   "name": "homebridge-platform-insteonlocal",
-  "version": "0.4.15",
+  "version": "0.4.16",
   "description": "Insteon platform plugin with local control for homebridge: https://github.com/nfarina/homebridge",
   "license": "ISC",
   "keywords": [
@@ -30,8 +30,8 @@
     "husky": "^4.2.1"
   },
   "husky": {
-      "hooks": {
-        "post-commit": "npm publish"
-      }
+    "hooks": {
+      "post-commit": "npm publish"
     }
+  }
 }

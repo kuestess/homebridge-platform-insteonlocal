@@ -289,18 +289,20 @@ function InsteonLocalPlatform(log, config, api) {
 
 	self.deviceIDs = []
 
-	for (var i = 0; i < self.devices.length; i++) {
-		if(self.devices[i].deviceID){
-			if(self.devices[i].deviceID.includes('.')){self.devices[i].deviceID = self.devices[i].deviceID.replace(/\./g,'')}
-			self.deviceIDs.push(self.devices[i].deviceID.toUpperCase())
+	if (self.devices.length > 0){ //check to see if devices is empty in config
+		for (var i = 0; i < self.devices.length; i++) {
+			if(self.devices[i].deviceID){
+				if(self.devices[i].deviceID.includes('.')){self.devices[i].deviceID = self.devices[i].deviceID.replace(/\./g,'')}
+				self.deviceIDs.push(self.devices[i].deviceID.toUpperCase())
+			}
 		}
-	}
 
-	self.connectToHub()
+		self.connectToHub()
 
-	if (self.keepAlive > 0){
-		connectionWatcher()
-	}
+		if (self.keepAlive > 0){
+			connectionWatcher()
+		}
+	} else {self.log('No devices defined - please add devices to your config.json')}
 
 	function connectionWatcher() { //resets connection to hub every keepAlive mS
 		self.log('Started connection watcher...')
@@ -2494,7 +2496,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.light.emitOnAck = true
 
 		//Get initial state
-		hub.on('connect', function() {
+		hub.once('connect', function() {
 			self.getStatus.call(self)
 		})
 
@@ -2521,7 +2523,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		})
 
 		//Get initial state
-		hub.on('connect', function() {
+		hub.once('connect', function() {
 			self.getFanState.call(self)
 		})
 
@@ -2535,7 +2537,7 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.light = hub.light(self.id)
 		self.light.emitOnAck = true
 
-		hub.on('connect', function() {
+		hub.once('connect', function() {
 			self.getStatus.call(self)
 		})
 
