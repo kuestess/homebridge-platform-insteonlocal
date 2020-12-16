@@ -1,9 +1,9 @@
 name: Releases
 
 on:
-  push:
+  workflow_dispatch:
     tags:
-      - 'v*'
+      - '*'
 
 jobs:
 
@@ -11,8 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - name: Echo GITHUB_REF
-        run: echo $GITHUB_REF
       - name: Publish release
         uses: ncipollo/release-action@v1
         with:
