@@ -153,6 +153,11 @@ On/off outlets are supported with independent control over each outlet (each is 
 
 - `position`: Specify the position of the outlet - valid values are 'top' or 'bottom' [default = top]
 
+Battery operated devices:
+Low battery levels are reported periodically by the device and by default are shown in the Home app UI.  To disable low battery reporting, use the optional configuration parameter below.  This should be set at the individual device level.  Even with low battery status disabled, you will still get a low battery alert in the Home app if two heartbeat messages from the device are missed (takes ~2 days), likely indicating a dead device.
+
+- `disableBatteryStatus`: default false; set to true to disable low battery reporting.
+
 Connection Watcher
 ------------------
 The Insteon Hub seems to give up on connections after a certain period of time, resulting in no response or incorrect status in Homekit.  Starting with v0.3.4, a `connectionWatcher` will periodically reset the connection to the Hub.  This is a temporary workaround, but seems to address the issue and create a better experience without having to restart `homebridge`.

@@ -289,7 +289,11 @@ function InsteonLocalPlatform(log, config, api) {
 
 	self.deviceIDs = []
 
-	if (self.devices.length > 0){ //check to see if devices is empty in config
+	if (typeof self.devices == 'undefined'){
+		self.devices = []
+	}
+
+	if(self.devices.length > 0){//check to see if devices is empty in config
 		for (var i = 0; i < self.devices.length; i++) {
 			if(self.devices[i].deviceID){
 				if(self.devices[i].deviceID.includes('.')){self.devices[i].deviceID = self.devices[i].deviceID.replace(/\./g,'')}
@@ -302,7 +306,7 @@ function InsteonLocalPlatform(log, config, api) {
 		if (self.keepAlive > 0){
 			connectionWatcher()
 		}
-	} else {self.log('No devices defined - please add devices to your config.json')}
+	} else {self.log.error('No devices defined - please add devices to your config.json')}
 
 	function connectionWatcher() { //resets connection to hub every keepAlive mS
 		self.log('Started connection watcher...')
@@ -773,11 +777,16 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 
 InsteonLocalPlatform.prototype.accessories = function(callback) {
 	var self = this
-	var numberDevices = self.devices.length
-
-	self.log('Found %s devices in config', numberDevices)
-
 	self.foundAccessories = []
+
+	if(typeof self.devices== 'undefined'){
+		self.log.debug('No devices defined in config')
+		callback(null)
+		return
+	}
+
+	var numberDevices = self.devices.length
+	self.log('Found %s devices in config', numberDevices)
 
 	self.devices.forEach(function(device) {
 		var accessory = new InsteonLocalAccessory(self, device)
@@ -1008,6 +1017,55 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 	} else {
 		self.currentState = state
 		self.lastUpdate = moment()
+		if (typeof callback !== 'undefined') {
+			callback(null, self.currentState)
+			return
+		} else {
+			return
+		}
+	}
+}
+
+InsteonLocalAccessory.prototype.setX10PowerState = function(state, callback) {
+	var powerOn = state ? 'on' : 'off'
+	var self = this
+
+	if(self.disabled){
+		self.log.debug('Device ' + self.name + ' is disabled')
+		if (typeof callback !== 'undefined') {
+			callback(null, self.currentState)
+			return
+		} else {
+			return
+		}
+	}
+
+	self.platform.checkHubConnection()
+
+	self.log('Setting power state of ' + self.name + ' to ' + powerOn)
+	if (state) {
+		self.light.turnOn()
+
+		//assume that the command worked and report back to homekit
+		self.level = 100
+		self.service.getCharacteristic(Characteristic.On).updateValue(true)
+		self.currentState = true
+		self.lastUpdate = moment()
+
+		if (typeof callback !== 'undefined') {
+			callback(null, self.currentState)
+			return
+		} else {
+			return
+		}
+	} else {
+		self.light.turnOff()
+
+		self.level = 0
+		self.service.getCharacteristic(Characteristic.On).updateValue(false)
+		self.currentState = false
+		self.lastUpdate = moment()
+
 		if (typeof callback !== 'undefined') {
 			callback(null, self.currentState)
 			return
@@ -2454,6 +2512,15 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 		self.position = device.position || 'top'
 	}
 
+	if (['motionsensor', 'doorsensor', 'windowsensor', 'contactsensor', 'leaksensor'].includes(self.deviceType)) {
+		self.disableBatteryStatus = device.disableBatteryStatus || false
+	}
+
+	if (self.deviceType == 'x10') {
+		self.house = device.house || 'A'
+		self.unit = device.unit
+	}
+
 	if(self.refreshInterval > 0){
 		hub.once('connect',function(){
 			if (['lightbulb' , 'dimmer' , 'switch' , 'iolinc' , 'scene' , 'outlet' , 'fan' , 'shades' , 'blinds' , 'keypad'].includes(self.deviceType))
@@ -2637,11 +2704,21 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.statusLowBattery = false
 
 		var buffer = 300 * 1000 //5 minute buffer
-		self.log.debug('Initializing heartbeat timer for ' + self.name)
-		self.heartbeatTimer = setTimeout(function() {
-			self.statusLowBattery = true
-			self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
-		}, (1000*24*60*60 + buffer))
+		if(self.disableBatteryStatus == false){
+			self.log.debug('Initializing heartbeat timer for ' + self.name)
+			self.heartbeatTimer = setTimeout(function() {
+				self.statusLowBattery = true
+				self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+			}, (1000*24*60*60 + buffer))
+		}
+
+		if(self.disableBatteryStatus == true){ //if battery status disabled, still notify when the device is dead
+			self.log.debug('Initializing dead device timer for ' + self.name)
+			self.deadDeviceTimer = setTimeout(function() {
+				self.statusLowBattery = true
+				self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+			}, (1000*48*60*60 + buffer))
+		}
 
 		self.leaksensor = hub.leak(self.id)
 
@@ -2657,12 +2734,22 @@ InsteonLocalAccessory.prototype.getServices = function() {
 
 		self.leaksensor.on('heartbeat', function(){
 			self.log.debug('Heartbeat from ' + self.name)
-			clearTimeout(self.heartbeatTimer)
 
-			self.heartbeatTimer = setTimeout(function() {
-				self.statusLowBattery = true
-				self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
-			}, (1000*24*60*60 + buffer))
+			if(self.disableBatteryStatus == false){
+				clearTimeout(self.heartbeatTimer)
+				self.heartbeatTimer = setTimeout(function() {
+					self.statusLowBattery = true
+					self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+				}, (1000*24*60*60 + buffer))
+			}
+
+			if(self.disableBatteryStatus == true){
+				clearTimeout(self.deadDeviceTimer)
+				self.deadDeviceTimer = setTimeout(function() { //if battery status disabled, still notify when the device is dead
+					self.statusLowBattery = true
+					self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+				}, (1000*48*60*60 + buffer))
+			}
 		})
 
 		break
@@ -2674,11 +2761,21 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.statusLowBattery = false
 
 		var buffer = 300 * 1000 //5 minute buffer
-		self.log.debug('Initializing heartbeat timer for ' + self.name)
-		self.heartbeatTimer = setTimeout(function() {
-			self.statusLowBattery = true
-			self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
-		}, (1000*24*60*60 + buffer))
+		if(self.disableBatteryStatus == false){
+			self.log.debug('Initializing heartbeat timer for ' + self.name)
+			self.heartbeatTimer = setTimeout(function() {
+				self.statusLowBattery = true
+				self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+			}, (1000*24*60*60 + buffer))
+		}
+
+		if(self.disableBatteryStatus == true){
+			self.log.debug('Initializing dead device timer for ' + self.name)
+			self.deadDeviceTimer = setTimeout(function() { //if battery status disabled, still notify when the device is dead
+				self.statusLowBattery = true
+				self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+			}, (1000*48*60*60 + buffer))
+		}
 
 		self.motionsensor = hub.motion(self.id)
 
@@ -2697,10 +2794,21 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.motionsensor.on('heartbeat', function(){
 			self.log.debug('Heartbeat from ' + self.name)
 
-			self.heartbeatTimer = setTimeout(function() {
-				self.statusLowBattery = true
-				self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
-			}, (1000*24*60*60 + buffer))
+			if(self.disableBatteryStatus == false){
+				clearTimeout(self.heartbeatTimer)
+				self.heartbeatTimer = setTimeout(function() {
+					self.statusLowBattery = true
+					self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+				}, (1000*24*60*60 + buffer))
+			}
+
+			if(self.disableBatteryStatus == true){
+				clearTimeout(self.deadDeviceTimer)
+				self.deadDeviceTimer = setTimeout(function() { //if battery status disabled, still notify when the device is dead
+					self.statusLowBattery = true
+					self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+				}, (1000*48*60*60 + buffer))
+			}
 		})
 
 		break
@@ -2714,11 +2822,21 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.statusLowBattery = false
 
 		var buffer = 300 * 1000 //5 minute buffer
-		self.log.debug('Initializing heartbeat timer for ' + self.name)
-		self.heartbeatTimer = setTimeout(function() {
-			self.statusLowBattery = true
-			self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
-		}, (1000*24*60*60 + buffer))
+		if(self.disableBatteryStatus == false){
+			self.log.debug('Initializing heartbeat timer for ' + self.name)
+			self.heartbeatTimer = setTimeout(function() {
+				self.statusLowBattery = true
+				self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+			}, (1000*24*60*60 + buffer))
+		}
+
+		if(self.disableBatteryStatus == true){
+			self.log.debug('Initializing dead device timer for ' + self.name)
+			self.deadDeviceTimer = setTimeout(function() { //if battery status disabled, still notify when the device is dead
+				self.statusLowBattery = true
+				self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+			}, (1000*48*60*60 + buffer))
+		}
 
 		self.door = hub.door(self.id)
 
@@ -2737,10 +2855,21 @@ InsteonLocalAccessory.prototype.getServices = function() {
 		self.door.on('heartbeat', function(){
 			self.log.debug('Heartbeat from ' + self.name)
 
-			self.heartbeatTimer = setTimeout(function() {
-				self.statusLowBattery = true
-				self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
-			}, (1000*24*60*60 + buffer))
+			if(self.disableBatteryStatus == false){
+				clearTimeout(self.heartbeatTimer)
+				self.heartbeatTimer = setTimeout(function() {
+					self.statusLowBattery = true
+					self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+				}, (1000*24*60*60 + buffer))
+			}
+
+			if(self.disableBatteryStatus == true){
+				clearTimeout(self.deadDeviceTimer)
+				self.deadDeviceTimer = setTimeout(function() { //if battery status disabled, still notify when the device is dead
+					self.statusLowBattery = true
+					self.service.getCharacteristic(Characteristic.StatusLowBattery).updateValue(1) //0=normal, 1=low
+				}, (1000*48*60*60 + buffer))
+			}
 		})
 
 		break
@@ -2802,6 +2931,14 @@ InsteonLocalAccessory.prototype.getServices = function() {
 
 		self.serviceCO = new Service.CarbonMonoxideSensor(self.name)
 		self.serviceCO.getCharacteristic(Characteristic.CarbonMonoxideDetected).updateValue(0) //no CO
+
+		break
+
+	case 'x10':
+		self.service = new Service.Switch(self.name)
+
+		self.service.getCharacteristic(Characteristic.On).on('set', self.setX10PowerState.bind(self))
+		self.light = hub.x10(self.house, self.unit)
 
 		break
 	}

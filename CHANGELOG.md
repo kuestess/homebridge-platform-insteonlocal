@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.17
+
+- [FIXED] Fix crash when devices array not in config (#77)
+- [NEW] Initial support for X10 devices (#119)
+- [NEW] Added ability to disable battery monitoring (#123)
 ## 0.4.16
 
 - [FIXED] Fix crash when no devices defined (#77)
