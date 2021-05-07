@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.18
+- [FIXED] Fix warning from 'set' handlers (#136)
+- [NEW] Add invert sensor option for door/window/contact sensors (#134)
 ## 0.4.17
 
 - [FIXED] Fix crash when devices array not in config (#77)

@@ -85,10 +85,12 @@ Edit the config.json (see example) to fit your installation - configuration para
   - `pass`:  Hub password from Insteon app (Not your Insteon login password.  Go to Settings->House in the Insteon app and use the 'Hub Password' from there.)
   - `host`:  local IP of your Insteon hub or device path of your Insteon PLM
   - `port`:  port from Insteon app
-  - `model`: model number of your hub.  Valid values are 2242, 2245 or 2243 (see below)
+  - `model`: model number of your hub.  Valid values are 2242, 2245, 2243, or PLM
   - `refresh`: device status refresh interval in seconds (disabled by default, set to 0 to disable polling)
   - `use_express`: true or false to enable/disable Express server
   - `server_port`: port for local Express server
+
+
 
 Devices are also defined in the config.json as follows:
 
@@ -157,6 +159,9 @@ Battery operated devices:
 Low battery levels are reported periodically by the device and by default are shown in the Home app UI.  To disable low battery reporting, use the optional configuration parameter below.  This should be set at the individual device level.  Even with low battery status disabled, you will still get a low battery alert in the Home app if two heartbeat messages from the device are missed (takes ~2 days), likely indicating a dead device.
 
 - `disableBatteryStatus`: default false; set to true to disable low battery reporting.
+
+Contact sensors:
+- `invert_sensor`: set to true to invert the sensor status, ie off when closed and on when open. [default = false]
 
 Connection Watcher
 ------------------

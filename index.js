@@ -898,7 +898,7 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 	if(self.disabled){
 		self.log.debug('Device ' + self.name + ' is disabled')
 		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
+			callback(null)
 			return
 		} else {
 			return
@@ -957,7 +957,7 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 			}
 
 			if (typeof callback !== 'undefined') {
-				callback(null, self.currentState)
+				callback(null)
 				return
 			} else {
 				return
@@ -1008,7 +1008,7 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 			}
 
 			if (typeof callback !== 'undefined') {
-				callback(null, self.currentState)
+				callback(null)
 				return
 			} else {
 				return
@@ -1018,7 +1018,7 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 		self.currentState = state
 		self.lastUpdate = moment()
 		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
+			callback(null)
 			return
 		} else {
 			return
@@ -1033,7 +1033,7 @@ InsteonLocalAccessory.prototype.setX10PowerState = function(state, callback) {
 	if(self.disabled){
 		self.log.debug('Device ' + self.name + ' is disabled')
 		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
+			callback(null)
 			return
 		} else {
 			return
@@ -1053,7 +1053,7 @@ InsteonLocalAccessory.prototype.setX10PowerState = function(state, callback) {
 		self.lastUpdate = moment()
 
 		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
+			callback(null)
 			return
 		} else {
 			return
@@ -1067,7 +1067,7 @@ InsteonLocalAccessory.prototype.setX10PowerState = function(state, callback) {
 		self.lastUpdate = moment()
 
 		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
+			callback(null)
 			return
 		} else {
 			return
@@ -1122,7 +1122,7 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 	if(self.disabled){
 		self.log.debug('Device ' + self.name + ' is disabled')
 		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
+			callback(null)
 			return
 		} else {
 			return
@@ -1161,7 +1161,7 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 		setLevel.call(self,level)
 	}, debounceTimer)
 
-	callback(null, level)
+	callback(null)
 
 	function setLevel(level, callback){
 		var self = this
@@ -1363,7 +1363,7 @@ InsteonLocalAccessory.prototype.setRelayState = function(state, callback) {
 	if(self.disabled){
 		self.log.debug('Device ' + self.name + ' is disabled')
 		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
+			callback(null)
 			return
 		} else {
 			return
@@ -1393,7 +1393,7 @@ InsteonLocalAccessory.prototype.setRelayState = function(state, callback) {
 							self.service.getCharacteristic(Characteristic.Active).updateValue(0)
 							self.service.getCharacteristic(Characteristic.InUse).updateValue(0)
 							if (typeof callback !== 'undefined') {
-								callback(null, self.targetState)
+								callback(null)
 							} else {
 								return
 							}
@@ -1413,7 +1413,7 @@ InsteonLocalAccessory.prototype.setRelayState = function(state, callback) {
 	} else {
 		self.log(self.name + ' is already at commanded state')
 		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
+			callback(null)
 			return
 		} else {
 			return
@@ -1429,7 +1429,7 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 	if(self.disabled){
 		self.log.debug('Device ' + self.name + ' is disabled')
 		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
+			callback(null)
 			return
 		} else {
 			return
@@ -1451,7 +1451,7 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 				self.getGroupMemberStatus()
 
 				if (typeof callback !== 'undefined') {
-					callback(null, self.currentState)
+					callback(null)
 					return
 				} else {
 					return
@@ -1459,7 +1459,7 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 			} else {
 				self.log('Error setting power state of ' + self.name + ' to ' + powerOn)
 				if (typeof callback !== 'undefined') {
-					callback(error, null)
+					callback(error)
 					return
 				} else {
 					return
@@ -1477,7 +1477,7 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 				self.getGroupMemberStatus()
 
 				if (typeof callback !== 'undefined') {
-					callback(null, self.currentState)
+					callback(null)
 					return
 				} else {
 					return
@@ -1485,7 +1485,7 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 			} else {
 				self.log('Error setting power state of ' + self.name + ' to ' + powerOn)
 				if (typeof callback !== 'undefined') {
-					callback(error, null)
+					callback(error)
 					return
 				} else {
 					return
@@ -1631,7 +1631,7 @@ InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 	if(self.disabled){
 		self.log.debug('Device ' + self.name + ' is disabled')
 		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
+			callback(null)
 			return
 		} else {
 			return
@@ -1693,7 +1693,7 @@ InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 				self.log.debug('Err: ' + util.inspect(err))
 
 				if (typeof callback !== 'undefined') {
-					callback(err, null)
+					callback(err)
 					return
 				} else {
 					return
@@ -1704,7 +1704,7 @@ InsteonLocalAccessory.prototype.setKeypadState = function(state, callback) {
 				self.currentState = state
 
 				if (typeof callback !== 'undefined') {
-					callback(null, self.currentState)
+					callback(null)
 					return
 				} else {
 					return
@@ -1814,7 +1814,7 @@ InsteonLocalAccessory.prototype.setTargetKeypadBtn = function(state, callback) {
 				self.log.debug('Err: ' + util.inspect(err))
 
 				if (typeof callback !== 'undefined') {
-					callback(err, null)
+					callback(err)
 					return 1
 				} else {
 					return 1
@@ -1824,7 +1824,7 @@ InsteonLocalAccessory.prototype.setTargetKeypadBtn = function(state, callback) {
 				self.buttonMap = binaryButtonMap
 
 				if (typeof callback !== 'undefined') {
-				 	callback(null, self.currentState)
+				 	callback(null)
 					return 1
 				} else {
 					return 1
@@ -1929,7 +1929,7 @@ InsteonLocalAccessory.prototype.setFanState = function(level, callback) {
 	if(self.disabled){
 		self.log.debug('Device ' + self.name + ' is disabled')
 		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
+			callback(null)
 			return
 		} else {
 			return
@@ -1966,7 +1966,7 @@ InsteonLocalAccessory.prototype.setFanState = function(level, callback) {
 		setFanLevel.call(self, level)
 	}, debounceTimer)
 
-	callback(null, level)
+	callback(null)
 
 	function setFanLevel(level, callback){
 		var targetLevel
@@ -2013,14 +2013,14 @@ InsteonLocalAccessory.prototype.setFanState = function(level, callback) {
 				self.lastUpdate = moment()
 
 				if (typeof callback !== 'undefined') {
-					callback(null, self.level)
+					callback(null)
 				} else {
 					return
 				}
 			} else {
 				self.log('Error setting level of ' + self.name)
 				if (typeof callback !== 'undefined') {
-					callback(error, null)
+					callback(error)
 					return
 				} else {
 					return
@@ -2085,7 +2085,7 @@ InsteonLocalAccessory.prototype.setOutletState = function(state, callback) {
 	if(self.disabled){
 		self.log.debug('Device ' + self.name + ' is disabled')
 		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
+			callback(null)
 			return
 		} else {
 			return
@@ -2118,7 +2118,7 @@ InsteonLocalAccessory.prototype.setOutletState = function(state, callback) {
 				self.log.debug('Error: ' + util.inspect(error))
 
 				if (typeof callback !== 'undefined') {
-					callback(error, null)
+					callback(error)
 					return
 				} else {
 					return
@@ -2155,7 +2155,7 @@ InsteonLocalAccessory.prototype.setOutletState = function(state, callback) {
 					}
 
 					if (typeof callback !== 'undefined') {
-						callback(null, self.currentState)
+						callback(null)
 						return
 					} else {
 						return
@@ -2185,7 +2185,7 @@ InsteonLocalAccessory.prototype.setOutletState = function(state, callback) {
 				self.log.debug('Error: ' + util.inspect(error))
 
 				if (typeof callback !== 'undefined') {
-					callback(error, null)
+					callback(error)
 					return
 				} else {
 					return
@@ -2222,7 +2222,7 @@ InsteonLocalAccessory.prototype.setOutletState = function(state, callback) {
 					}
 
 					if (typeof callback !== 'undefined') {
-						callback(null, self.currentState)
+						callback(null)
 						return
 					} else {
 						return
@@ -2340,7 +2340,7 @@ InsteonLocalAccessory.prototype.setPosition = function(level, callback) { //get 
 	if(self.disabled){
 		self.log.debug('Device ' + self.name + ' is disabled')
 		if (typeof callback !== 'undefined') {
-			callback(null, self.currentState)
+			callback(null)
 			return
 		} else {
 			return
@@ -2366,14 +2366,14 @@ InsteonLocalAccessory.prototype.setPosition = function(level, callback) { //get 
 			self.lastUpdate = moment()
 			self.service.getCharacteristic(Characteristic.PositionState).updateValue(2)
 			if (typeof callback !== 'undefined') {
-				callback(null, self.level)
+				callback(null)
 			} else {
 				return
 			}
 		} else {
 			self.log('Error setting level of ' + self.name)
 			if (typeof callback !== 'undefined') {
-				callback(error, null)
+				callback(error)
 				return
 			} else {
 				return
@@ -2514,6 +2514,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 
 	if (['motionsensor', 'doorsensor', 'windowsensor', 'contactsensor', 'leaksensor'].includes(self.deviceType)) {
 		self.disableBatteryStatus = device.disableBatteryStatus || false
+		self.invert_sensor = device.invert_sensor || false
 	}
 
 	if (self.deviceType == 'x10') {
@@ -2842,14 +2843,28 @@ InsteonLocalAccessory.prototype.getServices = function() {
 
 		self.door.on('opened', function(){
 			self.log.debug(self.name + ' is open')
-			self.currentState = true
-			self.service.getCharacteristic(Characteristic.ContactSensorState).updateValue(1)
+			self.log.debug('Invert sensor: ' + self.invert_sensor)
+
+			if(self.invert_sensor == 'false' || self.invert_sensor == false) {
+				self.currentState = true
+				self.service.getCharacteristic(Characteristic.ContactSensorState).updateValue(1)
+			} else if(self.invert_sensor == true || self.invert_sensor == 'true') {
+				self.currentState = false
+				self.service.getCharacteristic(Characteristic.ContactSensorState).updateValue(0)
+			}
 		})
 
 		self.door.on('closed', function(){
 			self.log.debug(self.name + ' is closed')
-			self.currentState = false
-			self.service.getCharacteristic(Characteristic.ContactSensorState).updateValue(0)
+			self.log.debug('Invert sensor: ' + self.invert_sensor)
+
+			if(self.invert_sensor == 'false' || self.invert_sensor == false) {
+				self.currentState = false
+				self.service.getCharacteristic(Characteristic.ContactSensorState).updateValue(0)
+			} else if(self.invert_sensor == true || self.invert_sensor == 'true') {
+				self.currentState = true
+				self.service.getCharacteristic(Characteristic.ContactSensorState).updateValue(1)
+			}
 		})
 
 		self.door.on('heartbeat', function(){
