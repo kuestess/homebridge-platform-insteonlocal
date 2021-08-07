@@ -2384,7 +2384,7 @@ InsteonLocalAccessory.prototype.setPosition = function(level, callback) { //get 
 
 InsteonLocalAccessory.prototype.getGroupMemberStatus = function(){
 	var self = this
-	var deviceIDs = platform.deviceIDs
+	var deviceIDs = self.platform.deviceIDs
 
 	if(typeof self.groupMembers == 'undefined') {
 		self.log('No group members defined for ' + self.name)
@@ -2403,10 +2403,10 @@ InsteonLocalAccessory.prototype.getGroupMemberStatus = function(){
 			self.log('Getting status of scene device ' + namedDev.name)
 			setTimeout(function(){namedDev.getStatus.call(namedDev)}, 2000)
 		} else { //group member defined by id
-			var isDefined = _.contains(deviceIDs, deviceID, 0)
+			var isDefined = _.contains(deviceIDs, deviceID.toUpperCase(), 0)
 			if(isDefined){
 				var groupDevice = accessories.filter(function(item) {
-					return (item.id == deviceID)
+					return (item.id == deviceID.toUpperCase())
 				})
 
 				groupDevice = groupDevice[0]
