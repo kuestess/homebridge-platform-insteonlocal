@@ -1450,6 +1450,16 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 
 				self.getGroupMemberStatus()
 
+        self.log.debug ('Scene is set to momentary: ' + self.momentary)
+				if (self.momentary) {
+					setTimeout(function(){
+						self.level = 0
+						self.service.getCharacteristic(Characteristic.On).updateValue(false)
+						self.currentState = false
+					},2000)
+				}
+
+
 				if (typeof callback !== 'undefined') {
 					callback(null)
 					return
@@ -2480,6 +2490,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 		self.groupID = device.groupID
 		self.keypadbtn = device.keypadbtn
 		self.six_btn = device.six_btn
+		self.momentary = device.momentary || false
 
 		if(typeof device.groupMembers !== 'undefined'){
 			var reg = /,|,\s/
