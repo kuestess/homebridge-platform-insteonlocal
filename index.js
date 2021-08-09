@@ -560,7 +560,9 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false)
 							foundDevice.currentState = false
 							foundDevice.lastUpdate = moment()
-							foundDevice.getGroupMemberStatus.call(foundDevice)
+							if (messageType = '1') {
+							  foundDevice.getGroupMemberStatus.call(foundDevice)
+							}
 						}
 
 						if (command1 == 18) { //18 = stop changing
@@ -1458,6 +1460,16 @@ InsteonLocalAccessory.prototype.setSceneState = function(state, callback) {
 				self.lastUpdate = moment()
 
 				self.getGroupMemberStatus()
+
+        self.log.debug ('Scene is set to momentary: ' + self.momentary)
+				if (self.momentary) {
+					setTimeout(function(){
+						self.level = 0
+						self.service.getCharacteristic(Characteristic.On).updateValue(false)
+						self.currentState = false
+					},2000)
+				}
+
 
 				if (typeof callback !== 'undefined') {
 					callback(null)
@@ -2393,10 +2405,10 @@ InsteonLocalAccessory.prototype.setPosition = function(level, callback) { //get 
 
 InsteonLocalAccessory.prototype.getGroupMemberStatus = function(){
 	var self = this
-	var deviceIDs = platform.deviceIDs
+	var deviceIDs = self.platform.deviceIDs
 
 	if(typeof self.groupMembers == 'undefined') {
-		self.log('No group members defined for ' + self.name)
+		self.log.debug('No group members defined for ' + self.name)
 		return
 	}
 
@@ -2412,10 +2424,10 @@ InsteonLocalAccessory.prototype.getGroupMemberStatus = function(){
 			self.log('Getting status of scene device ' + namedDev.name)
 			setTimeout(function(){namedDev.getStatus.call(namedDev)}, 2000)
 		} else { //group member defined by id
-			var isDefined = _.contains(deviceIDs, deviceID, 0)
+			var isDefined = _.contains(deviceIDs, deviceID.toUpperCase(), 0)
 			if(isDefined){
 				var groupDevice = accessories.filter(function(item) {
-					return (item.id == deviceID)
+					return (item.id == deviceID.toUpperCase())
 				})
 
 				groupDevice = groupDevice[0]
@@ -2494,7 +2506,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 		self.groupID = device.groupID
 		self.keypadbtn = device.keypadbtn
 		self.six_btn = device.six_btn
-	
+		self.momentary = device.momentary || false
   }
 
 	if (self.deviceType == 'keypad') {

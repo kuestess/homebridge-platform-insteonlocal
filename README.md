@@ -118,6 +118,7 @@ Scenes remain on/off only and support status when controlled via a Keypadlinc.  
   - `six_btn`: set to `true` if using a Keypadlinc configured as a 6-button; default is `false`
   - `groupID`: the group number in the Insteon app (Scenes->Edit Scene->Group Number)
   - `groupMembers`: comma-delimited list of Insteon IDs that are part of the group/scene (optional); member device status will be automatically updated after a scene is triggered
+  - `momentary`: since hub-based scenes do not support status, you can set this to `true` to make a scene 'stateless'. This will allow you to re-trigger the scene or run a different scene on the same devices without having to turn the scene `off` first. 
 
 Target Keypad LED:
 By Insteon's design, keypad (scene button) LED follows the state of a linked scene only; it does not act according to the device state itself. eg. Turn on `scene 1` then the corresponding keypad LED lights up, but turning on `Light 1` directly will not light up the keypad LED.
