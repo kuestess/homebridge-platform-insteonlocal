@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.19
+- [FIXED] Remove npm-shrinkwrap; no longer required with updates to `home-controller` dependencies
+- [NEW] Merge PRs from @mikeypdev: fix for groupMembers (#147), expand groupMembers to switches/dimmers (#149), add 'momentary' property for scene configurations (#148)
 ## 0.4.18
 - [FIXED] Fix warning from 'set' handlers (#136)
 - [NEW] Add invert sensor option for door/window/contact sensors (#134)
