@@ -106,6 +106,7 @@ Devices are also defined in the config.json as follows:
   - `targetKeypadBtn`: this is an array `["button_letter","button_letter"]` of Insteon keypad button(s), 'A' - 'H', that corresponds to the array from `targetKeypadID`. See additional notes below on Target Keypad LED.
   - `targetKeypadSixBtn`: this is an array `[true/false, true/false]` of Insteon keypad button layout, that corresponds to the array from `targetKeypadID`. `true` denote a 6-button keypad, while `false` denotes an 8-button keypad. See additional notes below on Target Keypad LED.
   - `disabled`: set to true to disable Insteon communication for a device (defaults to false).  Device will still appear in Home (or other apps), but can't be controlled.  Good to use for 'seasonal' devices.
+  - `groupMembers`: comma-delimited list of Insteon IDs that are linked to this device (optional, for devices with on/off states like dimmers and switches); member device status will be automatically updated after the device is turned on or off
 
 Battery operated devices: Battery status is monitored for battery operated devices (leak, motion, door/window sensors) and will alert when the device sends a low battery signal.  The heartbeat for those devices is also monitored (sent from device every 24 hours).  You will also receive a low battery alert if no heartbeat is received within 24 hours.
 

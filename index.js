@@ -530,6 +530,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							}
 
 							foundDevice.lastUpdate = moment()
+							foundDevice.getGroupMemberStatus.call(foundDevice)
 						}
 
 						if (command1 == 12) { //fast on
@@ -544,6 +545,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true)
 							foundDevice.currentState = true
 							foundDevice.lastUpdate = moment()
+							foundDevice.getGroupMemberStatus.call(foundDevice)
 						}
 
 						if (command1 == 13 || command1 == 14) { //13 = off, 14= fast off
@@ -558,6 +560,9 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 							foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false)
 							foundDevice.currentState = false
 							foundDevice.lastUpdate = moment()
+							if (messageType = '1') {
+							  foundDevice.getGroupMemberStatus.call(foundDevice)
+							}
 						}
 
 						if (command1 == 18) { //18 = stop changing
@@ -580,6 +585,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 								foundDevice.lastUpdate = moment()
 								foundDevice.service.getCharacteristic(Characteristic.On).updateValue(true)
 								foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(100)
+								foundDevice.getGroupMemberStatus.call(foundDevice)
 							}
 
 							if(commandedState == 13) {
@@ -588,6 +594,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 								foundDevice.lastUpdate = moment()
 								foundDevice.service.getCharacteristic(Characteristic.On).updateValue(false)
 								foundDevice.service.getCharacteristic(Characteristic.Brightness).updateValue(0)
+								foundDevice.getGroupMemberStatus.call(foundDevice)
 							}
 						}
 
@@ -931,6 +938,8 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 			self.currentState = true
 			self.lastUpdate = moment()
 
+			self.getGroupMemberStatus()
+			
 			//Check if any target keypad button(s) to process
 			if(self.targetKeypadID.length > 0){
 				self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
@@ -982,6 +991,8 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 			self.currentState = false
 			self.lastUpdate = moment()
 
+			self.getGroupMemberStatus()
+			
 			//Check if any target keypad button(s) to process
 			if(self.targetKeypadID.length > 0){
 				self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
@@ -2397,7 +2408,7 @@ InsteonLocalAccessory.prototype.getGroupMemberStatus = function(){
 	var deviceIDs = self.platform.deviceIDs
 
 	if(typeof self.groupMembers == 'undefined') {
-		self.log('No group members defined for ' + self.name)
+		self.log.debug('No group members defined for ' + self.name)
 		return
 	}
 
@@ -2474,7 +2485,12 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 	self.targetKeypadSixBtn = device.targetKeypadSixBtn || []
 	self.targetKeypadBtn = device.targetKeypadBtn || []
 	self.setTargetKeypadCount = 0
-
+	
+	if(typeof device.groupMembers !== 'undefined'){
+		var reg = /,|,\s/
+		self.groupMembers = device.groupMembers.split(reg)
+	}
+	
 	if(self.id){
 		self.id = self.id.trim().replace(/\./g, '')
 	}
@@ -2491,12 +2507,7 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 		self.keypadbtn = device.keypadbtn
 		self.six_btn = device.six_btn
 		self.momentary = device.momentary || false
-
-		if(typeof device.groupMembers !== 'undefined'){
-			var reg = /,|,\s/
-			self.groupMembers = device.groupMembers.split(reg)
-		}
-	}
+  }
 
 	if (self.deviceType == 'keypad') {
 		self.keypadbtn = typeof(device.keypadbtn) === 'string' ? device.keypadbtn : '?'
