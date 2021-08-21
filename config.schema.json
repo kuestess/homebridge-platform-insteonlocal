@@ -1,0 +1,100 @@
+{
+  "pluginAlias": "InsteonLocal",
+  "pluginType": "platform",
+  "singular": true,
+  "customUi": true,
+  "headerDisplay": "Homebridge platform plugin for local Insteon control.",
+  "footerDisplay": "See [CHANGELOG](https://github.com/kuestess/homebridge-platform-insteonlocal/blob/master/CHANGELOG.md).",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": true
+      },
+      "user": {
+        "title": "User",
+        "type": "string",
+        "default": true
+      },
+      "pass": {
+        "$title": "Pass",
+        "type": "string",
+        "default": true
+      },
+      "host": {
+        "title": "Host",
+        "type": "string",
+        "default": true
+      },
+      "port": {
+        "title": "Port",
+        "type": "string",
+        "default": false
+      },
+      "model": {
+        "title": "Model",
+        "type": "string",
+        "default": true
+      },
+      "refresh": {
+        "title": "Refresh",
+        "type": "string",
+        "default": false
+      },
+      "server_port": {
+        "title": "Server Port",
+        "type": "string",
+        "default": false
+      },
+      "keepAlive": {
+        "title": "Keep Alive",
+        "type": "string",
+        "default": false
+      },
+      "devices": {
+        "title": "Devices",
+        "type": "array",
+        "default": true,
+        "items": {
+          "name": {
+            "title": "Name",
+            "type": "string",
+            "default": true
+          },
+          "deviceID": {
+            "title": "Device ID",
+            "type": "string",
+            "default": false
+          },
+          "dimmable": {
+            "title": "Dimmable",
+            "type": "string",
+            "default": false
+          },
+          "deviceType": {
+            "title": "Device Type",
+            "type": "string",
+            "default": true
+          },
+          "groupID": {
+            "title": "Group ID",
+            "type": "string",
+            "default": false
+          },
+          "keypadbtn": {
+            "title": "Keypad Button",
+            "type": "string",
+            "default": false
+          },
+          "groupMembers": {
+            "title": "Group Members",
+            "type": "string",
+            "default": false
+          }
+        }
+      }
+    }
+  }
+}
