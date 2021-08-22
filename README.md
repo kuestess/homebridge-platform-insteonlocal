@@ -33,7 +33,7 @@ Manage your Insteonlocal configuration.  Hub connection parameter settings are m
 Information about your Hub.  To start, click 'Get Hub Info'.  Under the 'Action' menu, click 'Get Devices/Links'.  This will discover devices and links from the Hub and populate scenes controlled by the hub.  This must be done before any devices are displayed on the 'Devices' tab.<br /><br />In the 'Links' tab on the Hub page, you can delete a link by clicking the trashcan icon (it wil confirm before deleteing).  Note that this only deletes the link from the Hub and not the corresponding device.  This is useful for deleting half-links from the Hub.
 
 * Devices<br />
-If you have already discovered devices from the Hub, you should see a list of devices in the left-hand column.  If not, click 'Get Devices' and the device list should populate after discovery is complete.<br /><br />Once devices are discovered, click on a device in the list.  In the right-hand pane, you can give the device a frienly name (be sure to click 'Save').  Devices that were in your config should already be named (you can change the name here without overwriting your config).  Under the 'Action' menu, you can get links information and links from the device by clicking 'Get Dev Info/Links'.  Depending upon the number of links in the device, this may take some time and is best to do when there is no other Insteon traffic.  If you want to do this for all devices at once, click 'Get All Dev Links' in the top right.  Again, this may take time.
+If you have already discovered devices from the Hub, you should see a list of devices in the left-hand column.  If not, click 'Get Devices' and the device list should populate after discovery is complete.<br /><br />Once devices are discovered, click on a device in the list.  In the right-hand pane, you can give the device a friendly name (be sure to click 'Save').  Devices that were in your config should already be named (you can change the name here without overwriting your config).  Under the 'Action' menu, you can get links information and links from the device by clicking 'Get Dev Info/Links'.  Depending upon the number of links in the device, this may take some time and is best to do when there is no other Insteon traffic.  If you want to do this for all devices at once, click 'Get All Dev Links' in the top right.  Again, this may take time.
 
     You can also identify the device by clicking 'Beep' under the 'Action' menu.<br /><br />Three tabs in the bottom part of the page show details for the selected device:
     * Operating Flags: Lists device config parameters (not editable, for now).  The database delta will change anytime a link is modified on a device.  The UI will check this before retrieving links from the device.
@@ -176,10 +176,10 @@ For model 2242 hubs, the Connection Watcher wil determine if a request is in pro
 
 Using The HubPro Model 2243 (Beta)
 -----------------------------------
-It is possible to use the official Insteon HubPro as a complete homebride server and Insteon Hub. This requires flashing the HubPro and installing homebridge as normal. Inside the HubPro is a BeagleBoard Black Computer and a Power Line Modem connected via a serial connection.
+It is possible to use the official Insteon HubPro as a complete homebridge server and Insteon Hub. This requires flashing the HubPro and installing homebridge as normal. Inside the HubPro is a BeagleBoard Black Computer and a Power Line Modem connected via a serial connection.
 
 1. Follow the intructions here http://beagleboard.org/getting-started to create an microSD card with latest board software
-2. Open the HubPro removing the 6 screwes on the bottom.
+2. Open the HubPro removing the 6 screws on the bottom.
 3. Insert the SD Card.
 4. While holding down the Boot Button "S2" connect the power. Don't electrocute yourself. Wait until the LED starts flashing.
 5. You should be able to connect via SSH now (username is 'debian' and the password is 'temppwd').
