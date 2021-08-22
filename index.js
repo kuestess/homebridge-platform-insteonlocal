@@ -306,7 +306,15 @@ function InsteonLocalPlatform(log, config, api) {
 		if (self.keepAlive > 0){
 			connectionWatcher()
 		}
-	} else {self.log.error('No devices defined - please add devices to your config.json')}
+	} else {
+		self.log.error('No devices defined - please add devices to your config.json')
+
+		self.connectToHub()
+
+		if (self.keepAlive > 0){
+			connectionWatcher()
+		}
+	}
 
 	function connectionWatcher() { //resets connection to hub every keepAlive mS
 		self.log('Started connection watcher...')
@@ -939,7 +947,7 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 			self.lastUpdate = moment()
 
 			self.getGroupMemberStatus()
-			
+
 			//Check if any target keypad button(s) to process
 			if(self.targetKeypadID.length > 0){
 				self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
@@ -992,7 +1000,7 @@ InsteonLocalAccessory.prototype.setPowerState = function(state, callback) {
 			self.lastUpdate = moment()
 
 			self.getGroupMemberStatus()
-			
+
 			//Check if any target keypad button(s) to process
 			if(self.targetKeypadID.length > 0){
 				self.log.debug(self.targetKeypadID.length + ' target keypad(s) found for ' + self.name)
@@ -2485,12 +2493,12 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 	self.targetKeypadSixBtn = device.targetKeypadSixBtn || []
 	self.targetKeypadBtn = device.targetKeypadBtn || []
 	self.setTargetKeypadCount = 0
-	
+
 	if(typeof device.groupMembers !== 'undefined'){
 		var reg = /,|,\s/
 		self.groupMembers = device.groupMembers.split(reg)
 	}
-	
+
 	if(self.id){
 		self.id = self.id.trim().replace(/\./g, '')
 	}
