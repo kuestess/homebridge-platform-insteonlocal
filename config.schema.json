@@ -2,7 +2,6 @@
   "pluginAlias": "InsteonLocal",
   "pluginType": "platform",
   "singular": true,
-  "customUi": true,
   "headerDisplay": "Homebridge platform plugin for local Insteon control.",
   "footerDisplay": "See [CHANGELOG](https://github.com/kuestess/homebridge-platform-insteonlocal/blob/master/CHANGELOG.md).",
   "schema": {
@@ -11,7 +10,8 @@
       "name": {
         "title": "Name",
         "type": "string",
-        "default": true
+        "default": "InsteonLocal",
+        "required": true
       },
       "user": {
         "title": "User",
@@ -31,12 +31,18 @@
       "port": {
         "title": "Port",
         "type": "string",
-        "default": false
+        "default": "25105"
       },
       "model": {
         "title": "Model",
         "type": "string",
-        "default": true
+        "default": "2245",
+        "oneOf": [
+          { "title": "2245", "enum": ["2245"] },
+          { "title": "2243", "enum": ["2243"] },
+          { "title": "2242", "enum": ["2242"] },
+          { "title": "PLM", "enum": ["PLM"] }
+        ]
       },
       "refresh": {
         "title": "Refresh",
@@ -46,7 +52,7 @@
       "server_port": {
         "title": "Server Port",
         "type": "string",
-        "default": false
+        "default": "3000"
       },
       "keepAlive": {
         "title": "Keep Alive",
@@ -56,42 +62,60 @@
       "devices": {
         "title": "Devices",
         "type": "array",
-        "default": true,
+        "required": false,
         "items": {
-          "name": {
-            "title": "Name",
-            "type": "string",
-            "default": true
-          },
-          "deviceID": {
-            "title": "Device ID",
-            "type": "string",
-            "default": false
-          },
-          "dimmable": {
-            "title": "Dimmable",
-            "type": "string",
-            "default": false
-          },
-          "deviceType": {
-            "title": "Device Type",
-            "type": "string",
-            "default": true
-          },
-          "groupID": {
-            "title": "Group ID",
-            "type": "string",
-            "default": false
-          },
-          "keypadbtn": {
-            "title": "Keypad Button",
-            "type": "string",
-            "default": false
-          },
-          "groupMembers": {
-            "title": "Group Members",
-            "type": "string",
-            "default": false
+          "title": "Device",
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string",
+              "required": true
+            },
+            "deviceID": {
+              "title": "Device ID",
+              "type": "string",
+              "required": true
+            },
+            "dimmable": {
+              "title": "Dimmable",
+              "type": "string",
+              "default": true
+            },
+            "deviceType": {
+              "title": "Device Type",
+              "type": "string",
+              "default": "dimmer",
+              "oneOf": [
+                { "title": "lightbulb", "enum": ["lightbulb"] },
+                { "title": "dimmer", "enum": ["dimmer"] },
+                { "title": "switch", "enum": ["switch"] },
+                { "title": "scene", "enum": ["scene"] },
+                { "title": "remote", "enum": ["remote"] },
+                { "title": "iolinc", "enum": ["iolinc"] },
+                { "title": "motionsensor", "enum": ["motionsensor"] },
+                { "title": "leaksensor", "enum": ["leaksensor"] },
+                { "title": "doorsensor", "enum": ["doorsensor"] },
+                { "title": "outlet", "enum": ["outlet"] },
+                { "title": "keypad", "enum": ["keypad"] },
+                { "title": "shades", "enum": ["shades"] },
+                { "title": "blinds", "enum": ["blinds"] },
+                { "title": "smoke", "enum": ["smoke"] },
+                { "title": "fan", "enum": ["fan"] }
+              ]
+            },
+            "groupID": {
+              "title": "Group ID",
+              "type": "string"
+            },
+            "keypadbtn": {
+              "title": "Keypad Button",
+              "type": "string"
+            },
+            "groupMembers": {
+              "title": "Group Members",
+              "type": "string"
+            }
           }
         }
       }
