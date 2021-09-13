@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.21
+- [FIXED] Fixes for configuration via homebrudge ui.
 ## 0.4.20
 - [FIXED] Enable connection to Hub and load of Insteon UI even if no devices are defined in config.
 - [NEW] Merge PR from @donavanbecker: Allow easy homebridge config UI setup (#152)
