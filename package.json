@@ -1,0 +1,49 @@
+{
+  "private": true,
+  "displayName": "InsteonLocal",
+  "name": "homebridge-platform-insteonlocal",
+  "version": "0.5.0",
+  "description": "Insteon platform plugin with local control for homebridge: https://github.com/nfarina/homebridge",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/kuestess/homebridge-platform-insteonlocal.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kuestess/homebridge-platform-insteonlocal/issues"
+  },
+  "engines": {
+    "node": ">=12.13.0",
+    "homebridge": ">=1.3.0"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "eslint src/**.ts --max-warnings=0",
+    "watch": "npm run build && npm link && nodemon",
+    "build": "rimraf ./dist && tsc",
+    "prepublishOnly": "npm run lint && npm run build"
+  },
+  "keywords": [
+    "homebridge-plugin",
+    "insteon",
+    "homebridge"
+  ],
+  "dependencies": {
+    "express": "^4.17.1",
+    "home-controller": "^0.9.2",
+    "moment": "^2.29.1",
+    "underscore": "^1.13.1",
+    "util": "^0.12.4"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.31",
+    "@typescript-eslint/eslint-plugin": "^4.16.1",
+    "@typescript-eslint/parser": "^4.16.1",
+    "eslint": "^7.21.0",
+    "homebridge": "^1.3.1",
+    "nodemon": "^2.0.7",
+    "rimraf": "^3.0.2",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.2"
+  }
+}

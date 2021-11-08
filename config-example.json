@@ -1,0 +1,43 @@
+{
+	"bridge": {
+		"name": "Homebridge",
+		"username": "CC:22:3D:E3:CE:22",
+		"pin": "123-45-678"
+	},
+
+	"platforms": [
+				{
+				  "platform": "InsteonLocal",
+				  "name": "Insteon Local Platform",
+				  "user": "<username from Insteon app>",
+				  "pass": "<password from Insteon app>",
+				  "host": "<local IP of your Insteon hub>",
+				  "port": "<port from Insteon app [usually 25105]>",
+				  "model": "2245",
+				  "refresh":"0",
+				  "server_port": "3000",
+				  "keepAlive": "3600",
+				  "devices": [
+								{ 
+									"name": "Great Room Lamp",
+								  	"deviceID" : "<Insteon ID>",
+								  	"dimmable" : "yes",
+								  	"deviceType" : "lightbulb" },
+								{
+									"name": "FR Lamp",
+									"deviceID": "<Insteon ID>",
+									"dimmable": "no",
+									"groupID": "30",
+									"keypadbtn": "F",
+									"groupMembers": "AABBCC,XXYYZZ,DDEEFF",
+									"deviceType": "scene"
+								}		
+            				]
+				}
+				],
+	
+	"accessories": [
+
+   ]
+
+}
