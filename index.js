@@ -1151,19 +1151,25 @@ InsteonLocalAccessory.prototype.setBrightnessLevel = function(level, callback) {
 	self.platform.checkHubConnection()
 
 	var now = moment()
+	var delta
 
-	if(typeof self.lastCommand == 'undefined'){self.lastCommand = now}
+	if(typeof self.lastCommand == 'undefined'){
+		self.lastCommand = now
+		delta = -1
+	} else {
+		delta = now.diff(self.lastCommand, 'milliseconds')
+	}
 
-	var lastCommand = self.lastCommand
-	var delta = now.diff(lastCommand, 'milliseconds')
 	var debounceTimer = 600
 
+	self.log.debug("Command for " + self.name + ": " + level + ", time: " + self.lastCommand + ", delta: " + delta)
+
 	if (level == self.currentState) {
-		self.log.debug("Discard on, already at commanded state")
+		self.log.debug("Discard on for " + self.name + ", already at commanded state")
 		callback()
 		return
-	} else if (level === true && delta <= 50) {
-		self.log.debug("Discard on, sent too close to dim")
+	} else if (level === true && delta >= 0 && delta <= 50) {
+		self.log.debug("Discard on for " + self.name + ", sent too close to dim")
 		callback()
 		return
 	} else if (level === true) {
@@ -1970,18 +1976,22 @@ InsteonLocalAccessory.prototype.setFanState = function(level, callback) {
 	hub.cancelPending(self.id)
 
 	var now = moment()
+	var delta
 
-	if(typeof self.lastCommand == 'undefined'){self.lastCommand = now}
+	if(typeof self.lastCommand == 'undefined'){
+		self.lastCommand = now
+		delta = -1
+	} else {
+		delta = now.diff(self.lastCommand, 'milliseconds')
+	}
 
-	var lastCommand = self.lastCommand
-	var delta = now.diff(lastCommand, 'milliseconds')
 	var debounceTimer = 600
 
 	if (level == self.currentState) {
 		self.log.debug("Discard on, already at commanded state")
 		callback()
 		return
-	} else if (level === true && delta <= 50) {
+	} else if (level === true && delta >= 0 && delta <= 50) {
 		self.log.debug("Discard on, sent too close to dim")
 		callback()
 		return

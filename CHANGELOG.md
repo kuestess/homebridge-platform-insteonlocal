@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.22
+- [FIXED] Fix debounce logic when using Siri.
 ## 0.4.21
 - [FIXED] Fixes for configuration via homebrudge ui.
 ## 0.4.20
