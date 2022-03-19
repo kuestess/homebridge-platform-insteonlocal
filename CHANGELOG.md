@@ -1,7 +1,8 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
-
+## 0.4.23
+- [FIXED] Fix status for keypads with attached load (#185)
 ## 0.4.22
 - [FIXED] Fix debounce logic when using Siri.
 ## 0.4.21

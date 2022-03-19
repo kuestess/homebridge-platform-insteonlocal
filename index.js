@@ -352,6 +352,19 @@ function InsteonLocalPlatform(log, config, api) {
 	}
 }
 
+InsteonLocalPlatform.prototype.getHubInfo = function() {
+	var self = this
+
+	hub.info(function (error, info) {
+		if (error) {
+			self.log('Error getting Hub info')
+		} else {
+			self.hubID = info.id.toUpperCase()
+			self.log.debug('Hub/PLM id is ' + self.hubID)
+		}
+	})
+}
+
 InsteonLocalPlatform.prototype.connectToHub = function (){
 	var self = this
 
@@ -366,6 +379,8 @@ InsteonLocalPlatform.prototype.connectToHub = function (){
 			if(eventListener_init == false) {
 				self.eventListener()
 			}
+
+			self.getHubInfo()
 
 			if(self.use_express && express_init == false){
 				express_init = true
@@ -383,6 +398,8 @@ InsteonLocalPlatform.prototype.connectToHub = function (){
 			if(eventListener_init == false) {
 				self.eventListener()
 			}
+
+			self.getHubInfo()
 
 			if(self.use_express && express_init == false){
 				express_init = true
@@ -403,6 +420,8 @@ InsteonLocalPlatform.prototype.connectToHub = function (){
 				self.eventListener()
 			}
 
+			self.getHubInfo()
+
 			if(self.use_express && express_init == false){
 				express_init = true
 				app.listen(self.server_port)
@@ -419,6 +438,8 @@ InsteonLocalPlatform.prototype.connectToHub = function (){
 			if(eventListener_init == false) {
 				self.eventListener()
 			}
+
+			self.getHubInfo()
 
 			if(self.use_express && express_init == false){
 				express_init = true
@@ -463,7 +484,7 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 			var command1 = data.standard.command1
 			var command2 = data.standard.command2
 			var messageType = data.standard.messageType
-			var gateway = data.standard.gatewayId
+			var gateway = data.standard.gatewayId.toUpperCase()
 
 			var isDevice = _.contains(deviceIDs, id, 0)
 
@@ -471,6 +492,15 @@ InsteonLocalPlatform.prototype.eventListener = function () {
 				var foundDevices = accessories.filter(function(item) {
 					return item.id == id
 				})
+
+				if (gateway != self.hubID) {
+					if(parseInt(gateway) != 1){
+						self.log.debug('Message is from keypad, filtering non-keypad devices.')
+						foundDevices = foundDevices.filter(function (item) {
+							return item.deviceType == 'keypad'
+						})
+					}
+				}
 
 				self.log.debug('Found ' + foundDevices.length + ' accessories matching ' + id)
 				self.log.debug('Hub command: ' + info)
