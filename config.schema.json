@@ -1,6 +1,9 @@
 {
   "pluginAlias": "InsteonLocal",
   "pluginType": "platform",
+  "alias": "InsteonLocal",
+  "platform": true,
+  "accessory": false,
   "singular": true,
   "headerDisplay": "Homebridge platform plugin for local Insteon control.",
   "footerDisplay": "See [CHANGELOG](https://github.com/kuestess/homebridge-platform-insteonlocal/blob/master/CHANGELOG.md).",
@@ -16,22 +19,23 @@
       "user": {
         "title": "User",
         "type": "string",
-        "default": true
+        "placeholder": "Username from Insteon app"
       },
       "pass": {
         "$title": "Pass",
         "type": "string",
-        "default": true
+        "placeholder": "Password from Insteon app"
       },
       "host": {
         "title": "Host",
         "type": "string",
-        "default": true
+        "placeholder": "Local IP address of your Insteon hub"
       },
       "port": {
         "title": "Port",
         "type": "string",
-        "default": "25105"
+        "default": "25105",
+        "placeholder": "Port from Insteon app [usually 25105]"
       },
       "model": {
         "title": "Model",
@@ -47,7 +51,7 @@
       "refresh": {
         "title": "Refresh",
         "type": "string",
-        "default": false
+        "default": "0"
       },
       "server_port": {
         "title": "Server Port",
@@ -57,10 +61,11 @@
       "keepAlive": {
         "title": "Keep Alive",
         "type": "string",
-        "default": false
+        "default": "3600"
       },
       "devices": {
         "title": "Devices",
+        "expandable": true,
         "type": "array",
         "required": false,
         "items": {
@@ -70,22 +75,28 @@
             "name": {
               "title": "Name",
               "type": "string",
+              "placeholder": "Enter device name",
               "required": true
             },
             "deviceID": {
               "title": "Device ID",
               "type": "string",
+              "placeholder": "Insteon device id",
               "required": true
             },
             "dimmable": {
               "title": "Dimmable",
               "type": "string",
-              "default": true
+              "required": true,
+              "oneOf": [
+                  { "title": "yes", "enum": ["yes"] },
+                  { "title": "no", "enum": ["no"] }
+              ]
             },
             "deviceType": {
               "title": "Device Type",
               "type": "string",
-              "default": "dimmer",
+              "required": true,
               "oneOf": [
                 { "title": "lightbulb", "enum": ["lightbulb"] },
                 { "title": "dimmer", "enum": ["dimmer"] },

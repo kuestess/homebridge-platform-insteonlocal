@@ -43,8 +43,8 @@ function InsteonLocalPlatform(log, config, api) {
 	self.port = config['port']
 	self.user = config['user']
 	self.pass = config['pass']
-	self.model = config['model']
-	self.devices = config['devices']
+	self.model = config['model'] || '2245'
+	self.devices = config['devices'] || []
 	self.server_port = config['server_port'] || 3000
 	self.use_express = config.hasOwnProperty('use_express') ? config['use_express'] : true
 	self.keepAlive = config['keepAlive'] || 3600
