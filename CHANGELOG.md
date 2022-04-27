@@ -1,6 +1,10 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## 0.4.25
+- [FIXED] Add outlet position to schema.
+- [NEW] Hub info automatically discovered in ui (no longer need to get hub info).
+- [FIXED] Fix ui when no devices are defined in config.
 ## 0.4.24
 - [FIXED] Quick fixes to prevent empty model/devices array and improve configuration.
 ## 0.4.23

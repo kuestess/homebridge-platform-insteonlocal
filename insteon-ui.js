@@ -117,6 +117,8 @@ InsteonUI.prototype.init = function (configPath, hub, callback) {
 	self.hub = hub
 	self.loadConfig()
 
+	self.getHubInfo()
+
 	self.loadInsteonConfig(function () {
 		self.buildDeviceList()
 	})
@@ -2100,7 +2102,7 @@ InsteonUI.prototype.loadConfig = function () {
 	})
 
 	self.platform = platform[0]
-	self.devices = self.platform.devices
+	self.devices = self.platform.devices || []
 }
 
 InsteonUI.prototype.loadInsteonConfig = function (callback) {
@@ -2137,6 +2139,22 @@ InsteonUI.prototype.loadInsteonConfig = function (callback) {
 	}
 }
 
+InsteonUI.prototype.getHubInfo = function() {
+	var self = this
+
+	self.hub.info(function (error, info) {
+		if (error) {
+			self.log('Error getting Hub info')
+			self.hubInfo = {}
+		} else {
+			info.id = info.id.toUpperCase()
+			self.hubInfo = info
+			self.hubID = info.id.toUpperCase()
+			self.insteonJSON.hub.info = self.hubInfo
+			console.log('[UI] Hub/PLM info is ' + util.inspect(self.hubInfo))
+		}
+	})
+}
 InsteonUI.prototype.getHubDevices = function (res, callback) {
 	var self = this
 	var devices = []

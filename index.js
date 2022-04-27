@@ -359,6 +359,7 @@ InsteonLocalPlatform.prototype.getHubInfo = function() {
 		if (error) {
 			self.log('Error getting Hub info')
 		} else {
+			self.hubInfo = info
 			self.hubID = info.id.toUpperCase()
 			self.log.debug('Hub/PLM id is ' + self.hubID)
 		}

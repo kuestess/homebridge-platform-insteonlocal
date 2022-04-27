@@ -126,10 +126,18 @@
             "groupMembers": {
               "title": "Group Members",
               "type": "string"
+            },
+            "position": {
+              "title": "Position (outlet only)",
+              "type": "string",
+              "oneOf": [
+                { "title": "top", "enum": ["top"] },
+                { "title": "bottom", "enum": ["bottom"] }
+              ]
+              }
             }
           }
         }
       }
     }
   }
-}
