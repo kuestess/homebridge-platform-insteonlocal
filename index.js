@@ -145,6 +145,32 @@ function InsteonLocalPlatform(log, config, api) {
 			}
 		})
 	})
+	
+	app.get('/fan/:id/level/:targetLevel', function(req, res) {
+		var id = req.params.id
+		var targetLevel = req.params.targetLevel
+
+		hub.light(id).fan(targetLevel).then(function(status) {
+			if (status.response) {
+				res.sendStatus(200)
+
+				var isDevice = _.contains(self.deviceIDs, id, 0)
+
+				if (isDevice) {
+					var foundDevice = accessories.filter(function(item) {
+						return item.id == id
+					})
+				}
+
+				foundDevice = foundDevice[0]
+				foundDevice.getStatus.call(foundDevice)
+
+			} else {
+				res.sendStatus(404)
+			}
+		})
+	})
+	
 
 	app.get('/scene/:group/on', function(req, res) {
 		var group = parseInt(req.params.group)
