@@ -171,6 +171,14 @@ function InsteonLocalPlatform(log, config, api) {
 		})
 	})
 	
+	app.get('/fan/:id/status', function(req, res) {
+		var id = req.params.id
+		hub.light(id).fan(function(err, level) {
+			res.json({
+				'level': level
+			})
+		})
+	})	
 
 	app.get('/scene/:group/on', function(req, res) {
 		var group = parseInt(req.params.group)
