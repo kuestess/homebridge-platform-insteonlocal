@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.27
+- [FIXED] Fix stupid error in logging :(
 ## 0.4.26
 - [FIXED] Fix restart issues on HOOBS
 - [FIXED] Better error handling for `getHubInfo`

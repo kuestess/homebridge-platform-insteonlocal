@@ -2143,7 +2143,7 @@ InsteonUI.prototype.getHubInfo = function() {
 
 	self.hub.info(function (error, info) {
 		if (error || typeof info == 'undefined') {
-			self.log('Error getting Hub info')
+			console.log('Error getting Hub info')
 			self.hubInfo = {}
 			return
 		} else {
