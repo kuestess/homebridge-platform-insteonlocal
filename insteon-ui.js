@@ -117,10 +117,9 @@ InsteonUI.prototype.init = function (configPath, hub, callback) {
 	self.hub = hub
 	self.loadConfig()
 
-	self.getHubInfo()
-
 	self.loadInsteonConfig(function () {
 		self.buildDeviceList()
+		self.getHubInfo()
 	})
 
 	if (callback) {callback()}
@@ -2143,15 +2142,17 @@ InsteonUI.prototype.getHubInfo = function() {
 	var self = this
 
 	self.hub.info(function (error, info) {
-		if (error) {
+		if (error || typeof info == 'undefined') {
 			self.log('Error getting Hub info')
 			self.hubInfo = {}
+			return
 		} else {
 			info.id = info.id.toUpperCase()
 			self.hubInfo = info
 			self.hubID = info.id.toUpperCase()
 			self.insteonJSON.hub.info = self.hubInfo
 			console.log('[UI] Hub/PLM info is ' + util.inspect(self.hubInfo))
+			return
 		}
 	})
 }

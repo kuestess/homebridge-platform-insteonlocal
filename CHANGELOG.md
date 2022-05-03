@@ -1,6 +1,12 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## 0.4.26
+- [FIXED] Fix restart issues on HOOBS
+- [FIXED] Better error handling for `getHubInfo`
+- [ENHANCED] Address 'max listeners' message
+
 ## 0.4.25
 - [FIXED] Add outlet position to schema.
 - [NEW] Hub info automatically discovered in ui (no longer need to get hub info).

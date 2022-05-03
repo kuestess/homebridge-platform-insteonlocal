@@ -50,6 +50,8 @@ function InsteonLocalPlatform(log, config, api) {
 	self.keepAlive = config['keepAlive'] || 3600
 	self.checkInterval = config['checkInterval'] || 20
 
+	require('events').EventEmitter.defaultMaxListeners = Math.max(10, self.devices.length)
+
 	//InsteonUI
 	ui = new InsteonUI(configPath, hub)
 
@@ -356,12 +358,15 @@ InsteonLocalPlatform.prototype.getHubInfo = function() {
 	var self = this
 
 	hub.info(function (error, info) {
-		if (error) {
+		if (error || typeof info == 'undefined') {
 			self.log('Error getting Hub info')
+			self.hubInfo = {}
+			return
 		} else {
 			self.hubInfo = info
 			self.hubID = info.id.toUpperCase()
 			self.log.debug('Hub/PLM id is ' + self.hubID)
+			return
 		}
 	})
 }
