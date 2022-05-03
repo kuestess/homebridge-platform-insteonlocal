@@ -55,6 +55,8 @@ This plugin will set up a local [Express](https://expressjs.com) server at the p
  - `/light/[id]/off`:  turn off the light with Insteon [id]
  - `/light/[id]/status`:  get status of the light with Insteon [id]
  - `/light/[id]/level/[targetlevel]`:  set brightness of the light with Insteon [id] to [targetlevel]
+ - `/fan/[id]/level/[targetlevel]`:  set speed of the fan (fanlinc) with Insteon [id] to [targetlevel]
+ - `/fan/[id]/status`:  get status of the fan (fanlinc) with Insteon [id]
  - `/scene/[group]/on`:  turn on the scene with Insteon [group] number
  - `/scene/[group]/off`:  turn off the scene with Insteon [group] number
  - `/iolinc/[id]/relay_on`:  turn on the relay for iolinc with Insteon [id]
