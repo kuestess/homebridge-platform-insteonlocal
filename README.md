@@ -11,61 +11,7 @@ Overview
 --------
 Implements local control of Insteon devices including switches, dimmers, outlets, fans, blinds, scenes, iolincs (configured as a garage door), motion sensors, door/window sensors, and leak sensors via Homebridge. Leverages [home-controller](https://github.com/automategreen/home-controller) to enable control and status of multiple Insteon devices.  Supports both Insteon Hub 2242 and 2245 and now has beta support for running directly on a Hub Pro (thanks to @rasod).
 
-Devices are not yet auto-discovered and must be defined in config.json (see configuration example)
-
-InsteonUI
----------
-
-Introducing InsteonUI, a new way to manage your Insteon devices and InsteonLocal configuration.  Think of it as 'Houselinc' in a browser.
-
-### InsteonUI Quick Start
-Direct your browser to the host that you have Insteonlocal running on and the port configured in your config.json (ie, 127.0.0.1:3000 if running on the local machine).  Before using any of the pages described below, you will need to complete the following steps:
-
-  1. Click on the 'Hub' link.  In the top section of the page, click 'Get Hub Info'.  This pulls information from the Hub, most notably the Insteon ID.
-  2. Still on the 'Hub' page, click 'Get Devices/Links' under the action menu.
-
-You should now have devices populated on the 'Devices' page, and be able to link/unlink devices from the Hub, as well as create scenes.
-
-* Config:<br />
-Manage your Insteonlocal configuration.  Hub connection parameter settings are managed in the top section, device settings in the bottom.  No changes are made to your config.json until you click save.  To add a device, click the 'Add' button at the bottom of the page.  Configuration is limited to basics until I can figure out a new UI.
-
-* Hub<br />
-Information about your Hub.  To start, click 'Get Hub Info'.  Under the 'Action' menu, click 'Get Devices/Links'.  This will discover devices and links from the Hub and populate scenes controlled by the hub.  This must be done before any devices are displayed on the 'Devices' tab.<br /><br />In the 'Links' tab on the Hub page, you can delete a link by clicking the trashcan icon (it wil confirm before deleteing).  Note that this only deletes the link from the Hub and not the corresponding device.  This is useful for deleting half-links from the Hub.
-
-* Devices<br />
-If you have already discovered devices from the Hub, you should see a list of devices in the left-hand column.  If not, click 'Get Devices' and the device list should populate after discovery is complete.<br /><br />Once devices are discovered, click on a device in the list.  In the right-hand pane, you can give the device a friendly name (be sure to click 'Save').  Devices that were in your config should already be named (you can change the name here without overwriting your config).  Under the 'Action' menu, you can get links information and links from the device by clicking 'Get Dev Info/Links'.  Depending upon the number of links in the device, this may take some time and is best to do when there is no other Insteon traffic.  If you want to do this for all devices at once, click 'Get All Dev Links' in the top right.  Again, this may take time.
-
-    You can also identify the device by clicking 'Beep' under the 'Action' menu.<br /><br />Three tabs in the bottom part of the page show details for the selected device:
-    * Operating Flags: Lists device config parameters (not editable, for now).  The database delta will change anytime a link is modified on a device.  The UI will check this before retrieving links from the device.
-    * Links: Lists all links stored in the device database.  You can delete a link by clicking the wastebasket button (there is a confirmation).  Again, this only deletes the link from the selected device and not from any linked devices.  Good for cleaning up half-links.
-    * Scenes: Lists all scenes (complete with other responders) that the device participates in.  Level and ramp rate information is only available for devices that you have retrieved information and links for.
-
-* Link<br />
-Link/unlink devices from the hub and create scenes.  This is fairly sel-explanatory, but to link/unlink a device, just enter the device id that you wish to link/unlink in the relevant field and click the 'Link' or 'Unlink' button.
-
-To create a scene, select the desired device from the dropdown list and fill out the level, ramp rate, and controller/responder fields.  The group number defaults to 1 for most devices.  For a keypad, the group number corresponds to the button number (ie, A=1, B=2, C=3, etc).  If the Hub is a controller, select an unoccupied group number (one that does not currently have a scene defined) or you will overwrite an existing scene.
-
-All information for your Hub and devices is stored in `insteon.json` saved in your homebridge config directory.  It is fully readable json, and can be viewed in any editor.
-
-## Express Server
-
-This plugin will set up a local [Express](https://expressjs.com) server at the port specified in your config.json (see below) that can also be accessed via a browser to get or manipulate Insteon device status and view hub or device information. Endpoints for the Express sever include:
-
- - `/light/[id]/on`:  turn on the light with Insteon [id]
- - `/light/[id]/off`:  turn off the light with Insteon [id]
- - `/light/[id]/status`:  get status of the light with Insteon [id]
- - `/light/[id]/level/[targetlevel]`:  set brightness of the light with Insteon [id] to [targetlevel]
- - `/scene/[group]/on`:  turn on the scene with Insteon [group] number
- - `/scene/[group]/off`:  turn off the scene with Insteon [group] number
- - `/iolinc/[id]/relay_on`:  turn on the relay for iolinc with Insteon [id]
- - `/iolinc/[id]/relay_off`:  turn off the relay for iolinc with Insteon [id]
- - `/iolinc/[id]/relay_status`:  get status of the relay for iolinc with Insteon [id]
- - `/iolinc/[id]/sensor_status`:  get status of the sensor for iolinc with Insteon [id]
- - `/links`:  get all links from your Insteon Hub
- - `/links/[id]`:  get links for device with Insteon [id]
- - `/info/[id]`:  get info for device with Insteon [id]
-
-The Express server is now optional and can be disabled if desired.
+Devices can be auto-discovered via the Insteon UI (see below) and automatically added to the homebridge config.json with the most approproate device type.  On the 'Devices' tab, select the 'Devices Action' menu.  If you have not already, click on 'Get Devices' to pull devices from the Hub/PLM.  Once that completes, you can click 'Add All to Config' which will add all devices to your config.  Alternately, you can add a single device to the config by clicking the 'Add to Config' button on the device page after selecting an individual device.
 
 ## Install
 
@@ -164,6 +110,61 @@ Low battery levels are reported periodically by the device and by default are sh
 
 Contact sensors:
 - `invert_sensor`: set to true to invert the sensor status, ie off when closed and on when open. [default = false]
+
+InsteonUI
+---------
+
+Introducing InsteonUI, a new way to manage your Insteon devices and InsteonLocal configuration.  Think of it as 'Houselinc' in a browser.
+
+### InsteonUI Quick Start
+Direct your browser to the host that you have Insteonlocal running on and the port configured in your config.json (ie, 127.0.0.1:3000 if running on the local machine).  Before using any of the pages described below, you will need to complete the following steps:
+
+  1. Click on the 'Hub' link.  In the top section of the page, click 'Get Hub Info'.  This pulls information from the Hub, most notably the Insteon ID.
+  2. Still on the 'Hub' page, click 'Get Devices/Links' under the action menu.
+
+You should now have devices populated on the 'Devices' page, and be able to link/unlink devices from the Hub, as well as create scenes.
+
+* Config:<br />
+Manage your Insteonlocal configuration.  Hub connection parameter settings are managed in the top section, device settings in the bottom.  No changes are made to your config.json until you click save.  To add a device, click the 'Add' button at the bottom of the page.  Configuration is limited to basics until I can figure out a new UI.
+
+* Hub<br />
+Information about your Hub.  To start, click 'Get Hub Info'.  Under the 'Action' menu, click 'Get Devices/Links'.  This will discover devices and links from the Hub and populate scenes controlled by the hub.  This must be done before any devices are displayed on the 'Devices' tab.<br /><br />In the 'Links' tab on the Hub page, you can delete a link by clicking the trashcan icon (it wil confirm before deleteing).  Note that this only deletes the link from the Hub and not the corresponding device.  This is useful for deleting half-links from the Hub.
+
+* Devices<br />
+If you have already discovered devices from the Hub, you should see a list of devices in the left-hand column.  If not, click 'Get Devices' and the device list should populate after discovery is complete.<br /><br />Once devices are discovered, click on a device in the list.  In the right-hand pane, you can give the device a friendly name (be sure to click 'Save').  Devices that were in your config should already be named (you can change the name here without overwriting your config).  Under the 'Action' menu, you can get links information and links from the device by clicking 'Get Dev Info/Links'.  Depending upon the number of links in the device, this may take some time and is best to do when there is no other Insteon traffic.  If you want to do this for all devices at once, click 'Get All Dev Links' in the top right.  Again, this may take time.
+
+    You can also identify the device by clicking 'Beep' under the 'Action' menu.<br /><br />Three tabs in the bottom part of the page show details for the selected device:
+    * Operating Flags: Lists device config parameters (not editable, for now).  The database delta will change anytime a link is modified on a device.  The UI will check this before retrieving links from the device.
+    * Links: Lists all links stored in the device database.  You can delete a link by clicking the wastebasket button (there is a confirmation).  Again, this only deletes the link from the selected device and not from any linked devices.  Good for cleaning up half-links.
+    * Scenes: Lists all scenes (complete with other responders) that the device participates in.  Level and ramp rate information is only available for devices that you have retrieved information and links for.
+
+* Link<br />
+Link/unlink devices from the hub and create scenes.  This is fairly sel-explanatory, but to link/unlink a device, just enter the device id that you wish to link/unlink in the relevant field and click the 'Link' or 'Unlink' button.
+
+To create a scene, select the desired device from the dropdown list and fill out the level, ramp rate, and controller/responder fields.  The group number defaults to 1 for most devices.  For a keypad, the group number corresponds to the button number (ie, A=1, B=2, C=3, etc).  If the Hub is a controller, select an unoccupied group number (one that does not currently have a scene defined) or you will overwrite an existing scene.
+
+All information for your Hub and devices is stored in `insteon.json` saved in your homebridge config directory.  It is fully readable json, and can be viewed in any editor.
+
+## Express Server
+
+This plugin will set up a local [Express](https://expressjs.com) server at the port specified in your config.json (see below) that can also be accessed via a browser to get or manipulate Insteon device status and view hub or device information. Endpoints for the Express sever include:
+
+ - `/light/[id]/on`:  turn on the light with Insteon [id]
+ - `/light/[id]/off`:  turn off the light with Insteon [id]
+ - `/light/[id]/status`:  get status of the light with Insteon [id]
+ - `/light/[id]/level/[targetlevel]`:  set brightness of the light with Insteon [id] to [targetlevel]
+ - `/scene/[group]/on`:  turn on the scene with Insteon [group] number
+ - `/scene/[group]/off`:  turn off the scene with Insteon [group] number
+ - `/iolinc/[id]/relay_on`:  turn on the relay for iolinc with Insteon [id]
+ - `/iolinc/[id]/relay_off`:  turn off the relay for iolinc with Insteon [id]
+ - `/iolinc/[id]/relay_status`:  get status of the relay for iolinc with Insteon [id]
+ - `/iolinc/[id]/sensor_status`:  get status of the sensor for iolinc with Insteon [id]
+ - `/links`:  get all links from your Insteon Hub
+ - `/links/[id]`:  get links for device with Insteon [id]
+ - `/info/[id]`:  get info for device with Insteon [id]
+
+The Express server is now optional and can be disabled if desired.
+
 
 Connection Watcher
 ------------------
