@@ -201,7 +201,7 @@ InsteonUI.prototype.renderMainPage = function (res) {
 	res.write("<input type='submit' class='btn btn-default center-block' style='width:135px' value='Save' />")
 	res.write('</form>')
 	res.write('<hr>')
-	res.write('<h3>Devices</h3>');
+	/*res.write('<h3>Devices</h3>');
 
 	if (typeof (self.devices) != 'undefined') {
 		res.write("<form class='form-inline' width='100%' enctype='application/x-www-form-urlencoded' id='devConfigForm' name='devConfigForm' action='/saveConfigDeviceSettings' data-toggle='validator' novalidate='true' method='post'>")
@@ -214,7 +214,7 @@ InsteonUI.prototype.renderMainPage = function (res) {
 		res.write('</form>')
 	} else {
 		res.write('No devices installed or configured!')
-	}
+	}*/
 
 	self.deviceTemplate = "<div class='row content'>" +
 		"<div class='input-group'><input type='text' class='form-control' name='name' required='required' data-error='Enter dev name' value=''><div class='help-block with-errors'></div></div>" +
@@ -318,8 +318,8 @@ InsteonUI.prototype.renderHubPage = function (res) {
 			Action <span class="caret"></span>
 		</button>
 		<ul class="dropdown-menu">
-			<li><a onclick="sseInit()" href="/getHubDevices">Get Devices/Links</a></li>` +
-		`</ul>
+			<li><a onclick="sseInit()" href="/getHubDevices">Get Devices/Links</a></li>
+		</ul>
 		</div>
 	</li>
 	</ul>`)
@@ -697,7 +697,19 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 	res.write("<div class='col-xs-2 col-sm-4 left'>")
 	res.write("<div class='row'>")
 	res.write("<h4 class='sub-header pull-left'>Devices (" + numberDevices + ')</h4>')
-	res.write("<a class='btn btn-default load pull-right' role='button' href='/getHubDevices' style='width:135px; height:30px;'>Get Devices</a>")
+
+	res.write(`<li>
+		<div class="btn-group pull-right">
+		<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+			Device Action <span class="caret"></span>
+		</button>
+		<ul class="dropdown-menu">
+			<li><a href='/getHubDevices' style='width:135px; height:30px;'>Get Devices</a></li>
+			<li><a onclick='sseInit()' href="/addAllDevicesToConfig">Add All to Config</a></li>
+		</ul>
+		</div>
+	</li>`)
+
 	res.write("</div class='row'>")
 	res.write("<div class='table-responsive'>")
 	res.write(self.hubDeviceTable)
@@ -708,7 +720,12 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 
 	//Device info form
 	res.write("<form enctype='application/x-www-form-urlencoded' action='/saveDeviceSettings' method='post'>")
-	res.write("<h3 class='sub-header'>Device Info - " + devName + '</h3>')
+
+	if(typeof self.selectedDevice == 'undefined' || self.selectedDevice == null){
+		res.write("<h3 class='sub-header'>Device Info - " + devName + '</h3>')
+	} else {
+		res.write("<h3 class='sub-header'>Device Info - " + devName + '<a id="config" class="btn btn-primary pull-right" href="/addToConfig">Add to config</a></h3>')
+	}
 	res.write(self.hubDeviceInfoTable)
 	res.write("<input class='btn btn-default center-block' type='submit' style='width:135px' value='Save' />")
 	res.write('</form>')
@@ -851,7 +868,7 @@ InsteonUI.prototype.renderDevicePage = function (res, deviceID) {
 	res.write(self.confirmModal)
 	res.write(self.databaseModal)
 	res.write(self.progressModal)
-	res.end(self.ajaxLoadScript + self.sseInit + self.modalConfirmScript + self.progressModalYes + self.getAllLinksScript + self.footer)
+	res.end(self.ajaxLoadScript + self.sseInit + self.modalConfirmScript + self.progressModalYes + self.getAllLinksScript + self.alertFade + self.footer)
 
 	function buildDeviceLinkTable() {
 		self.deviceLinkTable = '<tbody>'
@@ -1753,7 +1770,13 @@ InsteonUI.prototype.handleRequest = function (req, res) {
 		})
 		break
 	case '/devices':
-		self.selectedDevice = req.url.replace('/devices/', '')
+		if(req.url == '/devices'){
+			self.selectedDevice = null
+		} else {
+			self.selectedDevice = req.url.replace('/devices/', '')
+			console.log('Selected device is: ' + self.selectedDevice)
+		}
+
 		self.renderDevicePage(res)
 		break
 	case '/scenes':
@@ -1886,6 +1909,73 @@ InsteonUI.prototype.handleRequest = function (req, res) {
 			console.log('[405] ' + req.method + ' to ' + req.url);
 		}
 		break
+	case '/addToConfig':
+		self.redirect = `<script>window.setTimeout(function() {window.location.href = document.referrer;}, 2000);</script>`
+
+		self.generateDeviceConfig(self.selectedDevice, res, function(error,devConf,res){
+			if(error){
+				console.log('Error - could not generate device config for ' + self.selectedDevice)
+				res.write(self.header + self.navBar)
+				res.write("<div class='alert alert-danger alert-dismissible fade in out alert-close' id='saveAlert'><a href='/devices/" + self.selectedDevice + "' class='close' data-dismiss='alert'>&times;</a><strong>Note!</strong> Could not save device to config.</div>")
+
+				res.write(self.header + self.navBar)
+				res.write("<div class='alert alert-success alert-dismissible fade in out alert-close'><a href='/devices/" + self.selectedDevice + "' class='close' data-dismiss='alert'>&times;</a><strong>Note!</strong> Successfully saved device to config.</div>")
+				res.write(self.redirect)
+				return
+			} else {
+				console.log('Device config for ' + self.selectedDevice + ' is: ' + util.inspect(devConf))
+				self.addDeviceToConfig(devConf, res, function(res){
+					self.saveConfig(res)
+
+					res.write(self.header + self.navBar)
+					res.write("<div class='alert alert-success alert-dismissible fade in out alert-close'><a href='/devices/" + self.selectedDevice + "' class='close' data-dismiss='alert'>&times;</a><strong>Note!</strong> Successfully saved device to config.</div>")
+					res.write(self.redirect)
+					return
+				})
+
+			}
+		})
+		break
+	case'/addAllDevicesToConfig':
+		console.log('Adding all devices to config')
+		req.connection.setTimeout(1000 * 60 * 10)
+
+		var devIDs = []
+
+		self.hubDevices.forEach(function (device) {
+			devIDs.push(device.deviceID)
+		})
+
+		_addAllDevs()
+
+		function _addAllDevs() {
+			var redirect = `<script>window.setTimeout(function() {window.location.href = document.referrer;}, 2000);</script>`
+
+			if (devIDs.length === 0) {
+				console.log('Done adding all devices to config')
+				self.saveConfig(res)
+				res.write(self.header + self.navBar)
+				res.write("<div class='alert alert-success alert-dismissible fade in out alert-close'><a href='/devices/" + self.selectedDevice + "' class='close' data-dismiss='alert'>&times;</a><strong>Note!</strong> Successfully saved device to config.</div>")
+				res.write(redirect)
+				return
+			}
+
+			var id = devIDs.pop()
+			sse.emit('push', { 'message': 'Adding ' + id + ' to config'})
+
+			self.generateDeviceConfig(id, res, function(error,devConf,res){
+				if(error){
+					console.log('Error - could not generate device config for ' + id)
+					return _addAllDevs()
+				} else {
+					console.log('Device config for ' + id + ' is: ' + util.inspect(devConf))
+					self.addDeviceToConfig(devConf, res, function(){
+						setTimeout(function(){return _addAllDevs()}, 2000) //slight delay to minimize traffic and help eliminate errors
+					})
+				}
+			})
+		}
+		break
 	default:
 		var url = req.url
 
@@ -1952,8 +2042,9 @@ InsteonUI.prototype.handleRequest = function (req, res) {
 				device = ''
 			} else { device = selectedDevice }
 
-			self.renderDevicePage(res, device)
 			self.selectedDevice = device
+			console.log('Selected device is: ' + self.selectedDevice)
+			self.renderDevicePage(res, device)
 		}
 	}
 }
@@ -2044,8 +2135,8 @@ InsteonUI.prototype.saveConfig = function (res, backup) {
 	})
 
 	console.log('Saved new Homebridge config')
-	res.write(self.header + self.navBar);
-	res.write("<div class='alert alert-info alert-dismissible fade in out id=saveAlert'><a href='/' class='close' data-dismiss='alert'>&times;</a><strong>Note!</strong> Please restart Homebridge to activate your changes.</div>");
+	//res.write(self.header + self.navBar);
+	//res.write("<div class='alert alert-info alert-dismissible fade in out id=saveAlert'><a href='/' class='close' data-dismiss='alert'>&times;</a><strong>Note!</strong> Please restart Homebridge to activate your changes.</div>");
 	fs.writeFile(self.configPath, newConfig, 'utf8', function (err, data) {
 		if (err) {
 			return console.log(err)
@@ -2102,6 +2193,17 @@ InsteonUI.prototype.loadConfig = function () {
 
 	self.platform = platform[0]
 	self.devices = self.platform.devices || []
+
+	for (var i = 0; i < self.devices.length; i++) {
+		if(self.devices[i].deviceID){
+			if(self.devices[i].deviceID.includes('.')){self.devices[i].deviceID = self.devices[i].deviceID.replace(/\./g,'')}
+		}
+	}
+
+	if(typeof(self.config.platforms[self.platformIndex].devices) == 'undefined') {
+		self.config.platforms[self.platformIndex].devices = []
+	}
+
 }
 
 InsteonUI.prototype.loadInsteonConfig = function (callback) {
@@ -2673,6 +2775,75 @@ InsteonUI.prototype.beep = function (deviceID, res) {
 	return
 }
 
+InsteonUI.prototype.generateDeviceConfig = function (deviceID, res, callback) {
+	var self = this
+
+	var theDevice = self.hubDevices.filter(function (item) {
+		return item.deviceID == deviceID
+	})
+
+	theDevice = theDevice[0]
+
+	if(typeof(theDevice.info) == 'undefined' || typeof(theDevice.info.deviceCategory) == 'undefined'){
+		self.getDeviceInfo(theDevice.deviceID, res, function(error, info){
+			if(typeof(theDevice.info) == 'undefined'){ //devInfo error callback broken
+				console.log('Could not get device info for ' + theDevice.deviceID)
+				error = new Error('Could not get device info')
+				callback(error, null, res)
+			} else {
+				_generateDeviceConfig ()
+			}
+		})
+	} else {
+		console.log('Already have device info for ' + deviceID)
+		_generateDeviceConfig ()
+	}
+
+	function _generateDeviceConfig () {
+		var filtered = self.deviceDatabase.filter(function (item) { return item.category == theDevice.info.deviceCategory.id })
+		var found = filtered.find(function (item) { return (item.subcategory == theDevice.info.deviceSubcategory.id) })
+		var hkDeviceType = found.deviceType
+
+		var devConf = {}
+		devConf.name = theDevice.name || theDevice.deviceID
+		devConf.deviceID = theDevice.deviceID
+		devConf.deviceType = hkDeviceType
+
+		switch(devConf.deviceType) {
+			case 'dimmer':
+			case 'lightbulb':
+				devConf.dimmable = 'yes'
+			break
+			case 'switch':
+				devConf.dimmable = 'no'
+			break
+
+		}
+
+		callback(null,devConf, res)
+	}
+}
+
+InsteonUI.prototype.addDeviceToConfig = function (devConf, res, callback) {
+	var self = this
+
+	var  configDevice = self.devices.filter(function (item) {
+		return item.deviceID == devConf.deviceID
+	})
+
+	if(configDevice.length != 0){
+		console.log('Device already in config, not adding.')
+		callback(res)
+	 } else {
+		console.log('Device not found in config, adding ' + devConf.name + '.')
+		self.config.platforms[self.platformIndex].devices.push(devConf)
+
+		console.log('Config to save: ' + JSON.stringify(self.config))
+		//self.saveConfig(res)
+		callback(res)
+	}
+}
+
 InsteonUI.prototype.getScripts = function () {
 	var self = this
 
@@ -2681,7 +2852,7 @@ InsteonUI.prototype.getScripts = function () {
 		'$("#devTable").append("' + self.deviceTemplate + '");' +
 		'$("#devConfigForm").validator("update");' +
 		'});' +
-		'</script>'
+		'</>'
 
 	self.addSceneRow = '<script>' +
 		'$("#addScene").click(function() {' +
@@ -2719,8 +2890,9 @@ InsteonUI.prototype.getScripts = function () {
 		'</script>'
 
 	self.alertFade = `<script>
-		$(document).ready (function(){
-			$("#saveAlert").fadeTo(2000, 500).slideUp(500, function(){
+		$(document).ready (
+			function(){
+				$("#saveAlert").fadeTo(2000, 500).slideUp(500, function(){
 				$("#saveAlert").slideUp(500);
 				if(window.location.pathname.indexOf('/devices/') >= 0) {
 					var url = window.location.href
@@ -2733,12 +2905,14 @@ InsteonUI.prototype.getScripts = function () {
 		</script>`
 
 	self.sseInit = `<script>
-		function sseInit() {
-			$('#progressModal').modal({show:true});
+		function sseInit(e) {
+			var sender = $(e).attr('id');
 
 			if (!!window.EventSource) {
 				var source = new EventSource('/events');
 			}
+
+			$('#progressModal').modal({show:true});
 
 			source.addEventListener('message', function(e) {
 				console.log(e.data);
@@ -2766,7 +2940,7 @@ InsteonUI.prototype.getScripts = function () {
 		}
 		</script>`
 
-	self.progressModal = "<div id='progressModal' class='modal fade' role='dialog'>" +
+	/*self.progressModal = "<div id='progressModal' class='modal fade' role='dialog'>" +
 		"<div class='modal-dialog'>" +
 		"<div class='modal-content'>" +
 		"<div class='modal-header'>" +
@@ -2782,9 +2956,9 @@ InsteonUI.prototype.getScripts = function () {
 		'</div>' +
 		'</div>' +
 		'</div>' +
-		'</div>'
+		'</div>'*/
 
-	self.scripts = self.validator + self.dataTable + self.buttonAnimation + self.alertFade + self.sseInit + self.progressModal
+	self.scripts = self.validator + self.dataTable + self.buttonAnimation + self.alertFade + self.sseInit //+ self.progressModal
 }
 
 InsteonUI.prototype.stripEscapeCodes = function (chunk) {

@@ -1,6 +1,10 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## 0.4.28
+- [NEW] Automated device discovery/addition to config
+- [REMOVE] Remove config.json editing gui from main page in favor of homebridge/hoobs ui and above auto-discovery/addition
+- [FIXED] Fix crash when groupMembers contain a period in the device id (#239)
 
 ## 0.4.27
 - [FIXED] Fix stupid error in logging :(

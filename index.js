@@ -2542,7 +2542,8 @@ InsteonLocalAccessory.prototype.init = function(platform, device) {
 
 	if(typeof device.groupMembers !== 'undefined'){
 		var reg = /,|,\s/
-		self.groupMembers = device.groupMembers.split(reg)
+		self.groupMembers = device.groupMembers.replace(/\./g,'')
+		self.groupMembers = self.groupMembers.split(reg)
 	}
 
 	if(self.id){
