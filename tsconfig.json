@@ -8,6 +8,7 @@
       "es2017",
       "es2018"
     ],
+    "allowJs": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -22,6 +23,7 @@
     "src/"
   ],
   "exclude": [
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "src/insteon-ui.*"
   ]
 }

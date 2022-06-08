@@ -8,30 +8,30 @@ import util from 'util';
 import _ from 'underscore';
 
 export class InsteonLocalAccessory {
-  private service: Service;
+  service: Service;
   private readonly log: any;
   private hub: any;
   private light: any;
 
-  private device: any;
-  private name: string;
-  private id: string;
-  private deviceType: string;
-  private dimmable: boolean;
-  private level: number;
-  private currentState: any;
-  private disabled: boolean;
-  private lastUpdate: Moment;
-  private refreshInterval: number;
-  private targetKeypadID: string;
-  private targetKeypadSixBtn: string;
-  private targetKeypadBtn: string;
-  private setTargetKeypadCount: number;
-  private lastCommand: Moment;
-  private levelTimeout;
-  private six_btn;
-  private keypadbtn;
-  private buttonMap: string;
+  device: any;
+  name: string;
+  id: string;
+  deviceType: string;
+  dimmable: boolean;
+  level: number;
+  currentState: any;
+  disabled: boolean;
+  lastUpdate: Moment;
+  refreshInterval: number;
+  targetKeypadID: string;
+  targetKeypadSixBtn: string;
+  targetKeypadBtn: string;
+  setTargetKeypadCount: number;
+  lastCommand: Moment;
+  levelTimeout;
+  six_btn;
+  keypadbtn;
+  buttonMap: string;
   setTargetKeypadBtn: any;
   pollTimer: NodeJS.Timeout;
   iolinc: any;
@@ -57,6 +57,8 @@ export class InsteonLocalAccessory {
   door: any;
   targetState: unknown;
   accessories: Array<InsteonLocalAccessory>;
+  handleRemoteEvent: any;
+  serviceCO: any;
 
   constructor(
     private readonly platform: InsteonLocalPlatform,
@@ -180,11 +182,11 @@ export class InsteonLocalAccessory {
       case 'dimmer':
         this.service = this.accessory.getService(this.platform.Service.Lightbulb) || this.accessory.addService(this.platform.Service.Lightbulb);
         this.dimmable = true;
-        this.service.getCharacteristic(this.platform.Characteristic.On).on('set', this.setBrightnessLevel.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.setBrightnessLevel.bind(this));
         //this.service.getCharacteristic(Characteristic.On).on('set', this.setPowerState.bind(this))
 
         if (this.dimmable) {
-          this.service.getCharacteristic(this.platform.Characteristic.Brightness).on('set', this.setBrightnessLevel.bind(this));
+          this.service.getCharacteristic(this.platform.Characteristic.Brightness).onSet(this.setBrightnessLevel.bind(this));
         }
 
         this.light = this.hub.light(this.id);
@@ -200,8 +202,8 @@ export class InsteonLocalAccessory {
       case 'fan':
         this.service = this.accessory.getService(this.platform.Service.Fan) || this.accessory.addService(this.platform.Service.Fan);
 
-        this.service.getCharacteristic(this.platform.Characteristic.On).on('set', this.setFanState.bind(this));
-        this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed).on('set', this.setFanState.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.setFanState.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed).onSet(this.setFanState.bind(this));
 
         this.light = this.hub.light(this.id);
 
@@ -227,7 +229,7 @@ export class InsteonLocalAccessory {
       case 'switch':
         this.service = this.accessory.getService(this.platform.Service.Switch) || this.accessory.addService(this.platform.Service.Switch);
 
-        this.service.getCharacteristic(this.platform.Characteristic.On).on('set', this.setPowerState.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.setPowerState.bind(this));
 
         this.light = this.hub.light(this.id);
         this.light.emitOnAck = true;
@@ -242,7 +244,7 @@ export class InsteonLocalAccessory {
         this.service = this.accessory.getService(this.platform.Service.Switch) || this.accessory.addService(this.platform.Service.Switch);
         this.dimmable = false;
 
-        this.service.getCharacteristic(this.platform.Characteristic.On).on('set', this.setSceneState.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.setSceneState.bind(this));
 
         this.hub.once('connect', () => {
           if(this.id){
@@ -257,7 +259,7 @@ export class InsteonLocalAccessory {
         this.service = this.accessory.getService(this.platform.Service.GarageDoorOpener) || this.accessory.addService(this.platform.Service.GarageDoorOpener);
 
         this.service.getCharacteristic(this.platform.Characteristic.ObstructionDetected).updateValue(false);
-        this.service.getCharacteristic(this.platform.Characteristic.TargetDoorState).on('set', this.setRelayState.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.TargetDoorState).onSet(this.setRelayState.bind(this));
 
         this.iolinc = this.hub.ioLinc(this.id);
 
@@ -314,7 +316,7 @@ export class InsteonLocalAccessory {
         this.service.getCharacteristic(this.platform.Characteristic.InUse).updateValue(0);
         this.service.getCharacteristic(this.platform.Characteristic.ValveType).updateValue(0);
 
-        this.service.getCharacteristic(this.platform.Characteristic.Active).on('set', this.setRelayState.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.Active).onSet(this.setRelayState.bind(this));
 
         this.iolinc = this.hub.ioLinc(this.id);
 
@@ -536,7 +538,7 @@ export class InsteonLocalAccessory {
 
         this.service.getCharacteristic(this.platform.Characteristic.OutletInUse).updateValue(true);
 
-        this.service.getCharacteristic(this.platform.Characteristic.On).on('set', this.setOutletState.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.setOutletState.bind(this));
 
         this.dimmable = false;
 
@@ -552,7 +554,7 @@ export class InsteonLocalAccessory {
 
         this.service.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(2); //stopped
 
-        this.service.getCharacteristic(this.platform.Characteristic.TargetPosition).on('set', this.setPosition.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.TargetPosition).onSet(this.setPosition.bind(this));
 
         this.light = this.hub.light(this.id);
 
@@ -565,7 +567,7 @@ export class InsteonLocalAccessory {
       case 'keypad':
         this.service = this.accessory.getService(this.platform.Service.Switch) || this.accessory.addService(this.platform.Service.Switch);
 
-        this.service.getCharacteristic(this.platform.Characteristic.On).on('set', this.setKeypadState.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.setKeypadState.bind(this));
 
         this.hub.once('connect', () => {
           this.getSceneState.call(this);
@@ -586,7 +588,7 @@ export class InsteonLocalAccessory {
       case 'x10':
         this.service = this.accessory.getService(this.platform.Service.Switch) || this.accessory.addService(this.platform.Service.Switch);
 
-        this.service.getCharacteristic(this.platform.Characteristic.On).on('set', this.setX10PowerState.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.setX10PowerState.bind(this));
         this.light = this.hub.x10(this.house, this.unit);
 
         break;
@@ -620,21 +622,24 @@ export class InsteonLocalAccessory {
     this.platform.checkHubConnection();
 
     const now = moment();
+    let delta;
 
     if(typeof this.lastCommand === 'undefined'){
       this.lastCommand = now;
+      delta = -1;
+    } else {
+      delta = now.diff(this.lastCommand, 'milliseconds');
     }
 
-    const lastCommand = this.lastCommand;
-    const delta = now.diff(lastCommand, 'milliseconds');
     const debounceTimer = 600;
 
+    this.log.debug('Command for ' + this.name + ': ' + level + ', time: ' + this.lastCommand + ', delta: ' + delta);
+
     if (level == this.currentState) {
-      this.log.debug('Discard on, already at commanded state');
+      this.log.debug('Discard on for ' + this.name + ' already at commanded state');
       return;
-    } else
-    if (level === true && delta <= 50) {
-      this.log.debug('Discard on, sent too close to dim');
+    } else if (level === true && delta >= 0 && delta <= 50) {
+      this.log.debug('Discard on for ' + this.name + ', sent too close to dim');
       return;
     } else if (level === true) {
       level = 100;
@@ -1078,19 +1083,21 @@ export class InsteonLocalAccessory {
     this.hub.cancelPending(this.id);
 
     const now = moment();
+    let delta;
 
     if(typeof this.lastCommand === 'undefined'){
       this.lastCommand = now;
+      delta = -1;
+    } else {
+      delta = now.diff(this.lastCommand, 'milliseconds');
     }
 
-    const lastCommand = this.lastCommand;
-    const delta = now.diff(lastCommand, 'milliseconds');
     const debounceTimer = 600;
 
     if (level == this.currentState) {
       this.log.debug('Discard on, already at commanded state');
       return;
-    } else if (level === true && delta <= 50) {
+    } else if (level === true && delta >= 0 && delta <= 50) {
       this.log.debug('Discard on, sent too close to dim');
       return;
     }

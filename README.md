@@ -118,10 +118,10 @@ Scenes remain on/off only and support status when controlled via a Keypadlinc.  
   - `six_btn`: set to `true` if using a Keypadlinc configured as a 6-button; default is `false`
   - `groupID`: the group number in the Insteon app (Scenes->Edit Scene->Group Number)
   - `groupMembers`: comma-delimited list of Insteon IDs that are part of the group/scene (optional); member device status will be automatically updated after a scene is triggered
-  - `momentary`: since hub-based scenes do not support status, you can set this to `true` to make a scene 'stateless'. This will allow you to re-trigger the scene or run a different scene on the same devices without having to turn the scene `off` first. 
+  - `momentary`: since hub-based scenes do not support status, you can set this to `true` to make a scene 'stateless'. This will allow you to re-trigger the scene or run a different scene on the same devices without having to turn the scene `off` first.
 
 Target Keypad LED:
-By Insteon's design, keypad (scene button) LED follows the state of a linked scene only; it does not act according to the device state itself. eg. Turn on `scene 1` then the corresponding keypad LED lights up, but turning on `Light 1` directly will not light up the keypad LED.
+By Insteon's design, keypad (scene button) LED follows the state of a linked scene only; it does not act according to the device state itthis. eg. Turn on `scene 1` then the corresponding keypad LED lights up, but turning on `Light 1` directly will not light up the keypad LED.
 This enhancement allows you to specify which keypad LED(s) to set according to the device state; effetively turning keypad buttons into true device status indicators that many had wished for.
 For the following example, when `Light 1` "XXYYZZ" is turned on (or at any dim level), button "A" of the 6-button keypad "AABBCC" is lit up, as do button "D" of the 8-button keypad "BBCCDD".
   ```
@@ -181,7 +181,7 @@ It is possible to use the official Insteon HubPro as a complete homebridge serve
 1. Follow the intructions here http://beagleboard.org/getting-started to create an microSD card with latest board software
 2. Open the HubPro removing the 6 screws on the bottom.
 3. Insert the SD Card.
-4. While holding down the Boot Button "S2" connect the power. Don't electrocute yourself. Wait until the LED starts flashing.
+4. While holding down the Boot Button "S2" connect the power. Don't electrocute yourthis. Wait until the LED starts flashing.
 5. You should be able to connect via SSH now (username is 'debian' and the password is 'temppwd').
 6. Change the password!
 7. Enable the serial port by editing /boot/uEnv.txt
