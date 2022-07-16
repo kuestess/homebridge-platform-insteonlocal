@@ -11,7 +11,105 @@ Overview
 --------
 Implements local control of Insteon devices including switches, dimmers, outlets, fans, blinds, scenes, iolincs (configured as a garage door), motion sensors, door/window sensors, and leak sensors via Homebridge. Leverages [home-controller](https://github.com/automategreen/home-controller) to enable control and status of multiple Insteon devices.  Supports both Insteon Hub 2242 and 2245 and now has beta support for running directly on a Hub Pro (thanks to @rasod).
 
-Devices are not yet auto-discovered and must be defined in config.json (see configuration example)
+Devices can be auto-discovered via the Insteon UI (see below) and automatically added to the homebridge config.json with the most approproate device type.  On the 'Devices' tab, select the 'Devices Action' menu.  If you have not already, click on 'Get Devices' to pull devices from the Hub/PLM.  Once that completes, you can click 'Add All to Config' which will add all devices to your config.  Alternately, you can add a single device to the config by clicking the 'Add to Config' button on the device page after selecting an individual device.
+
+## Install
+
+To install from npm:
+
+`npm -g install homebridge-platform-insteonlocal`
+
+Alternately, clone the repository, cd into the cloned directory and install using npm:
+
+`npm -g install`
+
+Configuration
+-------------
+Edit the config.json (see example) to fit your installation - configuration parameters are:
+
+  - `user`:  Hub username from Insteon app (Not your Insteon login username.  Go to Settings->House in the Insteon app and use the 'Hub Username' from there.)
+  - `pass`:  Hub password from Insteon app (Not your Insteon login password.  Go to Settings->House in the Insteon app and use the 'Hub Password' from there.)
+  - `host`:  local IP of your Insteon hub or device path of your Insteon PLM
+  - `port`:  port from Insteon app
+  - `model`: model number of your hub.  Valid values are 2242, 2245, 2243, or PLM
+  - `refresh`: device status refresh interval in seconds (disabled by default, set to 0 to disable polling)
+  - `use_express`: true or false to enable/disable Express server
+  - `server_port`: port for local Express server
+
+
+
+Devices are also defined in the config.json as follows:
+
+  - `name`:  Device name as you want it to appear in Homebridge
+  - `deviceID`: Insteon ID
+  - `groupID`:  Insteon group ID for a scene
+  - `keypadbtn`: Keypad button to check for status of a scene, in caps.  For a six-button configuration, use 'ON' if the ON/OFF buttons are your scene controller.
+  - `dimmable`:  dimmable or non-dimming device - valid values are "yes" or "no".  This is automatically set to 'yes' for dimmer/lightbulb device types.
+  - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'remote', 'iolinc', 'motionsensor', 'leaksensor', 'doorsensor', 'outlet', 'keypad', 'shades', 'blinds', 'smoke', and 'fan'.
+  - `refresh`:  device-level refresh interval in seconds.  This will override the platform-level refresh value and will still refresh individual devices even if platform-level polling is turned off.
+  - `controllers`: this is an array `["<Insteon ID>","<Insteon ID>"]` of other Insteon devices that this device is controlled by. ie if you have a plug in dimmer that is controlled by a wall switch you would add the wall switch ID as a controller for the plug in dimmer. The controller device does not need to be a device listed in the config.json
+  - `targetKeypadID`: this is an array `["<Insteon ID>","<Insteon ID>"]` of Insteon keypad(s), whose scene button LED you would like to set accoridngly to the state of the device. See additional notes below on Target Keypad LED.
+  - `targetKeypadBtn`: this is an array `["button_letter","button_letter"]` of Insteon keypad button(s), 'A' - 'H', that corresponds to the array from `targetKeypadID`. See additional notes below on Target Keypad LED.
+  - `targetKeypadSixBtn`: this is an array `[true/false, true/false]` of Insteon keypad button layout, that corresponds to the array from `targetKeypadID`. `true` denote a 6-button keypad, while `false` denotes an 8-button keypad. See additional notes below on Target Keypad LED.
+  - `disabled`: set to true to disable Insteon communication for a device (defaults to false).  Device will still appear in Home (or other apps), but can't be controlled.  Good to use for 'seasonal' devices.
+  - `groupMembers`: comma-delimited list of Insteon IDs that are linked to this device (optional, for devices with on/off states like dimmers and switches); member device status will be automatically updated after the device is turned on or off
+
+Battery operated devices: Battery status is monitored for battery operated devices (leak, motion, door/window sensors) and will alert when the device sends a low battery signal.  The heartbeat for those devices is also monitored (sent from device every 24 hours).  You will also receive a low battery alert if no heartbeat is received within 24 hours.
+
+Scenes:
+Scenes remain on/off only and support status when controlled via a Keypadlinc.  Scenes are configured using additional the parameters below:
+
+  - `deviceID`: Insteon ID of a keypad that controls the scene
+  - `keypadbtn`: Keypadlinc button that indicates the status of the scene - valid values are 'A' - 'H'
+  - `six_btn`: set to `true` if using a Keypadlinc configured as a 6-button; default is `false`
+  - `groupID`: the group number in the Insteon app (Scenes->Edit Scene->Group Number)
+  - `groupMembers`: comma-delimited list of Insteon IDs that are part of the group/scene (optional); member device status will be automatically updated after a scene is triggered
+  - `momentary`: since hub-based scenes do not support status, you can set this to `true` to make a scene 'stateless'. This will allow you to re-trigger the scene or run a different scene on the same devices without having to turn the scene `off` first.
+
+Target Keypad LED:
+By Insteon's design, keypad (scene button) LED follows the state of a linked scene only; it does not act according to the device state itself. eg. Turn on `scene 1` then the corresponding keypad LED lights up, but turning on `Light 1` directly will not light up the keypad LED.
+This enhancement allows you to specify which keypad LED(s) to set according to the device state; effetively turning keypad buttons into true device status indicators that many had wished for.
+For the following example, when `Light 1` "XXYYZZ" is turned on (or at any dim level), button "A" of the 6-button keypad "AABBCC" is lit up, as do button "D" of the 8-button keypad "BBCCDD".
+  ```
+  "name" : "Light 1",
+  "deviceID" : "XXYYZZ",
+  "targetKeypadID" : [ "AABBCC", "BBCCDD" ],
+  "targetKeypadBtn" : [ "A", "D" ],
+  "targetKeypadSixBtn" : [ true, false ]
+  ```
+
+Fanlinc support:
+To configure fanlinc support, use the 'fan' device type.  This will create a fan device only - you can add a separate entry in your config (using the same `deviceID`) to add the light as a device.
+
+In addition to scenes as described above, keypads are supported as on/off switches intended to be used in Homekit automation and/or scenes.
+
+- `keypadbtn`: keypad button to use as the trigger
+- `six_btn`: set to `true` if using a Keypadlinc configured as a 6-button; default is `false`
+
+For iolinc devices, there is an additional parameter that can be defined:
+
+- `gdo_delay`: number of seconds before status of the garage door is updated. This delay should be configured to closely approximate the time it takes the garage door to fully close (if `invert_sensor` = false) or fully open (if `invert_sensor` = true). [default = 15]
+- `invert_sensor`: set to true if your iolinc sensor is inverted, ie off when closed and on when open. [default = false]
+
+Remote support:
+Remotes are supported as on/off switches or stateless switches intended to be used in Homekit automation and/or scenes.  Both 8-button and 4-button remotes are supported.  Additional parameters that should be used when defining a Remote device are:
+
+- `remotebtn`: Remote button that triggers the switch - valid values are 'A' - 'H'
+- `stateless`: Define as a stateless switch - valid values are true or false [default = false]
+- `four_btn`: set to `true` for 4-button remotes [default = false]
+
+Outlet support:
+On/off outlets are supported with independent control over each outlet (each is defined as an individual device).  Additional parameters that should be used when defining an outlet are:
+
+- `position`: Specify the position of the outlet - valid values are 'top' or 'bottom' [default = top]
+
+Battery operated devices:
+Low battery levels are reported periodically by the device and by default are shown in the Home app UI.  To disable low battery reporting, use the optional configuration parameter below.  This should be set at the individual device level.  Even with low battery status disabled, you will still get a low battery alert in the Home app if two heartbeat messages from the device are missed (takes ~2 days), likely indicating a dead device.
+
+- `disableBatteryStatus`: default false; set to true to disable low battery reporting.
+
+Contact sensors:
+- `invert_sensor`: set to true to invert the sensor status, ie off when closed and on when open. [default = false]
 
 InsteonUI
 ---------
@@ -69,103 +167,6 @@ This plugin will set up a local [Express](https://expressjs.com) server at the p
 
 The Express server is now optional and can be disabled if desired.
 
-## Install
-
-To install from npm:
-
-`npm -g install homebridge-platform-insteonlocal`
-
-Alternately, clone the repository, cd into the cloned directory and install using npm:
-
-`npm -g install`
-
-Configuration
--------------
-Edit the config.json (see example) to fit your installation - configuration parameters are:
-
-  - `user`:  Hub username from Insteon app (Not your Insteon login username.  Go to Settings->House in the Insteon app and use the 'Hub Username' from there.)
-  - `pass`:  Hub password from Insteon app (Not your Insteon login password.  Go to Settings->House in the Insteon app and use the 'Hub Password' from there.)
-  - `host`:  local IP of your Insteon hub or device path of your Insteon PLM
-  - `port`:  port from Insteon app
-  - `model`: model number of your hub.  Valid values are 2242, 2245, 2243, or PLM
-  - `refresh`: device status refresh interval in seconds (disabled by default, set to 0 to disable polling)
-  - `use_express`: true or false to enable/disable Express server
-  - `server_port`: port for local Express server
-
-
-
-Devices are also defined in the config.json as follows:
-
-  - `name`:  Device name as you want it to appear in Homebridge
-  - `deviceID`: Insteon ID
-  - `groupID`:  Insteon group ID for a scene
-  - `keypadbtn`: Keypad button to check for status of a scene, in caps.  For a six-button configuration, use 'ON' if the ON/OFF buttons are your scene controller.
-  - `dimmable`:  dimmable or non-dimming device - valid values are "yes" or "no".  This is automatically set to 'yes' for dimmer/lightbulb device types.
-  - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'remote', 'iolinc', 'motionsensor', 'leaksensor', 'doorsensor', 'outlet', 'keypad', 'shades', 'blinds', 'smoke', and 'fan'.
-  - `refresh`:  device-level refresh interval in seconds.  This will override the platform-level refresh value and will still refresh individual devices even if platform-level polling is turned off.
-  - `controllers`: this is an array `["<Insteon ID>","<Insteon ID>"]` of other Insteon devices that this device is controlled by. ie if you have a plug in dimmer that is controlled by a wall switch you would add the wall switch ID as a controller for the plug in dimmer. The controller device does not need to be a device listed in the config.json
-  - `targetKeypadID`: this is an array `["<Insteon ID>","<Insteon ID>"]` of Insteon keypad(s), whose scene button LED you would like to set accoridngly to the state of the device. See additional notes below on Target Keypad LED.
-  - `targetKeypadBtn`: this is an array `["button_letter","button_letter"]` of Insteon keypad button(s), 'A' - 'H', that corresponds to the array from `targetKeypadID`. See additional notes below on Target Keypad LED.
-  - `targetKeypadSixBtn`: this is an array `[true/false, true/false]` of Insteon keypad button layout, that corresponds to the array from `targetKeypadID`. `true` denote a 6-button keypad, while `false` denotes an 8-button keypad. See additional notes below on Target Keypad LED.
-  - `disabled`: set to true to disable Insteon communication for a device (defaults to false).  Device will still appear in Home (or other apps), but can't be controlled.  Good to use for 'seasonal' devices.
-  - `groupMembers`: comma-delimited list of Insteon IDs that are linked to this device (optional, for devices with on/off states like dimmers and switches); member device status will be automatically updated after the device is turned on or off
-
-Battery operated devices: Battery status is monitored for battery operated devices (leak, motion, door/window sensors) and will alert when the device sends a low battery signal.  The heartbeat for those devices is also monitored (sent from device every 24 hours).  You will also receive a low battery alert if no heartbeat is received within 24 hours.
-
-Scenes:
-Scenes remain on/off only and support status when controlled via a Keypadlinc.  Scenes are configured using additional the parameters below:
-
-  - `deviceID`: Insteon ID of a keypad that controls the scene
-  - `keypadbtn`: Keypadlinc button that indicates the status of the scene - valid values are 'A' - 'H'
-  - `six_btn`: set to `true` if using a Keypadlinc configured as a 6-button; default is `false`
-  - `groupID`: the group number in the Insteon app (Scenes->Edit Scene->Group Number)
-  - `groupMembers`: comma-delimited list of Insteon IDs that are part of the group/scene (optional); member device status will be automatically updated after a scene is triggered
-  - `momentary`: since hub-based scenes do not support status, you can set this to `true` to make a scene 'stateless'. This will allow you to re-trigger the scene or run a different scene on the same devices without having to turn the scene `off` first.
-
-Target Keypad LED:
-By Insteon's design, keypad (scene button) LED follows the state of a linked scene only; it does not act according to the device state itthis. eg. Turn on `scene 1` then the corresponding keypad LED lights up, but turning on `Light 1` directly will not light up the keypad LED.
-This enhancement allows you to specify which keypad LED(s) to set according to the device state; effetively turning keypad buttons into true device status indicators that many had wished for.
-For the following example, when `Light 1` "XXYYZZ" is turned on (or at any dim level), button "A" of the 6-button keypad "AABBCC" is lit up, as do button "D" of the 8-button keypad "BBCCDD".
-  ```
-  "name" : "Light 1",
-  "deviceID" : "XXYYZZ",
-  "targetKeypadID" : [ "AABBCC", "BBCCDD" ],
-  "targetKeypadBtn" : [ "A", "D" ],
-  "targetKeypadSixBtn" : [ true, false ]
-  ```
-
-Fanlinc support:
-To configure fanlinc support, use the 'fan' device type.  This will create a fan device only - you can add a separate entry in your config (using the same `deviceID`) to add the light as a device.
-
-In addition to scenes as described above, keypads are supported as on/off switches intended to be used in Homekit automation and/or scenes.
-
-- `keypadbtn`: keypad button to use as the trigger
-- `six_btn`: set to `true` if using a Keypadlinc configured as a 6-button; default is `false`
-
-For iolinc devices, there is an additional parameter that can be defined:
-
-- `gdo_delay`: number of seconds before status of the garage door is updated. This delay should be configured to closely approximate the time it takes the garage door to fully close (if `invert_sensor` = false) or fully open (if `invert_sensor` = true). [default = 15]
-- `invert_sensor`: set to true if your iolinc sensor is inverted, ie off when closed and on when open. [default = false]
-
-Remote support:
-Remotes are supported as on/off switches or stateless switches intended to be used in Homekit automation and/or scenes.  Both 8-button and 4-button remotes are supported.  Additional parameters that should be used when defining a Remote device are:
-
-- `remotebtn`: Remote button that triggers the switch - valid values are 'A' - 'H'
-- `stateless`: Define as a stateless switch - valid values are true or false [default = false]
-- `four_btn`: set to `true` for 4-button remotes [default = false]
-
-Outlet support:
-On/off outlets are supported with independent control over each outlet (each is defined as an individual device).  Additional parameters that should be used when defining an outlet are:
-
-- `position`: Specify the position of the outlet - valid values are 'top' or 'bottom' [default = top]
-
-Battery operated devices:
-Low battery levels are reported periodically by the device and by default are shown in the Home app UI.  To disable low battery reporting, use the optional configuration parameter below.  This should be set at the individual device level.  Even with low battery status disabled, you will still get a low battery alert in the Home app if two heartbeat messages from the device are missed (takes ~2 days), likely indicating a dead device.
-
-- `disableBatteryStatus`: default false; set to true to disable low battery reporting.
-
-Contact sensors:
-- `invert_sensor`: set to true to invert the sensor status, ie off when closed and on when open. [default = false]
 
 Connection Watcher
 ------------------
@@ -183,7 +184,7 @@ It is possible to use the official Insteon HubPro as a complete homebridge serve
 1. Follow the intructions here http://beagleboard.org/getting-started to create an microSD card with latest board software
 2. Open the HubPro removing the 6 screws on the bottom.
 3. Insert the SD Card.
-4. While holding down the Boot Button "S2" connect the power. Don't electrocute yourthis. Wait until the LED starts flashing.
+4. While holding down the Boot Button "S2" connect the power. Don't electrocute yourself. Wait until the LED starts flashing.
 5. You should be able to connect via SSH now (username is 'debian' and the password is 'temppwd').
 6. Change the password!
 7. Enable the serial port by editing /boot/uEnv.txt
