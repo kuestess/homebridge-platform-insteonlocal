@@ -1,5 +1,5 @@
 {
-  "private": true,
+  "private": false,
   "displayName": "InsteonLocal",
   "name": "homebridge-platform-insteonlocal",
   "version": "0.5.0",
