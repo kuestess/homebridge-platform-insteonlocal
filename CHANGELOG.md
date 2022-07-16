@@ -6,6 +6,26 @@ All notable changes to this project will be documented in this file.
 - [NEW] Complete refactor to more modern, dynamic platform
 - [NEW] Merge PR from @microbmen to add fan control/status to the express server (#223)
 - [FIXED] Address issue with groupMember logic (#260)
+## 0.4.28
+- [NEW] Automated device discovery/addition to config
+- [REMOVE] Remove config.json editing gui from main page in favor of homebridge/hoobs ui and above auto-discovery/addition
+- [FIXED] Fix crash when groupMembers contain a period in the device id (#239)
+## 0.4.27
+- [FIXED] Fix stupid error in logging :(
+## 0.4.26
+- [FIXED] Fix restart issues on HOOBS
+- [FIXED] Better error handling for `getHubInfo`
+- [ENHANCED] Address 'max listeners' message
+## 0.4.25
+- [FIXED] Add outlet position to schema.
+- [NEW] Hub info automatically discovered in ui (no longer need to get hub info).
+- [FIXED] Fix ui when no devices are defined in config.
+## 0.4.24
+- [FIXED] Quick fixes to prevent empty model/devices array and improve configuration.
+## 0.4.23
+- [FIXED] Fix status for keypads with attached load (#185)
+## 0.4.22
+- [FIXED] Fix debounce logic when using Siri.
 ## 0.4.21
 - [FIXED] Fixes for configuration via homebrudge ui.
 ## 0.4.20
