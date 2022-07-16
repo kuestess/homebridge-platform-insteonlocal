@@ -1,8 +1,14 @@
 {
   "files.eol": "\n",
+  "editor.formatOnSave": false,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true
   },
-  "editor.rulers": [ 140 ],
+  "eslint.validate": [
+    "typescript"
+  ],
+  "editor.rulers": [
+    140
+  ],
   "eslint.enable": true
 }

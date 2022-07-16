@@ -153,25 +153,6 @@ export class InsteonLocalAccessory {
     }
 
     this.init();
-    /*
-    this.service = this.accessory.getService(this.platform.Service.Lightbulb) || this.accessory.addService(this.platform.Service.Lightbulb);
-    this.service.setCharacteristic(this.platform.Characteristic.Name, this.name);
-
-    // register handlers for the On/Off Characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.On)
-      .onSet(this.setBrightnessLevel.bind(this));                // SET - bind to the `setOn` method below
-
-    // register handlers for the Brightness Characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.Brightness)
-      .onSet(this.setBrightnessLevel.bind(this));
-
-    this.light = this.hub.light(this.id);
-    this.light.emitOnAck = true;
-
-    //Get initial state
-    this.hub.once('connect', () => {
-      this.getStatus.call(this);
-    });*/
   }
 
   init(){
@@ -601,15 +582,13 @@ export class InsteonLocalAccessory {
     if(this.id){
       deviceMAC = this.id.substr(0, 2) + '.' + this.id.substr(2, 2) + '.' + this.id.substr(4, 2);
     } else {
-      deviceMAC = '';
+      deviceMAC = this.name; //Device without device id (ie, scene), set serial num to the name
     }
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Insteon')
       .setCharacteristic(this.platform.Characteristic.Model, 'Insteon')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, deviceMAC);
-
-
   }
 
   async setBrightnessLevel(level: CharacteristicValue) {
@@ -1292,22 +1271,10 @@ export class InsteonLocalAccessory {
     }
 
     this.groupMembers.forEach((deviceID) =>{
-      if (!/^[0-9a-fA-F]{6}$/.test(deviceID)){
-        this.log.debug('Group device is a name...');
-        const namedDev = this.accessories.filter((item) => {
-          return (item.name == deviceID);
-        });
-
-        const theNamedDev = namedDev[0];
-        this.log.debug('Found matching device with id ' + deviceID);
-        this.log('Getting status of scene device ' + theNamedDev.name);
-        setTimeout(()=> {
-          theNamedDev.getStatus.call(theNamedDev);
-        }, 2000);
-      } else { //group member defined by id
+      if (/^[0-9a-fA-F]{6}$/.test(deviceID)){ //group member defined by id
         const isDefined = _.contains(deviceIDs, deviceID.toUpperCase(), 0);
         if(isDefined){
-          const groupDevice = this.accessories.filter((item) => {
+          const groupDevice = this.platform.insteonAccessories.filter((item) => {
             return (item.id == deviceID.toUpperCase());
           });
 
@@ -1320,6 +1287,18 @@ export class InsteonLocalAccessory {
             theGroupDevice.getStatus.call(theGroupDevice);
           }, 2000);
         }
+      } else { //group member defined by name
+        this.log.debug('Group device is a name...');
+        const namedDev = this.platform.insteonAccessories.filter((item) => {
+          return (item.name == deviceID);
+        });
+
+        const theNamedDev = namedDev[0];
+        this.log.debug('Found matching device with id ' + deviceID);
+        this.log('Getting status of scene device ' + theNamedDev.name);
+        setTimeout(()=> {
+          theNamedDev.getStatus.call(theNamedDev);
+        }, 2000);
       }
     });
   }

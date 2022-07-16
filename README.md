@@ -61,6 +61,8 @@ This plugin will set up a local [Express](https://expressjs.com) server at the p
  - `/iolinc/[id]/relay_off`:  turn off the relay for iolinc with Insteon [id]
  - `/iolinc/[id]/relay_status`:  get status of the relay for iolinc with Insteon [id]
  - `/iolinc/[id]/sensor_status`:  get status of the sensor for iolinc with Insteon [id]
+ - `/fan/[id]/level/[targetlevel]`:  set speed of the fan (fanlinc) with Insteon [id] to [targetlevel]
+ - `/fan/[id]/status`:  get status of the fan (fanlinc) with Insteon [id]
  - `/links`:  get all links from your Insteon Hub
  - `/links/[id]`:  get links for device with Insteon [id]
  - `/info/[id]`:  get info for device with Insteon [id]

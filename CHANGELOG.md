@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.5.0
+- [NEW] Complete refactor to more modern, dynamic platform
+- [NEW] Merge PR from @microbmen to add fan control/status to the express server (#223)
+- [FIXED] Address issue with groupMember logic (#260)
 ## 0.4.21
 - [FIXED] Fixes for configuration via homebrudge ui.
 ## 0.4.20

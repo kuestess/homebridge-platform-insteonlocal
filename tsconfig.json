@@ -15,6 +15,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
+    "resolveJsonModule": true,
     "esModuleInterop": true,
     "noImplicitAny": false,
     "strictPropertyInitialization": false
@@ -23,7 +24,6 @@
     "src/"
   ],
   "exclude": [
-    "**/*.spec.ts",
-    "src/insteon-ui.*"
+    "**/*.spec.ts"
   ]
 }

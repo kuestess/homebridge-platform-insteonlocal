@@ -1,16 +1,17 @@
-import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
+import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic, ColorUtils } from 'homebridge';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { InsteonLocalAccessory } from './InsteonLocalAccessory';
 
-//import { InsteonUI } from './insteon-ui';
-//import InsteonUI = require('./insteon-ui');
-//let ui;
+import { InsteonUI } from './insteon-ui';
 
 import hc from 'home-controller';
-import app from 'express';
+import express from 'express';
+const app = express();
 import _ from 'underscore';
 import moment, { Moment } from 'moment';
+import events from 'events';
+import util from 'util';
 
 const Insteon = hc.Insteon;
 const hub = new Insteon();
@@ -20,14 +21,12 @@ let connectingToHub = false;
 const inUse = true;
 let express_init = false;
 let eventListener_init = false;
-let configPath;
-
 export class InsteonLocalPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
 
   // this is used to track restored cached accessories
-  public readonly accessories: PlatformAccessory[] = [];
+  public accessories: PlatformAccessory[] = [];
 
   public hub: any;
   private host: string;
@@ -46,6 +45,8 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
   hubID: any;
   insteonAccessories: Array<InsteonLocalAccessory>;
   platform: any;
+  configPath: string;
+  app: any;
 
   constructor(
     public readonly log: Logger,
@@ -68,6 +69,10 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
     this.deviceIDs = [];
     this.platform = this;
     this.insteonAccessories = [];
+    this.configPath = api.user.configPath();
+    this.app = app;
+
+    events.EventEmitter.defaultMaxListeners = Math.max(10, this.devices.length);
 
     if (this.model == '2242') {
       this.refreshInterval = config['refresh'] || 300;
@@ -84,9 +89,16 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 
     this.connectToHub();
 
+    if(this.use_express && express_init == false){
+      this.initAPI();
+      express_init = true;
+      this.log.info('Started Insteon Express server...');
+    }
+
     //InsteonUI
-    //const ui = new InsteonUI(configPath, hub);
-    //app.use('/', ui.handleRequest);
+    const ui = new InsteonUI(this.configPath, hub);
+    app.use('/', ui.handleRequest.bind(ui));
+    app.listen(this.server_port);
 
     this.log.debug('Finished initializing platform:', this.config.name);
 
@@ -125,12 +137,6 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
         }
 
         this.getHubInfo();
-
-        if(this.use_express && express_init == false){
-          express_init = true;
-          app.listen(this.server_port);
-          this.log.info('Started Insteon Express server...');
-        }
       });
     } else if (this.model == '2243') {
       this.log.debug('Connecting to Insteon "Hub Pro" Hub...');
@@ -144,12 +150,6 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
         }
 
         this.getHubInfo();
-
-        if(this.use_express && express_init == false){
-          express_init = true;
-          app.listen(this.server_port);
-          this.log.info('Started Insteon Express server...');
-        }
       });
     } else if (this.model == '2242') {
       this.log.debug('Connecting to Insteon Model 2242 Hub...');
@@ -165,12 +165,6 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
         }
 
         this.getHubInfo();
-
-        if(this.use_express && express_init == false){
-          express_init = true;
-          app.listen(this.server_port);
-          this.log.info('Started Insteon Express server...');
-        }
       });
     } else {
       this.log.debug('Connecting to Insteon PLM...');
@@ -184,12 +178,6 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
         }
 
         this.getHubInfo();
-
-        if(this.use_express && express_init == false){
-          express_init = true;
-          app.listen(this.server_port);
-          this.log.info('Started Insteon Express server...');
-        }
       });
     }
   }
@@ -607,11 +595,13 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
       const uuid = this.api.hap.uuid.generate(device.name);
       const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
 
-      if(device.deviceID.includes('.')){
+      if(device.deviceID && device.deviceID.includes('.')){
         device.deviceID = device.deviceID.replace(/\./g, '');
       }
 
-      this.deviceIDs.push(device.deviceID.toUpperCase());
+      if(device.deviceID){
+        this.deviceIDs.push(device.deviceID.toUpperCase());
+      }
 
       if (existingAccessory) {
         this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
@@ -638,5 +628,273 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }
     }
+  }
+
+  initAPI() {
+    const deviceIDs = this.deviceIDs;
+
+    this.app.get('/light/:id/on', (req, res) => {
+      const id = req.params.id.toUpperCase();
+
+      this.hub.light(id).turnOn().then((status) => {
+        if (status.response) {
+          res.sendStatus(200);
+
+          const isDevice = _.contains(deviceIDs, id, 0);
+          let foundDevice: any;
+
+          if (isDevice) {
+            foundDevice = this.insteonAccessories.filter((item) => {
+              return item.id == id;
+            });
+          }
+
+          foundDevice = foundDevice[0];
+          setTimeout(()=> {
+            foundDevice.getStatus.call(foundDevice);
+          }, 1000);
+
+        } else {
+          res.sendStatus(404);
+        }
+      });
+    });
+
+    this.app.get('/light/:id/off', (req, res) => {
+      const id = req.params.id.toUpperCase();
+      this.hub.light(id).turnOff().then((status) => {
+        if (status.response) {
+          res.sendStatus(200);
+
+          const isDevice = _.contains(deviceIDs, id, 0);
+          let foundDevice;
+
+          if (isDevice) {
+            foundDevice = this.insteonAccessories.filter((item) => {
+              return item.id == id;
+            });
+          }
+
+          foundDevice = foundDevice[0];
+          foundDevice.getStatus.call(foundDevice);
+
+        } else {
+          res.sendStatus(404);
+        }
+      });
+    });
+
+    this.app.get('/light/:id/status', (req, res) => {
+      const id = req.params.id;
+      this.hub.light(id).level((err, level) => {
+        res.json({
+          'level': level,
+        });
+      });
+    });
+
+    this.app.get('/light/:id/level/:targetLevel', (req, res) => {
+      const id = req.params.id;
+      const targetLevel = req.params.targetLevel;
+
+      this.hub.light(id).level(targetLevel).then((status) => {
+        if (status.response) {
+          res.sendStatus(200);
+
+          const isDevice = _.contains(deviceIDs, id, 0);
+          let foundDevice;
+
+          if (isDevice) {
+            foundDevice = this.insteonAccessories.filter((item: any) => {
+              return item.id == id;
+            });
+          }
+
+          foundDevice = foundDevice[0];
+          foundDevice.getStatus.call(foundDevice);
+
+        } else {
+          res.sendStatus(404);
+        }
+      });
+    });
+
+    this.app.get('/scene/:group/on', (req, res) => {
+      const group = parseInt(req.params.group);
+      this.hub.sceneOn(group).then((status) => {
+        if (status.aborted) {
+          res.sendStatus(404);
+        }
+        if (status.completed) {
+          res.sendStatus(200);
+
+          /* const isDevice = _.contains(deviceIDs, id, 0);
+          let foundDevice;
+
+          if (isDevice) {
+            foundDevice = this.accessories.filter((item) => {
+              return item.id == id;
+            });
+          }
+
+          foundDevice = foundDevice[0];
+          foundDevice.getSceneState.call(foundDevice);
+        */
+        } else {
+          res.sendStatus(404);
+        }
+      });
+    });
+
+    this.app.get('/scene/:group/off', (req, res) => {
+      const group = parseInt(req.params.group);
+      this.hub.sceneOff(group).then((status) => {
+        if (status.aborted) {
+          res.sendStatus(404);
+        }
+        if (status.completed) {
+          res.sendStatus(200);
+          /*
+          const isDevice = _.contains(deviceIDs, id, 0);
+          let foundDevice;
+
+          if (isDevice) {
+            foundDevice = this.accessories.filter((item) => {
+              return item.id == id;
+            });
+          }
+
+          foundDevice = foundDevice[0];
+          foundDevice.getSceneState.call(foundDevice);
+*/
+        } else {
+          res.sendStatus(404);
+        }
+      });
+    });
+
+    this.app.get('/links', (req, res) => {
+      this.hub.links((err, links) => {
+        res.json(links);
+      });
+    });
+
+    this.app.get('/links/:id', (req, res) => {
+      const id = req.params.id;
+      this.hub.links(id, (err, links) => {
+        res.json(links);
+      });
+    });
+
+    this.app.get('/info/:id', (req, res) => {
+      const id = req.params.id;
+      this.hub.info(id, (err, info) => {
+        res.json(info);
+      });
+    });
+
+    this.app.get('/iolinc/:id/relay_on', (req, res) => {
+      const id = req.params.id;
+      this.hub.ioLinc(id).relayOn().then((status) => {
+        if (status.response) {
+          res.sendStatus(200);
+
+          const isDevice = _.contains(deviceIDs, id, 0);
+          let foundDevice;
+
+          if (isDevice) {
+            foundDevice = this.insteonAccessories.filter((item: any) => {
+              return item.id == id;
+            });
+          }
+
+          foundDevice = foundDevice[0];
+
+          setTimeout(() => {
+            foundDevice.getSensorStatus.call(foundDevice);
+          }, 1000 * foundDevice.gdo_delay);
+
+        } else {
+          res.sendStatus(404);
+        }
+      });
+    });
+
+    this.app.get('/iolinc/:id/relay_off', (req, res) => {
+      const id = req.params.id;
+      this.hub.ioLinc(id).relayOff().then((status) => {
+        if (status.response) {
+          res.sendStatus(200);
+
+          const isDevice = _.contains(deviceIDs, id, 0);
+          let foundDevice;
+
+          if (isDevice) {
+            foundDevice = this.insteonAccessories.filter((item: any) => {
+              return item.id == id;
+            });
+          }
+
+          foundDevice = foundDevice[0];
+
+          setTimeout(() => {
+            foundDevice.getSensorStatus.call(foundDevice);
+          }, 1000 * foundDevice.gdo_delay);
+
+        } else {
+          res.sendStatus(404);
+        }
+      });
+    });
+
+    this.app.get('/iolinc/:id/sensor_status', (req, res) => {
+      const id = req.params.id;
+      this.hub.ioLinc(id).status((err, status) => {
+        res.json(status.sensor);
+      });
+    });
+
+    this.app.get('/iolinc/:id/relay_status', (req, res) => {
+      const id = req.params.id;
+      this.hub.ioLinc(id).status((err, status) => {
+        res.json(status.relay);
+      });
+    });
+
+
+    this.app.get('/fan/:id/level/:targetLevel', (req, res) => {
+      const id = req.params.id;
+      const targetLevel = req.params.targetLevel;
+
+      hub.light(id).fan(targetLevel).then((status) => {
+        if (status.response) {
+          res.sendStatus(200);
+
+          const isDevice = _.contains(this.deviceIDs, id, 0);
+          let foundDevice;
+
+          if (isDevice) {
+            foundDevice = this.insteonAccessories.filter((item) => {
+              return item.id == id;
+            });
+          }
+
+          foundDevice = foundDevice[0];
+          foundDevice.getStatus.call(foundDevice);
+
+        } else {
+          res.sendStatus(404);
+        }
+      });
+    });
+
+    this.app.get('/fan/:id/status', (req, res) => {
+      const id = req.params.id;
+      hub.light(id).fan((err, level) => {
+        res.json({
+          'level': level,
+        });
+      });
+    });
   }
 }
