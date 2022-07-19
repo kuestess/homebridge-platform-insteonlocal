@@ -24,7 +24,7 @@ export class InsteonLocalAccessory {
   lastUpdate: Moment;
   refreshInterval: number;
   targetKeypadID: string;
-  targetKeypadSixBtn: string;
+  targetKeypadSixBtn: number;
   targetKeypadBtn: string;
   setTargetKeypadCount: number;
   lastCommand: Moment;
@@ -32,7 +32,6 @@ export class InsteonLocalAccessory {
   six_btn;
   keypadbtn;
   buttonMap: string;
-  setTargetKeypadBtn: any;
   pollTimer: NodeJS.Timeout;
   iolinc: any;
   invert_sensor: unknown;
@@ -76,7 +75,7 @@ export class InsteonLocalAccessory {
     this.dimmable = (this.device.dimmable == 'yes') ? true : false;
     this.name = this.device.name;
     this.deviceType = this.device.deviceType;
-    this.refreshInterval = this.device.refresh || platform.refreshInterval;
+    this.refreshInterval = this.device.refresh || this.platform.refreshInterval;
     this.disabled = this.device.disabled || false;
 
     this.targetKeypadID = this.device.targetKeypadID || [];
@@ -148,8 +147,6 @@ export class InsteonLocalAccessory {
         }
       },
       );
-
-      this.accessories.push(this);
     }
 
     this.init();
@@ -1236,7 +1233,7 @@ export class InsteonLocalAccessory {
             this.log.debug(' targetKeypadID[' + temp + '] = ' + '[' + this.targetKeypadID[temp] + ']');
           }
 
-          let count;
+          let count: number;
 
           for(count = 0; count < this.targetKeypadID.length; count++){
             //this.log.debug('<Check point 0> count = ' + count)
@@ -1260,6 +1257,132 @@ export class InsteonLocalAccessory {
       this.lastUpdate = moment();
       return;
     }
+  }
+
+  setTargetKeypadBtn (callback?) {
+    const timeout = 0;
+
+    const eight_buttonArray = {
+      'A': 7,
+      'B': 6,
+      'C': 5,
+      'D': 4,
+      'E': 3,
+      'F': 2,
+      'G': 1,
+      'H': 0,
+    };
+
+    const six_buttonArray = {
+      'A': eight_buttonArray['C'],
+      'B': eight_buttonArray['D'],
+      'C': eight_buttonArray['E'],
+      'D': eight_buttonArray['F'],
+    };
+
+    let buttonArray;
+    const index1 = this.setTargetKeypadCount;
+
+    this.log(' also setting target keypad [' + this.targetKeypadID[index1] + '] button [' + this.targetKeypadBtn[index1] + '] to ' + this.currentState);
+    //this.log.debug('<Check point 1> index1 = ' + index1)
+
+    this.platform.checkHubConnection();
+
+    const getButtonMap = (callback) => {
+      const command = {
+        cmd1: '19',
+        cmd2: '01',
+      };
+
+      //this.log.debug('<Check point 2> index1 = ' + index1)
+      this.log.debug(' Reading button map for target keypad [' + this.targetKeypadID[index1] + ']');
+
+      this.hub.directCommand(this.targetKeypadID[index1], command, timeout, (err, status)=> {
+        if(err || status == null || typeof status === 'undefined' || typeof status.response === 'undefined'
+        || typeof status.response.standard === 'undefined' || status.success == false){
+          this.log('Error getting button states for target keypad [' + this.targetKeypadID[index1] + ']');
+          this.log.debug('Err: ' + util.inspect(err));
+          return;
+        } else {
+          const hexButtonMap = status.response.standard.command2;
+          let binaryButtonMap = parseInt(hexButtonMap, 16).toString(2);
+          binaryButtonMap = '00000000'.substr(binaryButtonMap.length) + binaryButtonMap; //pad to 8 digits
+          this.buttonMap = binaryButtonMap;
+
+          this.log.debug(' Current button map: ' + binaryButtonMap);
+          //this.log.debug('<Check point 3> index1 = ' + index1)
+
+          callback();
+        }
+      });
+    };
+
+    getButtonMap(()=> {
+      const currentButtonMap = this.buttonMap; //binary button states from getButtonMap
+
+      //this.log.debug('<Check point 4> index1 = ' + index1)
+
+      if(this.targetKeypadSixBtn[index1] == true){
+        buttonArray = six_buttonArray;
+        this.log.debug(' Using 6-button keypad layout');
+      } else {
+        buttonArray = eight_buttonArray;
+        this.log.debug(' Using 8-button keypad layout');
+      }
+
+      const buttonNumber = buttonArray[this.targetKeypadBtn[index1]];
+
+      this.log.debug(' Target button: ' + this.targetKeypadBtn[index1]);
+      this.log.debug(' Button number: ' + buttonNumber);
+
+      const binaryButtonMap = currentButtonMap.substring(0, buttonNumber) +
+              (this.currentState ? '1' : '0') +
+              currentButtonMap.substring(buttonNumber+1);
+
+      this.log.debug(' New binary button map: ' + binaryButtonMap);
+
+      const buttonMap = ('00'+parseInt(binaryButtonMap, 2).toString(16)).substr(-2).toUpperCase();
+
+      //this.log.debug(' New hex value: ' + buttonMap)
+
+      const cmd = {
+        cmd1: '2E',
+        cmd2: '00',
+        extended: true,
+        userData: ['01', '09', buttonMap],
+        isStandardResponse: true,
+      };
+
+      this.hub.directCommand(this.targetKeypadID[index1], cmd, timeout, (err, status)=> {
+
+        //this.log.debug('<Check point 5> index1 = ' + index1)
+
+        if(err || status == null || typeof status === 'undefined' || typeof status.response === 'undefined'
+        || typeof status.response.standard === 'undefined' || status.success == false){
+
+          this.log('Error setting button state of target keypad [' + this.targetKeypadID[index1] + ']');
+          this.log.debug('Err: ' + util.inspect(err));
+
+          if (typeof callback !== 'undefined') {
+            callback(err);
+            return 1;
+          } else {
+            return 1;
+          }
+        } else {
+          this.lastUpdate = moment();
+          this.buttonMap = binaryButtonMap;
+
+          if (typeof callback !== 'undefined') {
+            callback(null);
+            return 1;
+          } else {
+            return 1;
+          }
+        }
+      });
+
+    });
   }
 
   getGroupMemberStatus (){

@@ -1,7 +1,9 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
-
+## 0.5.1
+- [FIXED] Fix crash from specifying refresh interval (#272)
+- [FIXED] Restore `setTargetKeypadBtn` (#273)
 ## 0.5.0
 - [NEW] Complete refactor to more modern, dynamic platform
 - [NEW] Merge PR from @microbmen to add fan control/status to the express server (#223)
