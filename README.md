@@ -7,6 +7,8 @@ See [CHANGELOG][].
 
 [changelog]: CHANGELOG.md
 
+** Note: When upgrading from any prior version of the plugin to version 0.5.0 or greater, you will need to re-add your devices and rebuild existing automations.  This is a one-time thing and is not a bug. **
+
 Overview
 --------
 Implements local control of Insteon devices including switches, dimmers, outlets, fans, blinds, scenes, iolincs (configured as a garage door), motion sensors, door/window sensors, and leak sensors via Homebridge. Leverages [home-controller](https://github.com/automategreen/home-controller) to enable control and status of multiple Insteon devices.  Supports both Insteon Hub 2242 and 2245 and now has beta support for running directly on a Hub Pro (thanks to @rasod).
