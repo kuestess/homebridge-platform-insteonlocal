@@ -1082,12 +1082,6 @@ export class InsteonLocalAccessory {
 
     clearTimeout(this.levelTimeout);
 
-    this.levelTimeout = setTimeout(()=> {
-      setFanLevel(level);
-    }, debounceTimer);
-
-    return;
-
     const setFanLevel = (level ) =>{
       let targetLevel;
 
@@ -1138,6 +1132,12 @@ export class InsteonLocalAccessory {
         }
       });
     };
+
+    this.levelTimeout = setTimeout(()=> {
+      setFanLevel(level);
+    }, debounceTimer);
+
+    return;
   }
 
   setPowerState(state) {
