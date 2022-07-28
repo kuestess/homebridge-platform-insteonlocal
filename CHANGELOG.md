@@ -1,7 +1,7 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
-## 0.5.2
+## 0.5.3
 - [FIXED] Fix for fanlinc issue (#278)
 ## 0.5.1
 - [FIXED] Fix crash from specifying refresh interval (#272)
