@@ -101,7 +101,8 @@
                 { "title": "shades", "enum": ["shades"] },
                 { "title": "blinds", "enum": ["blinds"] },
                 { "title": "smoke", "enum": ["smoke"] },
-                { "title": "fan", "enum": ["fan"] }
+                { "title": "fan", "enum": ["fan"] },
+                { "title": "thermostat", "enum": ["thermostat"] }
               ]
             },
             "groupID": {

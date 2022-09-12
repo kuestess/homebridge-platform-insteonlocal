@@ -1,0 +1,35 @@
+name: Create Tag
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      output1: ${{ steps.create-tag.outputs.version }}
+    steps:
+      - name: checkout
+        id: checkout
+        uses: actions/checkout@v2
+      - name: create-tag
+        id: create-tag
+        uses: Klemensas/action-autotag@stable
+        with:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          tag_prefix: "v"
+  build:
+    needs: create-tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ncipollo/release-action@v1
+        with:
+          tag: ${{needs.create-tag.outputs.output1}}
+          artifacts: "*"
+          draft: true
+          token: ${{ secrets.GITHUB_TOKEN }}

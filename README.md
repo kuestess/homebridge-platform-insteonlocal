@@ -47,7 +47,7 @@ Devices are also defined in the config.json as follows:
   - `groupID`:  Insteon group ID for a scene
   - `keypadbtn`: Keypad button to check for status of a scene, in caps.  For a six-button configuration, use 'ON' if the ON/OFF buttons are your scene controller.
   - `dimmable`:  dimmable or non-dimming device - valid values are "yes" or "no".  This is automatically set to 'yes' for dimmer/lightbulb device types.
-  - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'remote', 'iolinc', 'motionsensor', 'leaksensor', 'doorsensor', 'outlet', 'keypad', 'shades', 'blinds', 'smoke', and 'fan'.
+  - `deviceType`:  valid values include 'lightbulb', 'dimmer', 'switch', 'scene', 'remote', 'iolinc', 'motionsensor', 'leaksensor', 'doorsensor', 'outlet', 'keypad', 'shades', 'blinds', 'smoke', 'fan', and 'thermostat'.
   - `refresh`:  device-level refresh interval in seconds.  This will override the platform-level refresh value and will still refresh individual devices even if platform-level polling is turned off.
   - `controllers`: this is an array `["<Insteon ID>","<Insteon ID>"]` of other Insteon devices that this device is controlled by. ie if you have a plug in dimmer that is controlled by a wall switch you would add the wall switch ID as a controller for the plug in dimmer. The controller device does not need to be a device listed in the config.json
   - `targetKeypadID`: this is an array `["<Insteon ID>","<Insteon ID>"]` of Insteon keypad(s), whose scene button LED you would like to set accoridngly to the state of the device. See additional notes below on Target Keypad LED.

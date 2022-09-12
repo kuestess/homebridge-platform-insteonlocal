@@ -58,6 +58,13 @@ export class InsteonLocalAccessory {
   accessories: Array<InsteonLocalAccessory>;
   handleRemoteEvent: any;
   serviceCO: any;
+  thermostat: any;
+  units: any;
+  tempUnits: any;
+  mode: string;
+  currentTemp: any;
+  targetTemp: any;
+  refresh: number;
 
   constructor(
     private readonly platform: InsteonLocalPlatform,
@@ -136,6 +143,10 @@ export class InsteonLocalAccessory {
     if (this.deviceType == 'x10') {
       this.house = this.device.house || 'A';
       this.unit = this.device.unit;
+    }
+
+    if (this.deviceType == 'thermostat') {
+      this.tempUnits = this.device.tempUnits;
     }
 
     if(this.refreshInterval > 0){
@@ -568,6 +579,51 @@ export class InsteonLocalAccessory {
 
         this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.setX10PowerState.bind(this));
         this.light = this.hub.x10(this.house, this.unit);
+
+        break;
+
+      case 'thermostat':
+        this.service = this.accessory.getService(this.platform.Service.Thermostat) || this.accessory.addService(this.platform.Service.Thermostat);
+
+        this.thermostat = this.hub.thermostat(this.id);
+        this.thermostat.monitor(true);
+
+        const refresh = this.refresh || 5*60*1000; //set to 5min unless 'refresh' defined at device level
+
+        this.hub.once('connect', () => {
+          this.getThermostatStatus.call(this);
+          //get temp every `refresh` minutes (or 5min)
+          setInterval(()=>{
+            this.getTemperature();
+          }, refresh);
+        });
+
+        this.thermostat.on('cooling', () =>{
+          this.log.debug('Thermostat ' + this.name + ' is cooling');
+          this.mode = 'cool';
+          this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState).updateValue(2);
+          this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState).updateValue(2);
+        });
+
+        this.thermostat.on('heating', () =>{
+          this.log.debug('Thermostat ' + this.name + ' is heating');
+          this.mode = 'heat';
+          this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState).updateValue(1);
+          this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState).updateValue(1);
+        });
+
+        this.thermostat.on('off', () =>{
+          this.log.debug('Thermostat ' + this.name + ' is off');
+          this.mode = 'off';
+          this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState).updateValue(0);
+          this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState).updateValue(0);
+        });
+
+        this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState)
+          .onSet(this.setThermostatMode.bind(this));
+
+        this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature)
+          .onSet(this.setTemperature.bind(this));
 
         break;
     }
@@ -1841,6 +1897,128 @@ export class InsteonLocalAccessory {
         this.log('Error setting level of ' + this.name);
         return;
       }
+    });
+  }
+
+  getThermostatStatus(){
+    this.thermostat.status((err, status)=>{
+      this.log('Getting thermostat ' + this.name + ' status');
+
+      if(err || status == null || !status || typeof(status) === 'undefined'){
+        return new Error('Thermostat did not return status');
+      }
+      this.log.debug('Status: ' + util.inspect(status));
+      //get mode
+      if(status.mode == 'off'){
+        this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState).updateValue(0);
+        this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState).updateValue(0);
+        this.mode = 'off';
+      } else if(status.mode == 'heat'){
+        this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState).updateValue(1);
+        this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState).updateValue(1);
+        this.mode = 'heat';
+      } else { //cool
+        this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState).updateValue(2);
+        this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState).updateValue(2);
+        this.mode = 'cool';
+      }
+      //get units
+      if(status.unit == 'C'){
+        this.service.getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits).updateValue(0);
+        this.unit = 'C';
+      } else {
+        this.service.getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits).updateValue(1);
+        this.unit = 'F';
+      }
+      //get current temperature
+      if(status.temperature){
+        this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).updateValue(status.temperature);
+        this.currentTemp = status.temperature;
+      }
+      //get target temperature
+      if(status.setpoints){
+        if(this.mode == 'cool'){
+          this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature).updateValue(status.setpoints.cool);
+          this.targetTemp = status.setpoints.cool;
+        } else if(this.mode == 'heat'){
+          this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature).updateValue(status.setpoints.heat);
+          this.targetTemp = status.setpoints.heat;
+        }
+      }
+    });
+  }
+
+  setTemperature(temp){
+    if(this.disabled){
+      this.log.debug('Device ' + this.name + ' is disabled');
+      return;
+    }
+
+    this.log('Setting ' + this.name + ' temperature to ' + temp);
+
+    this.platform.checkHubConnection();
+    this.lastUpdate = moment();
+
+    if(this.mode == 'cool'){
+      this.thermostat.coolTemp(temp, (response)=>{
+        if(!response || typeof(response) === 'undefined'){
+          return new Error('Thermostat did not return status');
+        }
+
+        this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature).updateValue(temp);
+        this.targetTemp = temp;
+      });
+    } else if(this.mode == 'heat'){
+      this.thermostat.heatTemp(temp, (response)=>{
+        if(!response || typeof(response) === 'undefined'){
+          return new Error('Thermostat did not return status');
+        }
+
+        this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature).updateValue(temp);
+        this.targetTemp = temp;
+      });
+    }
+  }
+
+  getTemperature(){
+    if(this.disabled){
+      this.log.debug('Device ' + this.name + ' is disabled');
+      return;
+    }
+
+    this.log('Getting temperature of ' + this.name);
+
+    this.platform.checkHubConnection();
+    this.lastUpdate = moment();
+
+    this.thermostat.temp((temp)=>{
+      if(!temp || typeof(temp) === 'undefined'){
+        return new Error('Thermostat did not return current temp');
+      }
+
+      this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).updateValue(temp);
+      this.currentTemp = temp;
+    });
+
+
+  }
+
+  setThermostatMode(mode){
+    if(this.disabled){
+      this.log.debug('Device ' + this.name + ' is disabled');
+      return;
+    }
+
+    this.platform.checkHubConnection();
+    this.log.debug('Set ' + this.name + ' mode to ' + mode);
+    mode == 1 ? mode='heat' : mode='cool';
+
+    this.lastUpdate = moment();
+    this.thermostat.mode(mode, (err, response)=>{
+      if(err || response == null || !response || typeof(response) === 'undefined'){
+        return new Error('Thermostat did not return status');
+      }
+      this.log.debug('Set ' + this.name + ' mode to ' + mode);
     });
   }
 }
