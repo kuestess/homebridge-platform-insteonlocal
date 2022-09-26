@@ -1,6 +1,10 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## 0.5.4-1
+- [FIXED] Fix for temperature units
+## 0.5.4
+- [NEW] Initial support for thermostat (#267)
 ## 0.5.3
 - [FIXED] Fix for fanlinc issue (#278)
 ## 0.5.1

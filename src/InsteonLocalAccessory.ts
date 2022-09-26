@@ -6,6 +6,8 @@ import { InsteonLocalPlatform } from './InsteonLocalPlatform';
 import moment, { Moment } from 'moment';
 import util from 'util';
 import _ from 'underscore';
+import insteonUtils from 'home-controller/lib/Insteon/utils';
+const convertTemp = insteonUtils.convertTemp;
 
 export class InsteonLocalAccessory {
   service: Service;
@@ -146,7 +148,7 @@ export class InsteonLocalAccessory {
     }
 
     if (this.deviceType == 'thermostat') {
-      this.tempUnits = this.device.tempUnits;
+      //this.tempUnits = this.device.tempUnits; //Not currently used - determined from thermostat
     }
 
     if(this.refreshInterval > 0){
@@ -1932,17 +1934,29 @@ export class InsteonLocalAccessory {
       }
       //get current temperature
       if(status.temperature){
-        this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).updateValue(status.temperature);
-        this.currentTemp = status.temperature;
+        if(status.unit == 'C'){
+          this.currentTemp = status.temperature;
+        } else {
+          this.currentTemp = convertTemp('F', 'C', status.temperature);
+        }
+        this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).updateValue(this.currentTemp);
       }
       //get target temperature
       if(status.setpoints){
         if(this.mode == 'cool'){
-          this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature).updateValue(status.setpoints.cool);
-          this.targetTemp = status.setpoints.cool;
+          if(status.unit == 'C'){
+            this.targetTemp = status.setpoints.cool;
+          } else {
+            this.targetTemp = convertTemp('F', 'C', status.setpoints.cool);
+          }
+          this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature).updateValue(this.targetTemp);
         } else if(this.mode == 'heat'){
-          this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature).updateValue(status.setpoints.heat);
-          this.targetTemp = status.setpoints.heat;
+          if(status.unit == 'C'){
+            this.targetTemp = status.setpoints.heat;
+          } else {
+            this.targetTemp = convertTemp('F', 'C', status.setpoints.heat);
+          }
+          this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature).updateValue(this.targetTemp);
         }
       }
     });
@@ -1954,13 +1968,21 @@ export class InsteonLocalAccessory {
       return;
     }
 
+    let theTemp;
+
     this.log('Setting ' + this.name + ' temperature to ' + temp);
 
     this.platform.checkHubConnection();
     this.lastUpdate = moment();
 
+    if(this.unit == 'F'){
+      theTemp = convertTemp('C', 'F', temp);
+    } else {
+      theTemp = temp;
+    }
+
     if(this.mode == 'cool'){
-      this.thermostat.coolTemp(temp, (response)=>{
+      this.thermostat.coolTemp(theTemp, (response)=>{
         if(!response || typeof(response) === 'undefined'){
           return new Error('Thermostat did not return status');
         }
@@ -1969,7 +1991,7 @@ export class InsteonLocalAccessory {
         this.targetTemp = temp;
       });
     } else if(this.mode == 'heat'){
-      this.thermostat.heatTemp(temp, (response)=>{
+      this.thermostat.heatTemp(theTemp, (response)=>{
         if(!response || typeof(response) === 'undefined'){
           return new Error('Thermostat did not return status');
         }
@@ -1996,8 +2018,13 @@ export class InsteonLocalAccessory {
         return new Error('Thermostat did not return current temp');
       }
 
-      this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).updateValue(temp);
-      this.currentTemp = temp;
+      if(this.unit == 'C'){
+        this.currentTemp = temp;
+      } else {
+        this.currentTemp = convertTemp('F', 'C', temp);
+      }
+
+      this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).updateValue(this.currentTemp);
     });
 
 
