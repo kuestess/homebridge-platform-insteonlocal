@@ -1970,31 +1970,33 @@ export class InsteonLocalAccessory {
 
     let theTemp;
 
-    this.log('Setting ' + this.name + ' temperature to ' + temp);
+    if(this.unit == 'F'){
+      theTemp = Math.round(convertTemp('C', 'F', temp));
+    } else {
+      theTemp = Math.round(temp);
+    }
+
+    this.log('Setting ' + this.name + ' temperature to ' + theTemp);
 
     this.platform.checkHubConnection();
     this.lastUpdate = moment();
 
-    if(this.unit == 'F'){
-      theTemp = convertTemp('C', 'F', temp);
-    } else {
-      theTemp = temp;
-    }
-
     if(this.mode == 'cool'){
-      this.thermostat.coolTemp(theTemp, (response)=>{
-        if(!response || typeof(response) === 'undefined'){
+      this.thermostat.coolTemp(theTemp, (err, response)=>{
+        if(err || !response || typeof(response) === 'undefined'){
           return new Error('Thermostat did not return status');
         }
+        this.log.debug(util.inspect(response));
 
         this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature).updateValue(temp);
         this.targetTemp = temp;
       });
     } else if(this.mode == 'heat'){
-      this.thermostat.heatTemp(theTemp, (response)=>{
-        if(!response || typeof(response) === 'undefined'){
+      this.thermostat.heatTemp(theTemp, (err, response)=>{
+        if(err || !response || typeof(response) === 'undefined'){
           return new Error('Thermostat did not return status');
         }
+        this.log.debug(util.inspect(response));
 
         this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature).updateValue(temp);
         this.targetTemp = temp;
@@ -2038,7 +2040,11 @@ export class InsteonLocalAccessory {
 
     this.platform.checkHubConnection();
     this.log.debug('Set ' + this.name + ' mode to ' + mode);
-    mode == 1 ? mode='heat' : mode='cool';
+    if(mode == 0) {
+      mode = 'off';
+    } else {
+      mode == 1 ? mode='heat' : mode='cool';
+    }
 
     this.lastUpdate = moment();
     this.thermostat.mode(mode, (err, response)=>{

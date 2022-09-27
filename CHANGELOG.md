@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## 0.5.4-2
+- [FIXED] Fix for setting thermostat mode
+- [ENHANCED] Additional debugging for temp setting
 ## 0.5.4-1
 - [FIXED] Fix for temperature units
 ## 0.5.4
