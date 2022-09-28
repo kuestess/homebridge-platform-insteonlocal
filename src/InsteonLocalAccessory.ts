@@ -603,6 +603,7 @@ export class InsteonLocalAccessory {
         this.thermostat.on('cooling', () =>{
           this.log.debug('Thermostat ' + this.name + ' is cooling');
           this.mode = 'cool';
+          this.log.debug(this.name + ' mode changed to ' + this.mode);
           this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState).updateValue(2);
           this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState).updateValue(2);
         });
@@ -610,6 +611,7 @@ export class InsteonLocalAccessory {
         this.thermostat.on('heating', () =>{
           this.log.debug('Thermostat ' + this.name + ' is heating');
           this.mode = 'heat';
+          this.log.debug(this.name + ' mode changed to ' + this.mode);
           this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState).updateValue(1);
           this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState).updateValue(1);
         });
@@ -617,6 +619,7 @@ export class InsteonLocalAccessory {
         this.thermostat.on('off', () =>{
           this.log.debug('Thermostat ' + this.name + ' is off');
           this.mode = 'off';
+          this.log.debug(this.name + ' mode changed to ' + this.mode);
           this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState).updateValue(0);
           this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState).updateValue(0);
         });
@@ -1924,6 +1927,7 @@ export class InsteonLocalAccessory {
         this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState).updateValue(2);
         this.mode = 'cool';
       }
+      this.log.debug('[init]' + this.name + ' mode is ' + this.mode);
       //get units
       if(status.unit == 'C'){
         this.service.getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits).updateValue(0);
@@ -1981,8 +1985,10 @@ export class InsteonLocalAccessory {
     this.platform.checkHubConnection();
     this.lastUpdate = moment();
 
-    if(this.mode == 'cool'){
-      this.thermostat.coolTemp(theTemp, (err, response)=>{
+    this.log.debug(this.name + ' mode is ' + this.mode);
+
+    if(this.mode == 'heat') {
+      this.thermostat.heatTemp(theTemp, (err, response)=>{
         if(err || !response || typeof(response) === 'undefined'){
           return new Error('Thermostat did not return status');
         }
@@ -1991,8 +1997,8 @@ export class InsteonLocalAccessory {
         this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature).updateValue(temp);
         this.targetTemp = temp;
       });
-    } else if(this.mode == 'heat'){
-      this.thermostat.heatTemp(theTemp, (err, response)=>{
+    } else {
+      this.thermostat.coolTemp(theTemp, (err, response)=>{
         if(err || !response || typeof(response) === 'undefined'){
           return new Error('Thermostat did not return status');
         }
@@ -2054,4 +2060,7 @@ export class InsteonLocalAccessory {
       this.log.debug('Set ' + this.name + ' mode to ' + mode);
     });
   }
+}
+function getTemperature() {
+  throw new Error('Function not implemented.');
 }
