@@ -93,6 +93,7 @@ export class InsteonLocalAccessory {
     this.setTargetKeypadCount = 0;
 
     if(typeof this.device.groupMembers !== 'undefined'){
+      this.device.groupMembers = this.device.groupMembers.replace(/\s*,\s*/g, ','); //remove spaces after commas
       const reg = /,|,\s/;
       this.groupMembers = this.device.groupMembers.split(reg);
     }
@@ -1478,7 +1479,7 @@ export class InsteonLocalAccessory {
         });
 
         const theNamedDev = namedDev[0];
-        this.log.debug('Found matching device with id ' + deviceID);
+        this.log.debug('Found matching device with id ' + theNamedDev.id);
         this.log('Getting status of scene device ' + theNamedDev.name);
         setTimeout(()=> {
           theNamedDev.getStatus.call(theNamedDev);

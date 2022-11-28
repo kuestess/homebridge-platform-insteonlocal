@@ -47,6 +47,7 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
   platform: any;
   configPath: string;
   app: any;
+  ui: InsteonUI;
 
   constructor(
     public readonly log: Logger,
@@ -136,7 +137,7 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
           this.eventListener();
         }
 
-        this.getHubInfo();
+        // this.getHubInfo();
       });
     } else if (this.model == '2243') {
       this.log.debug('Connecting to Insteon "Hub Pro" Hub...');
@@ -149,7 +150,7 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
           this.eventListener();
         }
 
-        this.getHubInfo();
+        // this.getHubInfo();
       });
     } else if (this.model == '2242') {
       this.log.debug('Connecting to Insteon Model 2242 Hub...');
@@ -164,7 +165,7 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
           this.eventListener();
         }
 
-        this.getHubInfo();
+        // this.getHubInfo();
       });
     } else {
       this.log.debug('Connecting to Insteon PLM...');
@@ -177,7 +178,7 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
           this.eventListener();
         }
 
-        this.getHubInfo();
+        // this.getHubInfo();
       });
     }
   }
@@ -584,9 +585,22 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
   discoverDevices() {
     if(typeof this.devices=== 'undefined'){
       this.log.debug('No devices defined in config');
-      //callback(null);
       return;
     }
+
+    //Remove accessories that are cached but no longer defined in the config
+    this.accessories.forEach((accessory, index) => {
+      const foundName = this.devices.filter((device) => {
+        return (device.name == accessory.displayName);
+      });
+      const inConfig = !!foundName.length;
+
+      if(!inConfig){
+        this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        this.log.info('Removing ' + accessory.displayName +' from cache - no longer in config.');
+        this.accessories.splice(index, 1);
+      }
+    });
 
     const numberDevices = this.devices.length;
     this.log.info('Found %s devices in config', numberDevices);
@@ -613,10 +627,6 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
         const theAccessory = new InsteonLocalAccessory(this, existingAccessory);
         this.insteonAccessories.push(theAccessory);
 
-        // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, eg.:
-        // remove platform accessories when no longer present
-        //this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-        //this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
       } else {
         this.log.info('Adding new accessory:', device.name);
         const accessory = new this.api.platformAccessory(device.name, uuid);

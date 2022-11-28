@@ -1,6 +1,10 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## 0.5.5
+- [FIXED] Fixes for group members defined by name (#260)
+- [FIXED] Fixes for removing or renaming accessories
+- [ENHANCED] Optimize getting hub id on startup
 ## 0.5.4-3
 - [DEBUG] Additional debugging for setting thermostat temp/mode
 ## 0.5.4-2

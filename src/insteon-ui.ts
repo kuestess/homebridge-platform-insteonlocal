@@ -3216,6 +3216,7 @@ export class InsteonUI {
           info.id = info.id.toUpperCase();
           this.hubInfo = info;
           this.hubID = info.id.toUpperCase();
+          this.platform.hubID = this.hubID;
           this.insteonJSON.hub.info = this.hubInfo;
           this.log('Hub/PLM info is ' + util.inspect(this.hubInfo));
           return;
