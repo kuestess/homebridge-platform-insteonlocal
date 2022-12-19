@@ -1967,7 +1967,7 @@ export class InsteonLocalAccessory {
     });
   }
 
-  setTemperature(temp){
+  async setTemperature(temp){
     if(this.disabled){
       this.log.debug('Device ' + this.name + ' is disabled');
       return;
@@ -1986,6 +1986,7 @@ export class InsteonLocalAccessory {
     this.platform.checkHubConnection();
     this.lastUpdate = moment();
 
+    this.mode = await this.getThermostatMode();
     this.log.debug(this.name + ' mode is ' + this.mode);
 
     if(this.mode == 'heat') {
@@ -2061,7 +2062,15 @@ export class InsteonLocalAccessory {
       this.log.debug('Set ' + this.name + ' mode to ' + mode);
     });
   }
-}
-function getTemperature() {
-  throw new Error('Function not implemented.');
+
+  getThermostatMode() {
+    return this.thermostat.mode((err, mode)=>{
+      if(err || !mode || typeof(mode) === 'undefined'){
+        return new Error('Thermostat did not return current mode');
+      }
+
+      this.log.debug('Thermostat ' + this.name + ' mode is ' + mode);
+      return mode;
+    });
+  }
 }

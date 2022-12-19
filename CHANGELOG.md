@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## 0.5.6
+- [FIXED] Fixes for thermostat support
 ## 0.5.5
 - [FIXED] Fixes for group members defined by name (#260)
 - [FIXED] Fixes for removing or renaming accessories
