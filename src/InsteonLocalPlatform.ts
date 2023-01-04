@@ -18,7 +18,7 @@ const hub = new Insteon();
 
 let connectedToHub = false;
 let connectingToHub = false;
-const inUse = true;
+let inUse = true;
 let express_init = false;
 let eventListener_init = false;
 export class InsteonLocalPlatform implements DynamicPlatformPlugin {
@@ -90,6 +90,10 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 
     this.connectToHub();
 
+    if (this.keepAlive > 0){
+      this.connectionWatcher();
+    }
+
     if(this.use_express && express_init == false){
       this.initAPI();
       express_init = true;
@@ -111,6 +115,41 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
       log.debug('Executed didFinishLaunching callback');
       this.discoverDevices();
     });
+  }
+
+  connectionWatcher() { //resets connection to hub every keepAlive mS
+    this.log.info('Started connection watcher...');
+
+    if (this.model == '2245') {
+      if(this.keepAlive > 0){
+        setInterval(()=> {
+          this.log.info('Closing connection to Hub...');
+          hub.close();
+          connectedToHub = false;
+
+          this.log.debug('Connected: ' + connectedToHub + ', Connecting: ' + connectingToHub);
+
+          setTimeout(() => { //wait 5 sec to reconnect to Hub
+            this.log.info('Reconnecting to Hub...');
+            this.connectToHub();
+          }, 5000);
+
+        }, 1000*this.keepAlive);
+      }
+    }
+
+    if (this.model == '2242') { //check every 10 sec to see if a request is in progress
+      setInterval(()=> {
+        if (typeof hub.status === 'undefined' && connectedToHub == true) { //undefined if no request in progress
+          inUse = false;
+          this.log.info('Closing connection to Hub...');
+          hub.close();
+          connectedToHub = false;
+        } else {
+          inUse = true;
+        }
+      }, 1000*this.checkInterval);
+    }
   }
 
   getHubInfo() {

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.7] - 2023-01-03
+### Fixed
+- Restore 'keepAlive' and 'connectionWatcher' functionality (#286)
+
 ## 0.5.6
 - [FIXED] Fixes for thermostat support
 ## 0.5.5

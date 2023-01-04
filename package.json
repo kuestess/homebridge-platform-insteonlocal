@@ -2,7 +2,7 @@
   "private": false,
   "displayName": "InsteonLocal",
   "name": "homebridge-platform-insteonlocal",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "Insteon platform plugin with local control for homebridge: https://github.com/nfarina/homebridge",
   "license": "ISC",
   "repository": {
