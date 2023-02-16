@@ -2668,7 +2668,7 @@ export class InsteonUI {
           req.connection.setTimeout(1000 * 60 * 10);
 
           const referer = req.header('Referer');
-          let deviceID = referer.substring(
+          const deviceID = referer.substring(
             referer.lastIndexOf('/') + 1,
             referer.length,
           );
@@ -2911,7 +2911,7 @@ export class InsteonUI {
 
           if (url.indexOf('/removeLink') !== -1) {
             const deviceLink = req.url.replace('/removeLink/', '').split('/');
-            deviceID = deviceLink[0];
+            const deviceID = deviceLink[0];
             const linkAt = parseInt(deviceLink[1]);
             this.removeLinkAt(deviceID, linkAt, res);
           }

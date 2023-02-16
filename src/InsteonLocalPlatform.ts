@@ -62,7 +62,7 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
     this.user = config['user'];
     this.pass = config['pass'];
     this.model = config['model'];
-    this.devices = config['devices'];
+    this.devices = config['devices'] || [];
     this.server_port = config['server_port'] || 3000;
     this.use_express = config['use_express'] || false;
     this.keepAlive = config['keepAlive'] || 3600;

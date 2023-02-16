@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.8] - 2023-02-15
+### Fixed
+- Fix error with deleting links (#291)
+- Fix error when devices array is not present in config (#289)
 ## [0.5.7] - 2023-01-03
 ### Fixed
 - Restore 'keepAlive' and 'connectionWatcher' functionality (#286)
