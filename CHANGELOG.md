@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.9] - 2023-07-07
+### Enhanced
+- Update device database to include new i3 devices
+
 ## [0.5.8] - 2023-02-15
 ### Fixed
 - Fix error with deleting links (#291)

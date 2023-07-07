@@ -510,6 +510,24 @@
     "name": "LED Bulb 240V (915 MHz) - Screw-in Base"
   },
   {
+    "category": 1,
+    "subcategory": 87,
+    "sku": "PS01",
+    "name": "i3 Paddle"
+  },
+  {
+    "category": 1,
+    "subcategory": 88,
+    "sku": "DS01",
+    "name": "i3 Dial"
+  },
+  {
+    "category": 1,
+    "subcategory": 89,
+    "sku": "KP014 ",
+    "name": "i3 Keypad"
+  },
+  {
     "category": 2,
     "subcategory": 5,
     "sku": "2486SWH8 ",
@@ -778,6 +796,12 @@
     "subcategory": 58,
     "sku": "2633-452 ",
     "name": "Insteon On/Off Module, Chile (915 MHz)"
+  },
+  {
+    "category": 2,
+    "subcategory": 63,
+    "sku": "WR01 ",
+    "name": "i3 Outlet"
   },
   {
     "category": 3,
