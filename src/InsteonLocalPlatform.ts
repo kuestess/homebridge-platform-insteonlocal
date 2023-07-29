@@ -246,6 +246,13 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
   eventListener() {
     const eight_buttonArray = {'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6, 'G': 7, 'H': 8};
     const six_buttonArray = {'ON': 1, 'A': 3, 'B': 4, 'C': 5, 'D': 6, 'OFF': 1};
+    const four_buttonArray = {
+      '1': eight_buttonArray['A'],
+      '2': eight_buttonArray['B'],
+      '3': eight_buttonArray['C'],
+      '4': eight_buttonArray['D'],
+    };
+
     let buttonArray;
 
     const deviceIDs = this.deviceIDs;
@@ -470,7 +477,9 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 
                   if(foundDevice.six_btn == true){
                     buttonArray = six_buttonArray;
-                  } else {
+                  } else if (foundDevice.four_btn == true){
+                    buttonArray = four_buttonArray;
+                  }else {
                     buttonArray = eight_buttonArray;
                   }
 
@@ -500,7 +509,9 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 
                   if(foundDevice.six_btn == true){
                     buttonArray = six_buttonArray;
-                  } else {
+                  } else if (foundDevice.four_btn == true){
+                    buttonArray = four_buttonArray;
+                  }else {
                     buttonArray = eight_buttonArray;
                   }
 

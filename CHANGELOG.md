@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.10] - 2023-07-29
+### Enhanced
+- Initial support for new i3 keypad
+
 ## [0.5.9] - 2023-07-07
 ### Enhanced
 - Update device database to include new i3 devices

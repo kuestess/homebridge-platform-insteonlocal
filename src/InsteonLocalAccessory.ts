@@ -110,12 +110,14 @@ export class InsteonLocalAccessory {
       this.groupID = this.device.groupID;
       this.keypadbtn = this.device.keypadbtn;
       this.six_btn = this.device.six_btn;
+      this.four_btn = this.device.four_btn;
       this.momentary = this.device.momentary || false;
     }
 
     if (this.deviceType == 'keypad') {
       this.keypadbtn = typeof(this.device.keypadbtn) === 'string' ? this.device.keypadbtn : '?';
       this.six_btn = this.device.six_btn === true;
+      this.four_btn = this.device.four_btn === true;
     }
 
     if (this.deviceType == 'iolinc') {
@@ -817,12 +819,21 @@ export class InsteonLocalAccessory {
       'ON': eight_buttonArray['A'] | eight_buttonArray['B'],
       'OFF': eight_buttonArray['G'] | eight_buttonArray['H']};
 
+    const four_buttonArray = {
+      '1': eight_buttonArray['A'],
+      '2': eight_buttonArray['B'],
+      '3': eight_buttonArray['C'],
+      '4': eight_buttonArray['D'],
+    };
+
     let buttonArray;
 
     this.platform.checkHubConnection();
 
     if(this.six_btn == true){
       buttonArray = six_buttonArray;
+    } else if (this.four_btn == true){
+      buttonArray = four_buttonArray;
     } else {
       buttonArray = eight_buttonArray;
     }
@@ -1342,6 +1353,13 @@ export class InsteonLocalAccessory {
       'D': eight_buttonArray['F'],
     };
 
+    const four_buttonArray = {
+      '1': eight_buttonArray['A'],
+      '2': eight_buttonArray['B'],
+      '3': eight_buttonArray['C'],
+      '4': eight_buttonArray['D'],
+    };
+
     let buttonArray;
     const index1 = this.setTargetKeypadCount;
 
@@ -1384,12 +1402,12 @@ export class InsteonLocalAccessory {
 
       //this.log.debug('<Check point 4> index1 = ' + index1)
 
-      if(this.targetKeypadSixBtn[index1] == true){
+      if(this.six_btn == true){
         buttonArray = six_buttonArray;
-        this.log.debug(' Using 6-button keypad layout');
+      } else if (this.four_btn == true){
+        buttonArray = four_buttonArray;
       } else {
         buttonArray = eight_buttonArray;
-        this.log.debug(' Using 8-button keypad layout');
       }
 
       const buttonNumber = buttonArray[this.targetKeypadBtn[index1]];
@@ -1759,18 +1777,26 @@ export class InsteonLocalAccessory {
       'G': 1,
       'H': 0,
     };
+
     const six_buttonArray = {
       'A': eight_buttonArray['C'],
       'B': eight_buttonArray['D'],
       'C': eight_buttonArray['E'],
       'D': eight_buttonArray['F'],
     };
+
+    const four_buttonArray = {
+      '1': eight_buttonArray['A'],
+      '2': eight_buttonArray['B'],
+      '3': eight_buttonArray['C'],
+      '4': eight_buttonArray['D'],
+    };
+
     let buttonArray;
 
     this.log('Setting state of ' + this.name + ' to ' + state);
 
     this.platform.checkHubConnection();
-
 
     const getButtonMap = (callback) => {
       const command = {
@@ -1802,6 +1828,8 @@ export class InsteonLocalAccessory {
 
       if(this.six_btn == true){
         buttonArray = six_buttonArray;
+      } else if (this.four_btn == true){
+        buttonArray = four_buttonArray;
       } else {
         buttonArray = eight_buttonArray;
       }
