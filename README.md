@@ -53,6 +53,7 @@ Devices are also defined in the config.json as follows:
   - `targetKeypadID`: this is an array `["<Insteon ID>","<Insteon ID>"]` of Insteon keypad(s), whose scene button LED you would like to set accoridngly to the state of the device. See additional notes below on Target Keypad LED.
   - `targetKeypadBtn`: this is an array `["button_letter","button_letter"]` of Insteon keypad button(s), 'A' - 'H', that corresponds to the array from `targetKeypadID`. See additional notes below on Target Keypad LED.
   - `targetKeypadSixBtn`: this is an array `[true/false, true/false]` of Insteon keypad button layout, that corresponds to the array from `targetKeypadID`. `true` denote a 6-button keypad, while `false` denotes an 8-button keypad. See additional notes below on Target Keypad LED.
+  - `targetKeypadFourBtn`: similar to `targetKeypadSixBtn` above but for a 4-button (i3) keypad. `true` denotes a 4-button keypad, while `false` denotes an 8-button keypad. See additional notes below on Target Keypad LED.
   - `disabled`: set to true to disable Insteon communication for a device (defaults to false).  Device will still appear in Home (or other apps), but can't be controlled.  Good to use for 'seasonal' devices.
   - `groupMembers`: comma-delimited list of Insteon IDs that are linked to this device (optional, for devices with on/off states like dimmers and switches); member device status will be automatically updated after the device is turned on or off
 

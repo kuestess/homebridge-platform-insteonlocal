@@ -67,6 +67,7 @@ export class InsteonLocalAccessory {
   currentTemp: any;
   targetTemp: any;
   refresh: number;
+  targetKeypadFourBtn: any;
 
   constructor(
     private readonly platform: InsteonLocalPlatform,
@@ -89,6 +90,7 @@ export class InsteonLocalAccessory {
 
     this.targetKeypadID = this.device.targetKeypadID || [];
     this.targetKeypadSixBtn = this.device.targetKeypadSixBtn || [];
+    this.targetKeypadFourBtn = this.device.targetKeypadFourBtn || [];
     this.targetKeypadBtn = this.device.targetKeypadBtn || [];
     this.setTargetKeypadCount = 0;
 
@@ -1402,12 +1404,15 @@ export class InsteonLocalAccessory {
 
       //this.log.debug('<Check point 4> index1 = ' + index1)
 
-      if(this.six_btn == true){
+      if(this.targetKeypadSixBtn[index1] == true){
         buttonArray = six_buttonArray;
-      } else if (this.four_btn == true){
+        this.log.debug(' Using 6-button keypad layout');
+      } else if(this.targetKeypadFourBtn[index1] == true){
         buttonArray = four_buttonArray;
-      } else {
+        this.log.debug(' Using 4-button keypad layout');
+      }else {
         buttonArray = eight_buttonArray;
+        this.log.debug(' Using 8-button keypad layout');
       }
 
       const buttonNumber = buttonArray[this.targetKeypadBtn[index1]];

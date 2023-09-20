@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [0.5.11] - 2023-09-19
+### Fixed
+- Fix for target keypads feature (#300)
 
 ## [0.5.10] - 2023-07-29
 ### Enhanced
