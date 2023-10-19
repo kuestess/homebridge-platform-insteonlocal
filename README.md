@@ -15,6 +15,10 @@ Implements local control of Insteon devices including switches, dimmers, outlets
 
 Devices can be auto-discovered via the Insteon UI (see below) and automatically added to the homebridge config.json with the most approproate device type.  On the 'Devices' tab, select the 'Devices Action' menu.  If you have not already, click on 'Get Devices' to pull devices from the Hub/PLM.  Once that completes, you can click 'Add All to Config' which will add all devices to your config.  Alternately, you can add a single device to the config by clicking the 'Add to Config' button on the device page after selecting an individual device.
 
+Supported devices include: dimmers (including i3), lightbulbs, on/off switch, keypads (6 or 8 button config and i3), on/off and dimmer outlets, remotes, iolinc, motion sensor, leak sensor, door sensor, smoke detector, fan controller, micro module, and thermostat.
+
+Supported controllers include: Hub1 (2242), Hub2 (2245), Hub Pro, PLM
+
 ## Install
 
 To install from npm:
