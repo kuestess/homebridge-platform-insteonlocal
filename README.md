@@ -189,7 +189,7 @@ Using The HubPro Model 2243 (Beta)
 -----------------------------------
 It is possible to use the official Insteon HubPro as a complete homebridge server and Insteon Hub. This requires flashing the HubPro and installing homebridge as normal. Inside the HubPro is a BeagleBoard Black Computer and a Power Line Modem connected via a serial connection.
 
-1. Follow the intructions here http://beagleboard.org/getting-started to create an microSD card with latest board software
+1. Follow the intructions at https://docs.beagleboard.org/latest/intro/support/getting-started.html#start-your-beagle to create an microSD card with latest board software
 2. Open the HubPro removing the 6 screws on the bottom.
 3. Insert the SD Card.
 4. While holding down the Boot Button "S2" connect the power. Don't electrocute yourself. Wait until the LED starts flashing.
