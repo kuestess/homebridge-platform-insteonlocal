@@ -72,7 +72,6 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 	) {
 		this.hub = hub
 		this.host = config['host']
-		this.host = config['host']
 		this.port = config['port']
 		this.user = config['user']
 		this.pass = config['pass']
@@ -653,6 +652,25 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 
 							case 'remote':
 								this.log.info('Got updated status for ' + foundDevice.name)
+								if (command2 == '03') {
+									//low battery
+									this.log.info(
+										'Got low battery status for ' + foundDevice.name
+									)
+									foundDevice.statusLowBattery = true
+									foundDevice.service
+										.getCharacteristic(
+											this.platform.Characteristic.StatusLowBattery
+										)
+										.updateValue(1)
+								} else {
+									foundDevice.service
+										.getCharacteristic(
+											this.platform.Characteristic.StatusLowBattery
+										)
+										.updateValue(0)
+									foundDevice.statusLowBattery = false
+								}
 								if (messageType == 6) {
 									foundDevice.handleRemoteEvent.call(
 										foundDevice,
@@ -742,14 +760,18 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 						id + ' is a contoller of ' + responders.length + ' devices'
 					)
 
-					if (['11', '12', '13', '14'].indexOf(command1) + 1) {
+					if (['11', '12', '13', '14'].indexOf(command1) >= 0) {
 						//only really care about on/off commands
 
 						for (let i = 0, l = responders.length; i < l; i++) {
-							const responderDevice: InsteonLocalAccessory =
-								this.insteonAccessories.filter((item) => {
-									return item.id == responders[i].deviceID
-								})[0]
+							const responderMatches = this.insteonAccessories.filter((item) => {
+								return item.id == responders[i].deviceID
+							})
+							if (responderMatches.length === 0) {
+								this.log.debug('Responder device ' + responders[i].deviceID + ' not found in accessories')
+								continue
+							}
+							const responderDevice: InsteonLocalAccessory = responderMatches[0]
 
 							this.log.info(
 								'Getting status of responder device ' + responderDevice.name
@@ -839,11 +861,26 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 		}
 	}
 
+	private isValidInsteonID(id: string): boolean {
+		return /^[0-9a-fA-F]{6}$/.test(id)
+	}
+
+	private isValidLevel(level: string): boolean {
+		const n = parseInt(level, 10)
+		return !isNaN(n) && n >= 0 && n <= 100
+	}
+
+	private isValidGroup(group: string): boolean {
+		const n = parseInt(group, 10)
+		return !isNaN(n) && n >= 1 && n <= 255
+	}
+
 	initAPI() {
 		const deviceIDs = this.deviceIDs
 
 		this.app.get('/light/:id/on', (req, res) => {
 			const id = req.params.id.toUpperCase()
+			if (!this.isValidInsteonID(id)) { res.sendStatus(400); return }
 
 			this.hub
 				.light(id)
@@ -852,19 +889,15 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 					if (status.response) {
 						res.sendStatus(200)
 
-						const isDevice = _.contains(deviceIDs, id, 0)
-						let foundDevice: any
-
-						if (isDevice) {
-							foundDevice = this.insteonAccessories.filter((item) => {
-								return item.id == id
-							})
+						const matches = _.contains(deviceIDs, id, 0)
+							? this.insteonAccessories.filter((item) => item.id == id)
+							: []
+						const foundDevice = matches[0]
+						if (foundDevice) {
+							setTimeout(() => {
+								foundDevice.getStatus.call(foundDevice)
+							}, 1000)
 						}
-
-						foundDevice = foundDevice[0]
-						setTimeout(() => {
-							foundDevice.getStatus.call(foundDevice)
-						}, 1000)
 					} else {
 						res.sendStatus(404)
 					}
@@ -873,6 +906,7 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 
 		this.app.get('/light/:id/off', (req, res) => {
 			const id = req.params.id.toUpperCase()
+			if (!this.isValidInsteonID(id)) { res.sendStatus(400); return }
 			this.hub
 				.light(id)
 				.turnOff()
@@ -880,17 +914,13 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 					if (status.response) {
 						res.sendStatus(200)
 
-						const isDevice = _.contains(deviceIDs, id, 0)
-						let foundDevice
-
-						if (isDevice) {
-							foundDevice = this.insteonAccessories.filter((item) => {
-								return item.id == id
-							})
+						const matches = _.contains(deviceIDs, id, 0)
+							? this.insteonAccessories.filter((item) => item.id == id)
+							: []
+						const foundDevice = matches[0]
+						if (foundDevice) {
+							foundDevice.getStatus.call(foundDevice)
 						}
-
-						foundDevice = foundDevice[0]
-						foundDevice.getStatus.call(foundDevice)
 					} else {
 						res.sendStatus(404)
 					}
@@ -898,7 +928,8 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 		})
 
 		this.app.get('/light/:id/status', (req, res) => {
-			const id = req.params.id
+			const id = req.params.id.toUpperCase()
+			if (!this.isValidInsteonID(id)) { res.sendStatus(400); return }
 			this.hub.light(id).level((err, level) => {
 				res.json({
 					level: level,
@@ -907,8 +938,9 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 		})
 
 		this.app.get('/light/:id/level/:targetLevel', (req, res) => {
-			const id = req.params.id
+			const id = req.params.id.toUpperCase()
 			const targetLevel = req.params.targetLevel
+			if (!this.isValidInsteonID(id) || !this.isValidLevel(targetLevel)) { res.sendStatus(400); return }
 
 			this.hub
 				.light(id)
@@ -917,17 +949,13 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 					if (status.response) {
 						res.sendStatus(200)
 
-						const isDevice = _.contains(deviceIDs, id, 0)
-						let foundDevice
-
-						if (isDevice) {
-							foundDevice = this.insteonAccessories.filter((item: any) => {
-								return item.id == id
-							})
+						const matches = _.contains(deviceIDs, id, 0)
+							? this.insteonAccessories.filter((item: any) => item.id == id)
+							: []
+						const foundDevice = matches[0]
+						if (foundDevice) {
+							foundDevice.getStatus.call(foundDevice)
 						}
-
-						foundDevice = foundDevice[0]
-						foundDevice.getStatus.call(foundDevice)
 					} else {
 						res.sendStatus(404)
 					}
@@ -935,6 +963,7 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 		})
 
 		this.app.get('/scene/:group/on', (req, res) => {
+			if (!this.isValidGroup(req.params.group)) { res.sendStatus(400); return }
 			const group = parseInt(req.params.group)
 			this.hub.sceneOn(group).then((status) => {
 				if (status.aborted) {
@@ -962,6 +991,7 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 		})
 
 		this.app.get('/scene/:group/off', (req, res) => {
+			if (!this.isValidGroup(req.params.group)) { res.sendStatus(400); return }
 			const group = parseInt(req.params.group)
 			this.hub.sceneOff(group).then((status) => {
 				if (status.aborted) {
@@ -995,21 +1025,24 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 		})
 
 		this.app.get('/links/:id', (req, res) => {
-			const id = req.params.id
+			const id = req.params.id.toUpperCase()
+			if (!this.isValidInsteonID(id)) { res.sendStatus(400); return }
 			this.hub.links(id, (err, links) => {
 				res.json(links)
 			})
 		})
 
 		this.app.get('/info/:id', (req, res) => {
-			const id = req.params.id
+			const id = req.params.id.toUpperCase()
+			if (!this.isValidInsteonID(id)) { res.sendStatus(400); return }
 			this.hub.info(id, (err, info) => {
 				res.json(info)
 			})
 		})
 
 		this.app.get('/iolinc/:id/relay_on', (req, res) => {
-			const id = req.params.id
+			const id = req.params.id.toUpperCase()
+			if (!this.isValidInsteonID(id)) { res.sendStatus(400); return }
 			this.hub
 				.ioLinc(id)
 				.relayOn()
@@ -1017,20 +1050,15 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 					if (status.response) {
 						res.sendStatus(200)
 
-						const isDevice = _.contains(deviceIDs, id, 0)
-						let foundDevice
-
-						if (isDevice) {
-							foundDevice = this.insteonAccessories.filter((item: any) => {
-								return item.id == id
-							})
+						const matches = _.contains(deviceIDs, id, 0)
+							? this.insteonAccessories.filter((item: any) => item.id == id)
+							: []
+						const foundDevice = matches[0]
+						if (foundDevice) {
+							setTimeout(() => {
+								foundDevice.getSensorStatus.call(foundDevice, () => {})
+							}, 1000 * foundDevice.gdo_delay)
 						}
-
-						foundDevice = foundDevice[0]
-
-						setTimeout(() => {
-							foundDevice.getSensorStatus.call(foundDevice)
-						}, 1000 * foundDevice.gdo_delay)
 					} else {
 						res.sendStatus(404)
 					}
@@ -1038,7 +1066,8 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 		})
 
 		this.app.get('/iolinc/:id/relay_off', (req, res) => {
-			const id = req.params.id
+			const id = req.params.id.toUpperCase()
+			if (!this.isValidInsteonID(id)) { res.sendStatus(400); return }
 			this.hub
 				.ioLinc(id)
 				.relayOff()
@@ -1046,20 +1075,15 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 					if (status.response) {
 						res.sendStatus(200)
 
-						const isDevice = _.contains(deviceIDs, id, 0)
-						let foundDevice
-
-						if (isDevice) {
-							foundDevice = this.insteonAccessories.filter((item: any) => {
-								return item.id == id
-							})
+						const matches = _.contains(deviceIDs, id, 0)
+							? this.insteonAccessories.filter((item: any) => item.id == id)
+							: []
+						const foundDevice = matches[0]
+						if (foundDevice) {
+							setTimeout(() => {
+								foundDevice.getSensorStatus.call(foundDevice, () => {})
+							}, 1000 * foundDevice.gdo_delay)
 						}
-
-						foundDevice = foundDevice[0]
-
-						setTimeout(() => {
-							foundDevice.getSensorStatus.call(foundDevice)
-						}, 1000 * foundDevice.gdo_delay)
 					} else {
 						res.sendStatus(404)
 					}
@@ -1067,22 +1091,25 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 		})
 
 		this.app.get('/iolinc/:id/sensor_status', (req, res) => {
-			const id = req.params.id
+			const id = req.params.id.toUpperCase()
+			if (!this.isValidInsteonID(id)) { res.sendStatus(400); return }
 			this.hub.ioLinc(id).status((err, status) => {
 				res.json(status.sensor)
 			})
 		})
 
 		this.app.get('/iolinc/:id/relay_status', (req, res) => {
-			const id = req.params.id
+			const id = req.params.id.toUpperCase()
+			if (!this.isValidInsteonID(id)) { res.sendStatus(400); return }
 			this.hub.ioLinc(id).status((err, status) => {
 				res.json(status.relay)
 			})
 		})
 
 		this.app.get('/fan/:id/level/:targetLevel', (req, res) => {
-			const id = req.params.id
+			const id = req.params.id.toUpperCase()
 			const targetLevel = req.params.targetLevel
+			if (!this.isValidInsteonID(id) || !this.isValidLevel(targetLevel)) { res.sendStatus(400); return }
 
 			hub
 				.light(id)
@@ -1091,17 +1118,13 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 					if (status.response) {
 						res.sendStatus(200)
 
-						const isDevice = _.contains(this.deviceIDs, id, 0)
-						let foundDevice
-
-						if (isDevice) {
-							foundDevice = this.insteonAccessories.filter((item) => {
-								return item.id == id
-							})
+						const matches = _.contains(this.deviceIDs, id, 0)
+							? this.insteonAccessories.filter((item) => item.id == id)
+							: []
+						const foundDevice = matches[0]
+						if (foundDevice) {
+							foundDevice.getStatus.call(foundDevice)
 						}
-
-						foundDevice = foundDevice[0]
-						foundDevice.getStatus.call(foundDevice)
 					} else {
 						res.sendStatus(404)
 					}
@@ -1109,7 +1132,8 @@ export class InsteonLocalPlatform implements DynamicPlatformPlugin {
 		})
 
 		this.app.get('/fan/:id/status', (req, res) => {
-			const id = req.params.id
+			const id = req.params.id.toUpperCase()
+			if (!this.isValidInsteonID(id)) { res.sendStatus(400); return }
 			hub.light(id).fan((err, level) => {
 				res.json({
 					level: level,

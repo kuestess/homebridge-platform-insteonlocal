@@ -155,6 +155,7 @@ export class InsteonLocalAccessory {
 				'windowsensor',
 				'contactsensor',
 				'leaksensor',
+				'remote',
 			].includes(this.deviceType)
 		) {
 			this.disableBatteryStatus = this.device.disableBatteryStatus || false
@@ -712,6 +713,51 @@ export class InsteonLocalAccessory {
 
 				this.dimmable = false
 
+				// Battery operated device - add low battery characteristic
+				this.service
+					.getCharacteristic(this.platform.Characteristic.StatusLowBattery)
+					.updateValue(0) //0=normal, 1=low
+				this.statusLowBattery = false
+
+				// Define handler for button press events from the platform event listener
+				this.handleRemoteEvent = (gateway: string, command1: string) => {
+					const group = parseInt(gateway.substring(4, 6))
+					const configuredBtn = parseInt(this.button)
+
+					if (group !== configuredBtn) {
+						this.log.debug(
+							'Remote event for button ' + group + ', not configured button ' + configuredBtn
+						)
+						return
+					}
+
+					this.log.info('Got button event for ' + this.name + ' button ' + group)
+
+					if (this.stateless) {
+						if (command1 == '11') {
+							this.service
+								.getCharacteristic(
+									this.platform.Characteristic.ProgrammableSwitchEvent
+								)
+								.updateValue(0) // 0 = SINGLE_PRESS
+						}
+					} else {
+						if (command1 == '11') {
+							this.currentState = true
+							this.service
+								.getCharacteristic(this.platform.Characteristic.On)
+								.updateValue(true)
+						} else if (command1 == '13') {
+							this.currentState = false
+							this.service
+								.getCharacteristic(this.platform.Characteristic.On)
+								.updateValue(false)
+						}
+					}
+
+					this.lastUpdate = moment()
+				}
+
 				break
 
 			case 'outlet':
@@ -1032,20 +1078,8 @@ export class InsteonLocalAccessory {
 
 					let count
 					for (count = 0; count < this.targetKeypadID.length; count++) {
-						//this.log.debug('<Check point 0> count = ' + count)
-
 						this.setTargetKeypadCount = count
-
-						//Async-Wait function to insure multiple keypads are processed in order
-						const run = async () => {
-							const promise = new Promise((resolve, reject) =>
-								this.setTargetKeypadBtn.call(this)
-							)
-							const result = await promise // wait until the promise resolves
-							return // "done!"
-						}
-
-						run()
+						this.setTargetKeypadBtn.call(this)
 					}
 					return
 				}
@@ -1474,7 +1508,9 @@ export class InsteonLocalAccessory {
 				}
 
 				this.lastUpdate = moment()
-				callback()
+				if (typeof callback === 'function') {
+					callback()
+				}
 			}
 		})
 	}
@@ -1667,20 +1703,8 @@ export class InsteonLocalAccessory {
 					let count
 
 					for (count = 0; count < this.targetKeypadID.length; count++) {
-						//this.log.debug('<Check point 0> count = ' + count)
-
 						this.setTargetKeypadCount = count
-
-						//Async-Wait function to insure multiple keypads are processed in order
-						const run = async () => {
-							const promise = new Promise((resolve, reject) =>
-								this.setTargetKeypadBtn.call(this)
-							)
-							const result = await promise // wait until the promise resolves
-							return // "done!"
-						}
-
-						run()
+						this.setTargetKeypadBtn.call(this)
 					}
 				}
 				return
@@ -1736,20 +1760,8 @@ export class InsteonLocalAccessory {
 					let count: number
 
 					for (count = 0; count < this.targetKeypadID.length; count++) {
-						//this.log.debug('<Check point 0> count = ' + count)
-
 						this.setTargetKeypadCount = count
-
-						//Async-Wait function to insure multiple keypads are processed in order
-						const run = async () => {
-							const promise = new Promise((resolve, reject) =>
-								this.setTargetKeypadBtn.call(this)
-							)
-							const result = await promise // wait until the promise resolves
-							return // "done!"
-						}
-
-						run()
+						this.setTargetKeypadBtn.call(this)
 					}
 				}
 				return
@@ -1959,6 +1971,10 @@ export class InsteonLocalAccessory {
 					)
 
 					const theGroupDevice = groupDevice[0]
+					if (!theGroupDevice) {
+						this.log.debug('Group member ' + deviceID + ' not found in accessories')
+						return
+					}
 
 					this.log('Getting status of scene device ' + theGroupDevice.name)
 					this.log.debug('Group device type ' + theGroupDevice.deviceType)
@@ -1975,6 +1991,10 @@ export class InsteonLocalAccessory {
 				})
 
 				const theNamedDev = namedDev[0]
+				if (!theNamedDev) {
+					this.log.debug('Group member by name ' + deviceID + ' not found in accessories')
+					return
+				}
 				this.log.debug('Found matching device with id ' + theNamedDev.id)
 				this.log('Getting status of scene device ' + theNamedDev.name)
 				setTimeout(() => {
@@ -2208,19 +2228,8 @@ export class InsteonLocalAccessory {
 							let count
 
 							for (count = 0; count < this.targetKeypadID.length; count++) {
-								//this.log.debug('<Check point 0> count = ' + count)
-
 								this.setTargetKeypadCount = count
-
-								//Async-Wait function to insure multiple keypads are processed in order
-								const run = async () => {
-									const promise = new Promise((resolve, reject) =>
-										this.setTargetKeypadBtn.call(this)
-									)
-									const result = await promise // wait until the promise resolves
-									return // "done!"
-								}
-								run()
+								this.setTargetKeypadBtn.call(this)
 							}
 						}
 						return
@@ -2284,22 +2293,10 @@ export class InsteonLocalAccessory {
 							let count
 
 							for (count = 0; count < this.targetKeypadID.length; count++) {
-								//this.log.debug('<Check point 0> count = ' + count)
-
 								this.setTargetKeypadCount = count
-
-								//Async-Wait function to insure multiple keypads are processed in order
-								const run = async () => {
-									const promise = new Promise((resolve, reject) =>
-										this.setTargetKeypadBtn.call(this)
-									)
-									const result = await promise // wait until the promise resolves
-									return // "done!"
-								}
-								run()
+								this.setTargetKeypadBtn.call(this)
 							}
 						}
-
 						return
 					}
 				}

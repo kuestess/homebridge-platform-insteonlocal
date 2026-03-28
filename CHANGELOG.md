@@ -1,6 +1,58 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## [0.5.18] - 2026-03-27
+### Enhanced
+- **Get All Dev Links — inline device status in left pane**: The operation no longer opens the scrolling progress modal. Instead, each device row in the left pane shows a live status label that updates as each step runs: `op flags...` → `db delta...` → `links (N)...`, resolving to a coloured final result — green `Done`, orange `No links returned (battery device or sensor)`, red `Offline (no device response)`. When all devices are processed, the "Get All Dev Links" button briefly shows ✓ Done!. The modal is still used when a device's link database is up-to-date and a confirmation prompt is needed.
+- **Duplicate SSE listener fixed**: Opening "Get All Dev Links" (or any SSE-backed action) multiple times on the same page previously registered a new EventSource listener on each click without closing the previous one, causing every message to be displayed twice. Now a single `_sseSource` reference is tracked globally and the old connection is closed before a new one is opened.
+
+## [0.5.17] - 2026-03-27
+### Fixed
+- **Get All Dev Links — all failures showed identical "battery device or offline" message**: Every device that didn't return links was reported as "Timed out (battery device or offline)" regardless of actual cause. Three distinct failure modes are now reported separately:
+  - **"Offline (no device response)"** — device failed to respond to op flags, database delta, AND link read (e.g. truly powered-off or unreachable devices). Shown in red.
+  - **"No links returned (battery device or sensor)"** — device responded to at least one command (op flags or delta) but the link database read returned empty. Typical for battery-powered sensors and some remotes that don't expose a link database. Shown in orange.
+  - **"Done"** — device responded and links were read successfully (existing behaviour). Shown in green.
+- **Get All Dev Links — devices with 0 links incorrectly reported as timed out**: `getDeviceLinks` was treating an empty link database (device responded but has no links) the same as a hub communication timeout — both called `callback(true, null)`. Now checks the error argument first: a hub timeout propagates the error; a successful response with 0 links emits "No links found" and calls `callback(null, [])` (success, treated as Done).
+- **Get All Dev Links — queue hangs when device links are up to date**: When `getDatabaseDelta` matched the stored delta (links unchanged), `getAllDeviceInfo` emitted a `prompt` SSE event but never called its callback, leaving the queue waiting indefinitely for the next device. Added the missing `callback(null, null)`.
+### Enhanced
+- **Get All Dev Links progress log — warning color for no-links devices**: "No links" and "battery device" messages now appear in orange (`#f0ad4e`) in the progress log instead of the default dark colour, making it easier to distinguish warnings from errors (red) and successes (green).
+
+## [0.5.16] - 2026-03-28
+### Added
+- **Import Names from Insteon Connect**: New option in the Device Action menu lets you paste a CSV exported from connect.insteon.com and apply device names (and device types inferred from the Model column) to all matched hub devices in one step. The import page renders a textarea form; on submit it parses the CSV, matches by Insteon ID (period-insensitive), updates names and types, and writes the result atomically (temp file then rename) to avoid corrupting insteon.json on failure. A results table shows each matched/unmatched row.
+### Fixed
+- **CSV import crash / insteon.json corruption**: `processInsteonConnectCSV` operated on `this.insteonJSON.devices` which is initialized as `{}` (plain object, not array) during `getHubDevices`. Any call to `findIndex` on an object is `undefined`, causing a runtime exception that left a partial JSON write and an empty/corrupt insteon.json on the next Homebridge restart. Fixed by using a local `devices` array (falling back to `hubDevices` if `insteonJSON.devices` is not yet an array), operating on that array throughout the loop, then syncing it back to `this.insteonJSON.devices` before the atomic save.
+
+## [0.5.15] - 2026-03-27
+### Fixed
+- **Get All Dev Links progress modal closing after first device**: `getDeviceLinks` was emitting a `close` SSE event on both success and failure, dismissing the modal after every single device instead of waiting for the full run to complete. Removed the spurious `close` emits — only the top-level loop now signals completion.
+- **Get All Dev Links device order**: Devices were processed bottom-to-top (`Array.pop`) instead of top-to-bottom. Changed to `Array.shift` so devices are processed in the same order they appear in the hub device list.
+### Enhanced
+- **Get All Dev Links — missing for-loop closing braces in `setOutletState`**: Two for-loops in the on/off branches of `setOutletState` were each missing two closing braces (a side effect of the earlier promise deadlock fix), causing TypeScript compile errors. Fixed.
+
+## [0.5.14] - 2026-03-26
+### Security
+- **Input validation on all Express API routes**: All route parameters (`[id]`, `[targetLevel]`, `[group]`) are now validated before being passed to the Insteon hub. Device IDs must be exactly 6 hexadecimal characters; level must be an integer 0–100; group must be an integer 1–255. Invalid requests are rejected with HTTP 400.
+- **Null dereference fixed in `iolinc` and `fan` Express routes**: `/iolinc/:id/relay_on`, `/iolinc/:id/relay_off`, and `/fan/:id/level/:targetLevel` would crash attempting to call methods on `undefined` if the device ID was not registered. Fixed with the same null guard pattern applied to the light routes in 0.5.13.
+- **Hub password no longer visible in InsteonUI**: The hub password field on the Config page was rendered as `type='text'`, making the password visible in the browser and in page source. Changed to `type='password'`.
+- **Hub credentials no longer logged to Homebridge log**: When saving config via the InsteonUI, the full config object (including hub username and password) was written to the Homebridge log via `JSON.stringify(this.config)`. Replaced with a redacted message.
+- **Device ID validation in InsteonUI action routes**: The `removeDevice`, `removeLink`, `removeHubLink`, `beep`, and `getLinks` URL-based routes in the InsteonUI extracted device IDs and link indices directly from the raw URL with no validation. All now validate the device ID against the 6-character hex format and return HTTP 400 on invalid input.
+### Enhanced
+- **Get All Dev Links progress log**: The "Updating device..." modal now shows a live scrollable log with per-device status — green for success, red for timeouts (battery/offline devices), blue for in-progress. Each line shows the device ID and position in the queue (e.g. `[2/6] Getting info for 6072DB...`).
+
+## [0.5.13] - 2026-03-26
+### Fixed
+- **Remote (mini-remote) battery handling**: `remote` device type is now correctly treated as a battery-operated device. Added `StatusLowBattery` characteristic and low battery detection via Insteon `command2 == '03'` broadcast signal, consistent with other battery sensors.
+- **Remote button press handler**: `handleRemoteEvent` was declared but never defined, causing a `TypeError` crash on every button press. Now correctly implemented — routes group/button matching, fires `ProgrammableSwitchEvent` in stateless mode or toggling On/Off in switch mode.
+- **Inverted responder controller logic**: `['11','12','13','14'].indexOf(command1) + 1` evaluated truthy for every command *except* on/off commands (completely inverted). Fixed to `>= 0`.
+- **Null dereference crashes in Express API routes**: `/light/:id/on`, `/light/:id/off`, and `/light/:id/level` routes would crash with `TypeError` if a device ID was not registered or not found in accessories. Added null guard before calling `getStatus`.
+- **Null dereference in responder device lookup**: The event listener's controller-responder loop would crash if a `controllers` device ID was not registered as an accessory. Added null guard with `continue`.
+- **Null dereference in `getGroupMemberStatus`**: Accessing `groupDevice[0]` or `namedDev[0]` without checking for undefined would crash when a group member ID/name was not found in accessories. Added null guards with debug log.
+- **`getSensorStatus` callback crash**: `callback()` was called unconditionally for IOLinc sensor polling, crashing when called without a callback argument. Added `typeof callback === 'function'` guard.
+- **Broken promise deadlock in keypad LED sync**: All 5 occurrences of the keypad LED synchronization loop used `new Promise((resolve, reject) => this.setTargetKeypadBtn.call(this))` where `resolve` was never passed through to the callback, causing an `await` that would never resolve (permanent deadlock/resource leak). Replaced with direct sequential calls.
+- **Duplicate `this.host` assignment**: `this.host = config['host']` was assigned twice consecutively in the platform constructor.
+
 ## [0.5.12] - 2025-12-31
 ### Enhanced
 - Added `override` feature (see README)

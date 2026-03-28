@@ -138,9 +138,21 @@ export class InsteonUI {
 					rules: none;
 				}
 				#progressModal .modal-body{
-					text-align: center;
+					text-align: left;
+					max-height: 350px;
+					overflow-y: auto;
+					font-family: monospace;
+					font-size: 12px;
 				}
-			</style>`;
+				.dev-status {
+					display: block;
+					font-size: 10px;
+					margin-top: 2px;
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
+				</style>`;
 
       this.bootstrap =
             '<link rel=\'stylesheet\' href=\'https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css\'>' +
@@ -316,7 +328,7 @@ export class InsteonUI {
                 this.platform.user +
                 '\'></div>';
         const hubPassword =
-                '<div class=\'form-group\'><label for=\'password\'>Password:</label><input type=\'text\' class=\'form-control\' name=\'hubPassword\' value=\'' +
+                '<div class=\'form-group\'><label for=\'password\'>Password:</label><input type=\'password\' class=\'form-control\' name=\'hubPassword\' value=\'' +
                 this.platform.pass +
                 '\'></div>';
         const hubAddress =
@@ -1663,6 +1675,7 @@ export class InsteonUI {
                     '">' +
                     linkText +
                     '</a>' +
+                    '<small id="devstatus-' + hubDevice.deviceID + '" class="dev-status"></small>' +
                     '</li class="list-group-item">';
         });
 
@@ -1680,7 +1693,7 @@ export class InsteonUI {
       res.write('<div class=\'container-fluid\'>');
       res.write('<div class=\'btn-toolbar pull-right\'>');
       res.write(
-        '<a class=\'btn btn-default load center-block getlinks\' onclick=\'sseInit()\' id=\'getAllLinks\' role=\'button\' href=\'/getAllDeviceLinks\' style=\'width:135px; height:30px;\'>Get All Dev Links</a>',
+        '<a class=\'btn btn-default load center-block getlinks\' onclick=\'sseInit(this)\' id=\'getAllLinks\' role=\'button\' href=\'/getAllDeviceLinks\' style=\'width:135px; height:30px;\'>Get All Dev Links</a>',
       );
       res.write('</div>');
 
@@ -1698,6 +1711,7 @@ export class InsteonUI {
 			<ul class="dropdown-menu">
 				<li><a href='/getHubDevices' style='width:135px; height:30px;'>Get Devices</a></li>
 				<li><a onclick='sseInit()' href="/addAllDevicesToConfig">Add All to Config</a></li>
+				<li><a href='/importInsteonConnect'>Import Names from Insteon Connect</a></li>
 			</ul>
 			</div>
 		</li>`);
@@ -2347,8 +2361,12 @@ export class InsteonUI {
           break;
         case '/saveHubSettings':
           if (req.method == 'POST') {
+            const hubChunks: Buffer[] = [];
             req.on('data', (chunk) => {
-              const receivedData = chunk.toString();
+              hubChunks.push(chunk);
+            });
+            req.on('end', () => {
+              const receivedData = Buffer.concat(hubChunks).toString();
               const arr = receivedData.split('&');
 
               this.config.platforms[this.platformIndex].user =
@@ -2368,16 +2386,18 @@ export class InsteonUI {
 
               this.saveConfig(res);
             });
-            res.redirect('/hub');
-            //req.on('end', function (chunk) { })
           } else {
             this.log('[405] ' + req.method + ' to ' + req.url);
           }
           break;
         case '/saveDeviceSettings':
           if (req.method == 'POST') {
+            const devSettChunks: Buffer[] = [];
             req.on('data', (chunk) => {
-              const receivedData = chunk.toString();
+              devSettChunks.push(chunk);
+            });
+            req.on('end', () => {
+              const receivedData = Buffer.concat(devSettChunks).toString();
               const arr = receivedData.split('&');
               const deviceName = arr[0].replace('name=', '');
 
@@ -2393,9 +2413,6 @@ export class InsteonUI {
               this.insteonJSON.devices[devIndex].name = deviceName;
 
               this.saveInsteonConfig(res);
-            });
-            req.on('end', (chunk) => {
-              //donothing
             });
           } else {
             this.log('[405] ' + req.method + ' to ' + req.url);
@@ -2428,16 +2445,72 @@ export class InsteonUI {
         case '/addDevice':
           this.renderAddPage(res, 'Device');
           break;
+        case '/importInsteonConnect':
+          this.renderImportInsteonConnectPage(res);
+          break;
+        case '/saveInsteonConnectImport':
+          if (req.method == 'POST') {
+            const csvChunks: Buffer[] = [];
+            req.on('data', (chunk) => {
+              csvChunks.push(chunk);
+            });
+            req.on('end', () => {
+              const body = Buffer.concat(csvChunks).toString();
+              const csvParam = body.split('csvData=')[1];
+              if (!csvParam) {
+                res.writeHead(400); res.end('No CSV data'); return;
+              }
+              const csv = decodeURIComponent(csvParam.replace(/\+/g, ' '));
+              const results = this.processInsteonConnectCSV(csv);
+              res.write(this.header + this.navBar);
+              res.write('<div class=\'container\'>\n<h2>Import Results</h2>');
+              res.write('<p>' + results.matched + ' device(s) matched and named. ' + results.unmatched + ' device(s) in CSV not found in hub.</p>');
+              if (results.details.length > 0) {
+                res.write('<table class=\'table table-striped table-bordered\' style=\'max-width:800px\'><thead><tr><th>Insteon ID</th><th>Name</th><th>Status</th></tr></thead><tbody>');
+                results.details.forEach((d) => {
+                  const color = d.status === 'matched' ? '#5cb85c' : '#d9534f';
+                  res.write('<tr><td>' + d.id + '</td><td>' + d.name + '</td><td style=\'color:' + color + '\'>' + d.status + '</td></tr>');
+                });
+                res.write('</tbody></table>');
+              }
+              res.write('<a class=\'btn btn-default\' href=\'/devices\'>Back to Devices</a>');
+              res.end(this.footer);
+              // Write atomically: write to temp file first, then rename
+              const newInsteonJSON = JSON.stringify(this.insteonJSON, null, 4);
+              const targetPath = this.configDir + './insteon.json';
+              const tempPath = targetPath + '.import-tmp';
+              fs.writeFile(tempPath, newInsteonJSON, 'utf8', (writeErr) => {
+                if (writeErr) {
+                  this.log('Error writing temp insteon.json after import: ' + writeErr);
+                } else {
+                  fs.rename(tempPath, targetPath, (renameErr) => {
+                    if (renameErr) {
+                      this.log('Error renaming temp insteon.json after import: ' + renameErr);
+                    } else {
+                      this.log('Saved insteon.json after Insteon Connect import');
+                    }
+                  });
+                }
+              });
+            });
+          } else {
+            this.log('[405] ' + req.method + ' to ' + req.url);
+            res.writeHead(405); res.end();
+          }
+          break;
         case '/link':
           this.renderLinkPage(res);
           break;
         case '/linkToHub':
           if (req.method == 'POST') {
+            const linkChunks: Buffer[] = [];
             req.on('data', (chunk) => {
-              const receivedData = chunk.toString();
-              let arr = receivedData.split('&');
-              arr = this.stripEscapeCodes(arr[0].replace('deviceID=', ''));
-              const deviceIDs = arr.split(',');
+              linkChunks.push(chunk);
+            });
+            req.on('end', () => {
+              const receivedData = Buffer.concat(linkChunks).toString();
+              const deviceIDStr: string = this.stripEscapeCodes(receivedData.split('&')[0].replace('deviceID=', ''));
+              const deviceIDs = deviceIDStr.split(',');
 
               const _linkToHub = (devices) => {
                 if (devices.length == 0) {
@@ -2479,15 +2552,16 @@ export class InsteonUI {
           break;
         case '/unlinkFromHub':
           if (req.method == 'POST') {
+            const unlinkChunks: Buffer[] = [];
             req.on('data', (chunk) => {
-              const receivedData = chunk.toString();
+              unlinkChunks.push(chunk);
+            });
+            req.on('end', () => {
+              const receivedData = Buffer.concat(unlinkChunks).toString();
               const arr = receivedData.split('&');
               const deviceID = arr[0].replace('deviceID=', '');
 
               this.unlinkFromHub(deviceID, res);
-            });
-            req.on('end', (chunk) => {
-              //do nothing
             });
           } else {
             this.log('[405] ' + req.method + ' to ' + req.url);
@@ -2495,8 +2569,12 @@ export class InsteonUI {
           break;
         case '/createScene':
           if (req.method == 'POST') {
-            req.on('data', (data) => {
-              const receivedData = JSON.parse(data.toString());
+            const sceneChunks: Buffer[] = [];
+            req.on('data', (chunk) => {
+              sceneChunks.push(chunk);
+            });
+            req.on('end', () => {
+              const receivedData = JSON.parse(Buffer.concat(sceneChunks).toString());
               const sceneData: any = [];
 
               for (let i = 0; i < receivedData.id.length; i++) {
@@ -2646,15 +2724,27 @@ export class InsteonUI {
             linkDevIDs.push(device.deviceID);
           });
 
+          const totalDevices = linkDevIDs.length;
+          let completedDevices = 0;
+
           const _getAllDevLinks = () => {
             if (linkDevIDs.length === 0) {
               this.log('Done getting all device links');
+              sse.emit('push', { message: 'close' });
               this.saveInsteonConfig(res);
               return;
             }
 
-            const id = linkDevIDs.pop();
-            this.getAllDeviceInfo(id, res, () => {
+            const id = linkDevIDs.shift();
+            completedDevices++;
+            sse.emit('push', { message: `[${completedDevices}/${totalDevices}] Getting info for ${id}...` });
+            this.getAllDeviceInfo(id, res, (error) => {
+              if (error) {
+                const errorMsg = typeof error === 'string' ? error : 'Timed out (battery device or offline)';
+                sse.emit('push', { message: `[${completedDevices}/${totalDevices}] ${id} - ${errorMsg}` });
+              } else {
+                sse.emit('push', { message: `[${completedDevices}/${totalDevices}] ${id} - Done` });
+              }
               setTimeout(() => {
                 return _getAllDevLinks();
               }, 4000); //slight delay to minimize traffic and help eliminate errors
@@ -2712,8 +2802,12 @@ export class InsteonUI {
           break;
         case '/saveConfigDeviceSettings':
           if (req.method == 'POST') {
+            const cfgDevChunks: Buffer[] = [];
             req.on('data', (chunk) => {
-              const receivedData = this.stripEscapeCodes(chunk);
+              cfgDevChunks.push(chunk);
+            });
+            req.on('end', () => {
+              const receivedData = this.stripEscapeCodes(Buffer.concat(cfgDevChunks));
               const arr = receivedData.split('&');
               this.log('Got device data: ' + util.inspect(arr));
 
@@ -2782,11 +2876,8 @@ export class InsteonUI {
                   });
                 }
               });
-              this.log('Config to save: ' + JSON.stringify(this.config));
+              this.log('Config to save: [credentials redacted]');
               this.saveConfig(res);
-            });
-            req.on('end', (chunk) => {
-              //do nothing
             });
           } else {
             this.log('[405] ' + req.method + ' to ' + req.url);
@@ -2847,56 +2938,52 @@ export class InsteonUI {
           this.log('Adding all devices to config');
           req.connection.setTimeout(1000 * 60 * 10);
 
-          const devIDs: any = [];
-
-          this.hubDevices.forEach((device) => {
-            devIDs.push(device.deviceID);
-          });
+          // Deduplicate device IDs in case hubDevices has duplicates
+          const devIDs: any = [...new Set(this.hubDevices.map((d) => d.deviceID))];
+          const totalDevs = devIDs.length;
+          let addedCount = 0;
 
           const _addAllDevs = () => {
-            const redirect =
-                        '<script>window.setTimeout(function() {window.location.href = document.referrer;}, 2000);</script>';
-
             if (devIDs.length === 0) {
               this.log('Done adding all devices to config');
               this.saveConfig(res);
-              res.write(this.header + this.navBar);
-              res.write(
+              sse.emit('push', { message: 'close' });
+              const doneRedirect = '<script>window.setTimeout(function() {window.location.href = document.referrer;}, 2000);</script>';
+              res.end(
+                this.header + this.navBar +
                 '<div class=\'alert alert-success alert-dismissible fade in out alert-close\'><a href=\'/devices/' +
-                            this.selectedDevice +
-                            '\' class=\'close\' data-dismiss=\'alert\'>&times;</a><strong>Note!</strong> Successfully saved device to config.</div>',
+                this.selectedDevice +
+                '\' class=\'close\' data-dismiss=\'alert\'>&times;</a><strong>Note!</strong> Added ' + addedCount + ' of ' + totalDevs + ' devices to config.</div>' +
+                doneRedirect,
               );
-              res.write(redirect);
               return;
             }
 
-            _addAllDevs();
-
-            const id = devIDs.pop();
+            const id = devIDs.shift();
             sse.emit('push', { message: 'Adding ' + id + ' to config' });
 
             this.generateDeviceConfig(id, res, (error, devConf, res) => {
-              if (error) {
-                this.log('Error - could not generate device config for ' + id);
-                return _addAllDevs();
-              } else {
-                this.log(
-                  'Device config for ' + id + ' is: ' + util.inspect(devConf),
-                );
+              if (devConf) {
                 this.addDeviceToConfig(devConf, res, () => {
-                  setTimeout(() => {
-                    return _addAllDevs();
-                  }, 2000); //slight delay to minimize traffic and help eliminate errors
+                  addedCount++;
                 });
               }
+              setTimeout(() => {
+                return _addAllDevs();
+              }, 500);
             });
           };
+
+          _addAllDevs();
           break;
         default:
           const url = req.url;
 
           if (url.indexOf('/removeDevice') !== -1) {
-            const deviceToRemove = req.url.replace('/removeDevice', '');
+            const deviceToRemove = req.url.replace('/removeDevice', '').replace(/^\//, '');
+            if (!/^[0-9a-fA-F]{6}$/.test(deviceToRemove)) {
+              res.sendStatus(400); return;
+            }
 
             const devIndex = this.config.platforms[
               this.platformIndex
@@ -2913,6 +3000,9 @@ export class InsteonUI {
             const deviceLink = req.url.replace('/removeLink/', '').split('/');
             const deviceID = deviceLink[0];
             const linkAt = parseInt(deviceLink[1]);
+            if (!/^[0-9a-fA-F]{6}$/.test(deviceID) || isNaN(linkAt)) {
+              res.sendStatus(400); return;
+            }
             this.removeLinkAt(deviceID, linkAt, res);
           }
 
@@ -2920,6 +3010,9 @@ export class InsteonUI {
             const deviceLink = req.url.replace('/removeHubLink/', '').split('/');
             const deviceID = deviceLink[0];
             const linkNumber = parseInt(deviceLink[1]);
+            if (!/^[0-9a-fA-F]{6}$/.test(deviceID) || isNaN(linkNumber)) {
+              res.sendStatus(400); return;
+            }
 
             let linkToDelete = this.hubLinks.filter((link) => {
               return link.number == linkNumber;
@@ -2939,11 +3032,17 @@ export class InsteonUI {
 
           if (url.indexOf('/beep') !== -1) {
             const deviceID = req.url.replace('/beep/', '');
+            if (!/^[0-9a-fA-F]{6}$/.test(deviceID)) {
+              res.sendStatus(400); return;
+            }
             this.beep(deviceID);
           }
 
           if (url.indexOf('/getLinks') !== -1) {
             const deviceID = req.url.replace('/getLinks/', '');
+            if (!/^[0-9a-fA-F]{6}$/.test(deviceID)) {
+              res.sendStatus(400); return;
+            }
             this.selectedDevice = deviceID;
             this.getDeviceLinks(deviceID, (error, links) => {
               if (error) {
@@ -3224,6 +3323,150 @@ export class InsteonUI {
       });
     }
 
+    renderImportInsteonConnectPage(res) {
+      res.write(this.header + this.navBar);
+      res.write('<div class=\'container\'>');
+      res.write('<h2>Import Names from Insteon Connect</h2>');
+      res.write('<p>Go to <a href=\'https://connect.insteon.com/Home/ShowHouseDeviceList?HouseId=0\' target=\'_blank\'>connect.insteon.com</a>, click <b>Devices &rarr; Export to CSV</b>, then paste the CSV contents below and click Import.</p>');
+      res.write('<form method=\'POST\' action=\'/saveInsteonConnectImport\'>');
+      res.write('<div class=\'form-group\'><label>Paste CSV data:</label><textarea name=\'csvData\' class=\'form-control\' rows=\'15\' style=\'font-family:monospace;font-size:12px\' placeholder=\'Device Name,Rooms,Model,Part #,Insteon ID,Added,Updated,Battery,Power line,RF&#10;Front Entry,,Dimmer Switch,2477D,29.C8.A4,...\'></textarea></div>');
+      res.write('<button type=\'submit\' class=\'btn btn-primary\'>Import</button> ');
+      res.write('<a class=\'btn btn-default\' href=\'/devices\'>Cancel</a>');
+      res.write('</form>');
+      res.write('</div>');
+      res.end(this.footer);
+    }
+
+    processInsteonConnectCSV(csv: string) {
+      // Ensure devices is a proper array before we try to use findIndex
+      const devices: any[] = Array.isArray(this.insteonJSON.devices)
+        ? this.insteonJSON.devices
+        : (Array.isArray(this.hubDevices) ? this.hubDevices : []);
+      const modelToType: Record<string, string> = {
+        'dimmer switch': 'dimmer',
+        'dimmer module': 'dimmer',
+        'dimmer': 'dimmer',
+        'on/off switch': 'switch',
+        'on/off toggle': 'switch',
+        'on/off module': 'switch',
+        'outlet': 'outlet',
+        'i3 outlet': 'outlet',
+        'motion sensor': 'motionsensor',
+        'motion sensor ii': 'motionsensor',
+        'door sensor': 'doorsensor',
+        'open/close sensor': 'doorsensor',
+        'leak sensor': 'leaksensor',
+        'water leak sensor': 'leaksensor',
+        'smoke detector': 'smoke',
+        'smoke bridge': 'smoke',
+        'keypadlinc dimmer': 'keypad',
+        'keypadlinc relay': 'keypad',
+        'keypad': 'keypad',
+        'i3 paddle': 'dimmer',
+        'fanlinc': 'fan',
+        'fan': 'fan',
+        'iolinc': 'iolinc',
+        'garage door': 'iolinc',
+        'mini remote': 'remote',
+        'mini remote - switch': 'remote',
+        'thermostat': 'thermostat',
+      };
+
+      const lines = csv.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      // Find header row — accept both "DeviceInsteonID" (export) and "Insteon ID" (web view)
+      const headerIndex = lines.findIndex((l) =>
+        l.toLowerCase().includes('deviceinsteonid') || l.toLowerCase().includes('insteon id'),
+      );
+      if (headerIndex === -1) {
+        return { matched: 0, unmatched: 0, details: [] };
+      }
+
+      const headers = this.parseCSVLine(lines[headerIndex]).map((h) => h.trim().toLowerCase().replace(/\s/g, ''));
+      const nameCol = headers.findIndex((h) => h === 'devicename' || h === 'devicename');
+      const idCol = headers.findIndex((h) => h === 'deviceinsteonid' || h === 'insteonid');
+      const modelCol = headers.findIndex((h) => h === 'model');
+
+      if (nameCol === -1 || idCol === -1) {
+        return { matched: 0, unmatched: 0, details: [] };
+      }
+
+      let matched = 0;
+      let unmatched = 0;
+      const details: any[] = [];
+
+      for (let i = headerIndex + 1; i < lines.length; i++) {
+        const cols = this.parseCSVLine(lines[i]);
+        if (cols.length <= Math.max(nameCol, idCol)) {
+          continue;
+        }
+
+        const name = cols[nameCol].trim();
+        const rawID = cols[idCol].trim();
+        const model = modelCol >= 0 ? cols[modelCol].trim() : '';
+
+        if (!name || !rawID) {
+          continue;
+        }
+
+        // Normalize ID: remove dots and uppercase
+        const insteonID = rawID.replace(/\./g, '').toUpperCase();
+        if (!/^[0-9A-F]{6}$/.test(insteonID)) {
+          continue;
+        }
+
+        const devIndex = devices.findIndex((d) =>
+          d.deviceID && d.deviceID.replace(/\./g, '').toUpperCase() === insteonID,
+        );
+
+        if (devIndex === -1) {
+          unmatched++;
+          details.push({ id: insteonID, name, status: 'not found in hub' });
+          continue;
+        }
+
+        devices[devIndex].name = name;
+
+        // Set deviceType from model if not already set
+        if (model && !devices[devIndex].deviceType) {
+          const deviceType = modelToType[model.toLowerCase()];
+          if (deviceType) {
+            devices[devIndex].deviceType = deviceType;
+          }
+        }
+
+        matched++;
+        details.push({ id: insteonID, name, status: 'matched' });
+      }
+
+      // Sync modified devices array back to insteonJSON so the save captures the changes
+      this.insteonJSON.devices = devices;
+
+      return { matched, unmatched, details };
+    }
+
+    parseCSVLine(line: string): string[] {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"'; i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (ch === ',' && !inQuotes) {
+          result.push(current);
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+      result.push(current);
+      return result;
+    }
+
     getHubDevices(res, callback) {
       const devices: any = [];
 
@@ -3324,11 +3567,17 @@ export class InsteonUI {
         return item.deviceID == deviceID;
       });
 
+      // Track whether any command gets a real response, to distinguish
+      // "completely offline" from "responded but returned no links"
+      let gotAnyResponse = false;
+
       this.getDeviceInfo(deviceID, res, (error, response) => {
         if (error) {
           sse.emit('push', {
             message: 'Error getting device info for ' + deviceID,
           });
+        } else {
+          gotAnyResponse = true;
         }
 
         this.getOpFlags(deviceID, (error, response) => {
@@ -3336,10 +3585,15 @@ export class InsteonUI {
             sse.emit('push', {
               message: 'Error getting operating flags for ' + deviceID,
             });
+          } else {
+            gotAnyResponse = true;
           }
 
           this.getDatabaseDelta(deviceID, (error, dbdelta) => {
             const databaseDelta = dbdelta;
+            if (!error) {
+              gotAnyResponse = true;
+            }
 
             let recentDelta;
             if (
@@ -3353,6 +3607,7 @@ export class InsteonUI {
 
             if (recentDelta == databaseDelta) {
               sse.emit('push', { message: 'prompt' });
+              callback(null, null);
             } else {
               this.insteonJSON.devices[devIndex].databaseDelta = databaseDelta;
               this.getDeviceLinks(deviceID, (error, response) => {
@@ -3361,10 +3616,10 @@ export class InsteonUI {
                   sse.emit('push', {
                     message: 'Error getting links for ' + deviceID,
                   });
-                  setTimeout(() => {
-                    sse.emit('push', { message: 'close' });
-                  }, 3000);
-                  callback(error, null);
+                  const errMsg = gotAnyResponse
+                    ? 'No links returned (battery device or sensor)'
+                    : 'Offline (no device response)';
+                  callback(typeof error === 'string' ? error : errMsg, null);
                 } else {
                   this.log('Done getting links for ' + deviceID);
                   callback(null, null);
@@ -3428,14 +3683,20 @@ export class InsteonUI {
       _getDeviceLinks(deviceID, at, linkArray, (error, response) => {
         this.log('linkArray: ' + util.inspect(linkArray));
 
+        if (error) {
+          this.log('Error (timeout) getting links from ' + deviceID);
+          callback('Timed out (no device response)', null);
+          return;
+        }
+
         linkArray = linkArray.filter((item, index, inputArray) => {
           return inputArray.indexOf(item) == index;
         });
 
         if (linkArray.length == 0) {
-          this.log('No links returned from ' + deviceID);
-          callback(true, null);
-          sse.emit('push', { message: 'close' });
+          this.log('No links found in ' + deviceID + ' (empty database)');
+          sse.emit('push', { message: 'No links found in ' + deviceID + ' (empty database)' });
+          callback(null, []);
           return;
         }
 
@@ -3444,7 +3705,6 @@ export class InsteonUI {
         });
 
         this.insteonJSON.devices[devIndex].links = linkArray;
-        sse.emit('push', { message: 'close' });
         callback(null, linkArray);
       });
     }
@@ -3889,6 +4149,33 @@ export class InsteonUI {
 
       theDevice = theDevice[0];
 
+      if (!theDevice) {
+        this.log('generateDeviceConfig: device ' + deviceID + ' not found in hubDevices, skipping');
+        callback(null, null, res);
+        return;
+      }
+
+      // Build device config from whatever info is available — never fail,
+      // just omit deviceType if we can't determine it.
+      const _buildConf = (deviceType?: string) => {
+        const devConf: any = {};
+        devConf.name = theDevice.name || theDevice.deviceID;
+        devConf.deviceID = theDevice.deviceID;
+        if (deviceType) {
+          devConf.deviceType = deviceType;
+          switch (deviceType) {
+            case 'dimmer':
+            case 'lightbulb':
+              devConf.dimmable = 'yes';
+              break;
+            case 'switch':
+              devConf.dimmable = 'no';
+              break;
+          }
+        }
+        callback(null, devConf, res);
+      };
+
       const _generateDeviceConfig = () => {
         const filtered = this.deviceDatabase.filter((item) => {
           return item.category == theDevice.info.deviceCategory.id;
@@ -3896,45 +4183,35 @@ export class InsteonUI {
         const found = filtered.find((item) => {
           return item.subcategory == theDevice.info.deviceSubcategory.id;
         });
-        const hkDeviceType = found.deviceType;
-
-        const devConf: any = {};
-        devConf.name = theDevice.name || theDevice.deviceID;
-        devConf.deviceID = theDevice.deviceID;
-        devConf.deviceType = hkDeviceType;
-
-        switch (devConf.deviceType) {
-          case 'dimmer':
-          case 'lightbulb':
-            devConf.dimmable = 'yes';
-            break;
-          case 'switch':
-            devConf.dimmable = 'no';
-            break;
-        }
-
-        callback(null, devConf, res);
+        _buildConf(found ? found.deviceType : undefined);
       };
 
+      // 1. Use deviceType already stored in insteonJSON (e.g. from CSV import)
+      const insteonDev = Array.isArray(this.insteonJSON.devices)
+        ? this.insteonJSON.devices.find((d) => d.deviceID === deviceID)
+        : null;
+      if (insteonDev && insteonDev.deviceType) {
+        this.log('Using cached deviceType for ' + deviceID + ': ' + insteonDev.deviceType);
+        _buildConf(insteonDev.deviceType);
+        return;
+      }
 
-      if (
-        typeof theDevice.info === 'undefined' ||
-            typeof theDevice.info.deviceCategory === 'undefined'
-      ) {
-        this.getDeviceInfo(theDevice.deviceID, res, (error, info) => {
-          if (typeof theDevice.info === 'undefined') {
-            //devInfo error callback broken
-            this.log('Could not get device info for ' + theDevice.deviceID);
-            error = new Error('Could not get device info');
-            callback(error, null, res);
-          } else {
-            _generateDeviceConfig();
-          }
-        });
-      } else {
+      // 2. Use hub info already in memory
+      if (theDevice.info && typeof theDevice.info.deviceCategory !== 'undefined') {
         this.log('Already have device info for ' + deviceID);
         _generateDeviceConfig();
+        return;
       }
+
+      // 3. Try to query hub — if it fails, still add device without type
+      this.getDeviceInfo(theDevice.deviceID, res, (error, info) => {
+        if (typeof theDevice.info === 'undefined') {
+          this.log('Could not get device info for ' + theDevice.deviceID + ', adding without type');
+          _buildConf(undefined);
+        } else {
+          _generateDeviceConfig();
+        }
+      });
     }
 
     addDeviceToConfig(devConf, res, callback) {
@@ -3948,9 +4225,6 @@ export class InsteonUI {
       } else {
         this.log('Device not found in config, adding ' + devConf.name + '.');
         this.config.platforms[this.platformIndex].devices.push(devConf);
-
-        this.log('Config to save: ' + JSON.stringify(this.config));
-        //this.saveConfig(res)
         callback(res);
       }
     }
@@ -4024,27 +4298,49 @@ export class InsteonUI {
 		</script>`;
 
       this.sseInit = `<script>
+		var _sseSource = null;
 		function sseInit(e) {
 			var sender = $(e).attr('id');
 
+			$('#progressModal .modal-body').empty();
+			$('#progressModal .modal-footer').hide();
+
+			if (_sseSource) {
+				_sseSource.close();
+				_sseSource = null;
+			}
+
 			if (!!window.EventSource) {
 				var source = new EventSource('/events');
+				_sseSource = source;
 			}
 
 			$('#progressModal').modal({show:true});
 
 			source.addEventListener('message', function(e) {
-				this.log(e.data);
-				var data = JSON.parse(e.data)
-				var message = data.message
+				var data = JSON.parse(e.data);
+				var message = data.message;
+				var body = $('#progressModal .modal-body');
 
-			if(message == 'prompt') {
+				if (message == 'prompt') {
 					$('#progressModal .modal-footer').show();
-					message = 'No changes to device database.  Update links anyway?'
-					$('#progressModal .modal-body').text(message);
-				} else if(message == 'close') {
-					$('#progressModal').modal({show:false});
-				} else {$('#progressModal .modal-body').text(message);}
+					body.append('<div style="color:#f0ad4e">&#9658; No changes detected. Update links anyway?</div>');
+					body.scrollTop(body[0].scrollHeight);
+				} else if (message == 'close') {
+					body.append('<div style="color:#5cb85c">&#10003; Done.</div>');
+					body.scrollTop(body[0].scrollHeight);
+					source.close();
+					_sseSource = null;
+					$('#progressModal .modal-footer').show();
+				} else {
+					var color = '#333';
+					if (message.indexOf('Error') !== -1 || message.indexOf('Timed out') !== -1 || message.indexOf('Offline') !== -1) { color = '#d9534f'; }
+					else if (message.indexOf('Done') !== -1 || message.indexOf('loaded') !== -1) { color = '#5cb85c'; }
+					else if (message.indexOf('No links') !== -1 || message.indexOf('battery device') !== -1) { color = '#f0ad4e'; }
+					else if (message.indexOf('Getting') !== -1 || message.indexOf('Loading') !== -1) { color = '#5bc0de'; }
+					body.append('<div style="color:' + color + '">' + message + '</div>');
+					body.scrollTop(body[0].scrollHeight);
+				}
 			}, false);
 
 			source.addEventListener('open', function(e) {

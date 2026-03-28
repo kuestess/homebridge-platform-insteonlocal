@@ -15,7 +15,9 @@ Implements local control of Insteon devices including switches, dimmers, outlets
 
 Devices can be auto-discovered via the Insteon UI (see below) and automatically added to the homebridge config.json with the most approproate device type.  On the 'Devices' tab, select the 'Devices Action' menu.  If you have not already, click on 'Get Devices' to pull devices from the Hub/PLM.  Once that completes, you can click 'Add All to Config' which will add all devices to your config.  Alternately, you can add a single device to the config by clicking the 'Add to Config' button on the device page after selecting an individual device.
 
-Supported devices include: dimmers (including i3), lightbulbs, on/off switch, keypads (6 or 8 button config and i3), on/off and dimmer outlets, remotes, iolinc, motion sensor, leak sensor, door sensor, smoke detector, fan controller, micro module, and thermostat.
+Supported devices include: dimmers (including i3), lightbulbs, on/off switch, keypads (6 or 8 button config and i3), on/off and dimmer outlets, mini-remotes (battery operated, 4 or 8 button), iolinc, motion sensor, leak sensor, door sensor, smoke detector, fan controller, micro module, and thermostat.
+
+Battery-operated devices (motion sensors, door/window sensors, leak sensors, and mini-remotes) report low battery status to HomeKit. Low battery is signalled either by the Insteon low battery broadcast or, for sensors with heartbeats, by absence of the expected 24-hour heartbeat signal.
 
 Supported controllers include: Hub1 (2242), Hub2 (2245), Hub Pro, PLM
 
@@ -172,6 +174,8 @@ This plugin will set up a local [Express](https://expressjs.com) server at the p
  - `/links`:  get all links from your Insteon Hub
  - `/links/[id]`:  get links for device with Insteon [id]
  - `/info/[id]`:  get info for device with Insteon [id]
+
+All `[id]` parameters must be exactly 6 hexadecimal characters (e.g. `AABBCC`). `[targetlevel]` must be an integer 0–100. `[group]` must be an integer 1–255. Requests with invalid parameters are rejected with HTTP 400.
 
 The Express server is now optional and can be disabled if desired.
 
